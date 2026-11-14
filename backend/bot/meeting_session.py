@@ -232,8 +232,74 @@ HIDE_VIDEO_JS = """
 """
 
 
+# The notetaker's camera in Meet: the Charcha avatar drawn on a canvas,
+# switching to the speaking face (mouth open, marigold rings) while
+# window.__charchaSpeaking is set. Audio still comes from the real
+# (virtual) microphone. A canvas at 5 fps costs next to nothing.
+AVATAR_CAMERA_JS = """
+(() => {
+  const media = navigator.mediaDevices;
+  if (!media) return;
+  const canvas = document.createElement("canvas");
+  canvas.width = 640;
+  canvas.height = 360;
+  const ctx = canvas.getContext("2d");
+  const idle = new Image();
+  const speaking = new Image();
+  idle.src = "data:image/png;base64,__IDLE__";
+  speaking.src = "data:image/png;base64,__SPEAKING__";
+  let tick = 0;
+  setInterval(() => {
+    tick += 1;
+    // Alternate the faces while speaking so the mouth moves.
+    const face = window.__charchaSpeaking && tick % 2 === 0 ? speaking : idle;
+    if (face.complete && face.naturalWidth) ctx.drawImage(face, 0, 0, canvas.width, canvas.height);
+  }, 200);
+  const getUserMedia = media.getUserMedia.bind(media);
+  media.getUserMedia = async (constraints) => {
+    if (!constraints || !constraints.video) return getUserMedia(constraints);
+    const stream = canvas.captureStream(5);
+    if (constraints.audio) {
+      try {
+        const audio = await getUserMedia({ audio: constraints.audio });
+        audio.getAudioTracks().forEach((track) => stream.addTrack(track));
+      } catch {}
+    }
+    return stream;
+  };
+  const enumerateDevices = media.enumerateDevices.bind(media);
+  media.enumerateDevices = async () => {
+    const devices = await enumerateDevices();
+    if (devices.some((device) => device.kind === "videoinput")) return devices;
+    const camera = { deviceId: "charcha-avatar", groupId: "charcha", kind: "videoinput", label: "Charcha", toJSON() { return this; } };
+    return [...devices, camera];
+  };
+})();
+"""
+
+
 def _norm(word: str) -> str:
     return "".join(ch for ch in word.lower() if ch.isalnum())
+
+
+def _plain(text: str) -> str:
+    """Lower-case words only: captions add commas, full stops and splits
+    ("Note taker, please leave.") that an exact phrase match would miss."""
+    return " ".join(re.sub(r"[^\w\s]", " ", text.lower()).split())
+
+
+_LEAVE_RE = re.compile(
+    r"\b(?:note\s?taker|charcha|char\s?cha|carcha)\b(?:\s+\w+){0,2}?\s+"
+    r"(?:please\s+|pls\s+|plz\s+|ab\s+|aap\s+)?(?:leave|chale\s+jao|chali\s+jao|nikal\s+jao|bye|stop\s+recording)\b"
+)
+
+
+def wants_exit(text: str) -> bool:
+    """True when someone asks the notetaker to leave, however captions
+    punctuate it: the configured phrases, or notetaker/Charcha followed
+    within a couple of words by "leave", "chale jao", "bye"."""
+    plain = _plain(text)
+    return any(_plain(phrase) in plain for phrase in config.EXIT_PHRASES) or bool(_LEAVE_RE.search(plain))
 
 
 def spoken_summary(text: str, limit: int = 420) -> str:
@@ -290,7 +356,7 @@ class CaptionLog:
             if not text:
                 continue
             self._last_heard = time.monotonic()
-            if any(phrase in text.lower() for phrase in config.EXIT_PHRASES):
+            if wants_exit(text):
                 self.exit_requested.set()
             self.latest[item["id"]] = (item.get("speaker") or "", text, time.monotonic())
             block = self._blocks.setdefault(item["id"], {"speaker": "", "words": [], "visible": 0})
@@ -400,6 +466,7 @@ class MeetingSession:
         self.captions = CaptionLog()
         self.recorded_seconds = 0.0
         self.captions_enabled = False
+        self.avatar_camera = config.MEET_AVATAR_CAMERA and config.AVATAR_IDLE.exists() and config.AVATAR_SPEAKING.exists()
         self.chat = meet_chat.ChatWatcher()
         self.chat_ready = False
         # Set only for "add the notetaker to this link" visits; calendar
@@ -518,7 +585,10 @@ class MeetingSession:
             await name_box.fill(config.BOT_DISPLAY_NAME)
 
         await _click_if_visible(page, 'button[aria-label*="Turn off microphone"]')
-        await _click_if_visible(page, 'button[aria-label*="Turn off camera"]')
+        if self.avatar_camera:
+            await _click_if_visible(page, 'button[aria-label*="Turn on camera"]')
+        else:
+            await _click_if_visible(page, 'button[aria-label*="Turn off camera"]')
         await _click_if_visible(page, 'button:has-text("Got it")')
         # Meet's "hear you / see you" permission modals. Both can be in the DOM
         # at once with only one visible, so dismiss them blind.
@@ -633,6 +703,7 @@ class MeetingSession:
             if not await _click_if_visible(page, 'button[aria-label*="Turn on microphone"]', timeout_ms=1500):
                 await page.keyboard.press("Control+KeyD")
             await page.wait_for_timeout(400)
+            await page.evaluate("window.__charchaSpeaking = true")
             await asyncio.to_thread(
                 subprocess.run,
                 ["ffmpeg", "-nostdin", "-loglevel", "error", "-re", "-i", str(path), "-ac", "1", "-ar", "48000",
@@ -644,6 +715,7 @@ class MeetingSession:
         except Exception as error:
             log.warning("Could not speak in the call: %s", error)
         finally:
+            await page.evaluate("window.__charchaSpeaking = false")
             if not await _click_if_visible(page, 'button[aria-label*="Turn off microphone"]', timeout_ms=1500):
                 await page.keyboard.press("Control+KeyD")
 
@@ -676,7 +748,7 @@ class MeetingSession:
                 if key in handled or len(question) < 4:
                     continue
                 handled.add(key)
-                if any(phrase in f"charcha {question}".lower() for phrase in config.EXIT_PHRASES):
+                if wants_exit(f"charcha {question}"):
                     continue
                 found.append((speaker, question))
         return found
@@ -801,6 +873,12 @@ class MeetingSession:
 
     async def grant_media(self, context: BrowserContext) -> None:
         await context.grant_permissions(["microphone", "camera"], origin="https://meet.google.com")
+        if self.avatar_camera:
+            await context.add_init_script(
+                AVATAR_CAMERA_JS
+                .replace("__IDLE__", base64.b64encode(config.AVATAR_IDLE.read_bytes()).decode())
+                .replace("__SPEAKING__", base64.b64encode(config.AVATAR_SPEAKING.read_bytes()).decode())
+            )
 
     async def run(self) -> str:
         self.create_sink()

@@ -61,6 +61,12 @@ MAX_MEETING_MINUTES = int(_env("MAX_MEETING_MINUTES", "240"))
 TEAMS_LOGO_CAMERA = _env("TEAMS_LOGO_CAMERA").lower() in {"1", "true", "yes"}
 TEAMS_LOGO_IMAGE = Path(_env("TEAMS_LOGO_IMAGE", str(Path(__file__).parent / "assets" / "logo_card.png")))
 
+# Google Meet: show the Charcha avatar as the notetaker's camera (it opens
+# its mouth while speaking). Off with MEET_AVATAR_CAMERA=0.
+MEET_AVATAR_CAMERA = _env("MEET_AVATAR_CAMERA", "1").lower() not in {"0", "false", "no"}
+AVATAR_IDLE = Path(__file__).parent / "assets" / "avatar_idle.png"
+AVATAR_SPEAKING = Path(__file__).parent / "assets" / "avatar_speaking.png"
+
 # Google Meet only: post a short notice in the call's chat on joining (who
 # invited the notetaker, that it records, how to make it leave), like any
 # well-behaved notetaker. Off with ANNOUNCE_IN_CHAT=0.

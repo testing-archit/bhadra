@@ -12,7 +12,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY entrypoint.sh config.py google_calendar.py meet_chat.py meeting_session.py scheduler.py teams_dom.py uploader.py ./
-COPY assets/logo_card.png assets/
+COPY assets/ assets/
 RUN chmod +x entrypoint.sh
 
 ENV STATE_DIR=/data \
