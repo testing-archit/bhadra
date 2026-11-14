@@ -11,7 +11,7 @@ from slowapi.middleware import SlowAPIMiddleware
 
 from app.config import settings
 from app.rate_limit import limiter
-from app.routes import admin, auth, bot, calendar, capture, chat, decisions, digest, email, jira, meeting_workspace, meetings, notifications, policy_chat, projects, recordings, recycle_bin, tasks, transcribe, vocabulary
+from app.routes import admin, auth, bot, calendar, capture, chat, decisions, digest, email, jira, meeting_workspace, meetings, notifications, policy_chat, projects, recordings, recycle_bin, tasks, transcribe, tts, vocabulary
 from app.services import calendar_service, email_service, jira_service, processing_service, usage_ledger
 
 logger = logging.getLogger(__name__)
@@ -74,6 +74,7 @@ app.include_router(notifications.router)
 app.include_router(bot.router)
 app.include_router(email.router)
 app.include_router(vocabulary.router)
+app.include_router(tts.router)
 
 
 @app.get("/health")

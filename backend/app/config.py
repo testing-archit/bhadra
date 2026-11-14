@@ -37,6 +37,13 @@ class Settings(BaseSettings):
     gnani_stt_url: str = "https://api.vachana.ai/stt/v3"
     gnani_stt_model: str = "prisma-v3.0"
     gnani_stt_mode: str = "codemix"
+    # Gnani Timbre text-to-speech: Charcha reads answers and summaries aloud
+    # with the same Gnani key. v2.5 answers in ~1 s; "hi-en" speaks Hinglish
+    # (Roman-script Hindi mixed with English) naturally.
+    gnani_tts_url: str = "https://api.vachana.ai/api/v1/tts/inference"
+    gnani_tts_model: str = "timbre-v2.5"
+    gnani_tts_voice: str = "Nalini"
+    gnani_tts_language: str = "hi-en"
     # How long one USD→INR quote is reused when pricing AI calls. Each AI
     # call stores the rate it was priced at; the free sources publish daily
     # reference rates, so asking more often than hourly gains nothing.
