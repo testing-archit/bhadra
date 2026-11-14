@@ -1,3 +1,4 @@
+import json
 from unittest.mock import patch
 
 import pytest
@@ -91,7 +92,9 @@ async def test_prisma_request_uses_v3_mode_auto_language_and_keyterms():
     assert captured["data"]["model"] == "prisma-v3.0"
     assert captured["data"]["mode"] == "codemix"
     assert captured["data"]["language_code"] == "en-IN"
-    assert captured["data"]["key_terms"] == '["Archit"]'
+    # The meeting's people lead the key terms; other accounts in the test
+    # database (created by earlier tests) may follow them.
+    assert json.loads(captured["data"]["key_terms"])[0] == "Archit"
     assert "audio_file" in captured["files"]
 
 
