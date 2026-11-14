@@ -154,7 +154,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
                 onClick={onNavigate}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "flex min-h-10 items-center gap-3 rounded-xl px-3 text-sm text-sidebar-foreground/60 outline-none transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground focus-visible:ring-2 focus-visible:ring-sidebar-ring",
+                  "flex min-h-10 items-center gap-3 rounded-xl px-3 text-sm text-sidebar-foreground/80 outline-none transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground focus-visible:ring-2 focus-visible:ring-sidebar-ring",
                   active &&
                     "bg-sidebar-accent font-medium text-sidebar-accent-foreground",
                 )}
@@ -178,7 +178,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
                 items.some((item) => isNavActive(item, pathname)) || undefined
               }
             >
-              <summary className="flex min-h-10 cursor-pointer list-none items-center gap-3 rounded-xl px-3 text-sm text-sidebar-foreground/60 hover:bg-sidebar-accent focus-visible:outline-2 focus-visible:outline-sidebar-ring">
+              <summary className="flex min-h-10 cursor-pointer list-none items-center gap-3 rounded-xl px-3 text-sm text-sidebar-foreground/80 hover:bg-sidebar-accent focus-visible:outline-2 focus-visible:outline-sidebar-ring">
                 <ChevronRight
                   className="size-4 transition-transform group-open/more:rotate-90"
                   aria-hidden="true"
@@ -203,7 +203,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
           onClick={onNavigate}
           className="flex h-8 items-center gap-2.5 rounded-lg px-2.5 text-sm text-sidebar-foreground/80 transition-colors hover:bg-sidebar-accent/70 hover:text-sidebar-foreground"
         >
-          <Puzzle className="size-4 text-sidebar-foreground/55" /> Get the
+          <Puzzle className="size-4 text-sidebar-foreground/70" /> Get the
           extension
         </Link>
         <Link
@@ -216,7 +216,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
               "bg-sidebar-accent font-medium text-sidebar-accent-foreground",
           )}
         >
-          <Settings className="size-4 text-sidebar-foreground/55" /> Settings
+          <Settings className="size-4 text-sidebar-foreground/70" /> Settings
         </Link>
 
         {user && (
@@ -229,11 +229,11 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
                 <span className="block truncate text-sm font-medium">
                   {user.name || user.email.split("@")[0]}
                 </span>
-                <span className="block truncate text-xs text-sidebar-foreground/60">
+                <span className="block truncate text-xs text-sidebar-foreground/80">
                   {user.team_name || user.department || user.email}
                 </span>
               </span>
-              <ChevronsUpDown className="size-4 shrink-0 text-sidebar-foreground/55" />
+              <ChevronsUpDown className="size-4 shrink-0 text-sidebar-foreground/70" />
             </MenuTrigger>
             <MenuContent side="top" align="start" className="w-60">
               <MenuLabel className="truncate">{user.email}</MenuLabel>
@@ -309,7 +309,7 @@ function LiveNotetakers() {
               <p className="truncate text-sm font-medium">
                 {request.title || request.meeting_code}
               </p>
-              <p className="truncate text-xs text-sidebar-foreground/60">
+              <p className="truncate text-xs text-sidebar-foreground/80">
                 {request.requested_by
                   ? `${request.requested_by}'s notetaker, `
                   : ""}
@@ -322,7 +322,7 @@ function LiveNotetakers() {
               <button
                 type="button"
                 onClick={() => void stop(request.id)}
-                className="grid size-6 shrink-0 place-items-center rounded-md text-sidebar-foreground/60 transition-colors hover:bg-destructive/20 hover:text-sidebar-foreground"
+                className="grid size-6 shrink-0 place-items-center rounded-md text-sidebar-foreground/80 transition-colors hover:bg-destructive/20 hover:text-sidebar-foreground"
                 aria-label={
                   request.status === "requested"
                     ? "Cancel notetaker"

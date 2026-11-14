@@ -4,13 +4,12 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   ArrowRight,
-  ArrowUpRight,
   Check,
   ChevronLeft,
   ChevronRight,
-  Headphones,
-  ListChecks,
+  MessageSquareText,
   Mic,
+  Send,
   Video,
 } from "lucide-react";
 import {
@@ -25,7 +24,8 @@ import { useAuth } from "@/lib/auth-context";
 import { compareByUrgency, formatDue, isMyTask } from "@/lib/tasks";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { HomeComposer } from "@/components/home-composer";
+import { MeetingAgenda } from "@/components/meeting-agenda";
+import { RecordedMeetingCard } from "@/components/recorded-meeting-card";
 import { isCaptureLive, useShell } from "@/components/shell/shell-context";
 
 type FocusItem =
@@ -35,7 +35,7 @@ type FocusItem =
 
 export default function HomePage() {
   const { user } = useAuth();
-  const { captures } = useShell();
+  const { captures, openNotetaker } = useShell();
   const [tasks, setTasks] = useState<TaskListItem[] | null>(null);
   const [meetings, setMeetings] = useState<MeetingSummary[] | null>(null);
   const [latest, setLatest] = useState<MeetingDetail | null>(null);
@@ -113,11 +113,6 @@ export default function HomePage() {
   const live = captures.filter(
     (item) => isCaptureLive(item) && item.subscribed !== false,
   );
-  const firstName = (user?.name || user?.email.split("@")[0] || "there").split(
-    " ",
-  )[0];
-  const hour = new Date().getHours();
-  const greeting = hour < 12 ? "Morning" : hour < 17 ? "Afternoon" : "Evening";
 
   async function finishTask(task: TaskListItem) {
     setBusy(true);
@@ -140,281 +135,246 @@ export default function HomePage() {
   }
 
   return (
-    <div className="home-workspace">
-      <section className="home-stage" aria-labelledby="home-heading">
-        <div className="home-atmosphere" aria-hidden="true" />
-        <div className="relative flex w-full max-w-2xl flex-col items-center">
-          <p className="mb-5 text-sm text-muted-foreground">
-            {greeting}, {firstName}.
-          </p>
-          <h1
-            id="home-heading"
-            className="text-center text-[clamp(2rem,4vw,3.25rem)] leading-[1.06] font-medium tracking-[-0.055em]"
-          >
-            Be in the conversation.
-          </h1>
-          <p className="mt-4 text-center text-base text-muted-foreground">
-            We&apos;ll remember what matters.
-          </p>
-          <div className="mt-7 w-full">
-            <HomeComposer />
-          </div>
-        </div>
-      </section>
-
-      {live.length > 0 && (
-        <div
-          className="mb-7 flex flex-col gap-2"
-          aria-label="Active notetakers"
-        >
-          {live.map((capture) => (
-            <Link
-              key={capture.id}
-              href={
-                capture.meeting_id
-                  ? `/meetings/${capture.meeting_id}`
-                  : "/meetings"
-              }
-              className="live-meeting-strip"
-            >
-              <span className="grid size-9 shrink-0 place-items-center rounded-full bg-success/10 text-success">
-                <Headphones className="size-4" aria-hidden="true" />
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="block truncate text-sm font-medium">
-                  {capture.title || capture.meeting_code}
-                </span>
-                <span className="block text-xs text-muted-foreground">
-                  {capture.status_label}
-                </span>
-              </span>
-              <span className="text-xs text-muted-foreground">
-                {capture.status === "capturing" ? "Recording" : "View status"}
-              </span>
-              <ArrowUpRight className="size-4" aria-hidden="true" />
-            </Link>
-          ))}
-        </div>
-      )}
-
+    <div className="meeting-dashboard">
+      <h1 className="sr-only">Your meetings</h1>
       {error && (
-        <div
-          className="mb-5 flex items-center justify-between gap-3 rounded-xl border border-destructive/30 p-3 text-sm"
-          role="alert"
-        >
+        <div className="dashboard-error" role="alert">
           <p>{error}</p>
-          <button
-            type="button"
-            disabled={loading}
-            onClick={() => void load()}
-            className="shrink-0 font-medium underline underline-offset-4"
-          >
+          <button type="button" disabled={loading} onClick={() => void load()}>
             Try again
           </button>
         </div>
       )}
-
-      <div className="home-lower-grid">
-        <section className="focus-panel" aria-labelledby="focus-heading">
-          <div className="flex items-center justify-between gap-3">
-            <h2 id="focus-heading" className="text-sm font-medium">
-              Needs you{" "}
-              <span className="ml-2 text-muted-foreground">
-                {loading ? "" : queue.length}
+      <div className="dashboard-columns">
+        <div className="dashboard-primary">
+          <section className="meeting-shortcuts" aria-label="Start with Wilco">
+            <button
+              type="button"
+              className="capture-tile"
+              onClick={() => openNotetaker()}
+            >
+              <span className="capture-tile-icon">
+                <Send aria-hidden="true" />
               </span>
-            </h2>
-            <Link href="/tasks" className="quiet-link">
-              All tasks <ArrowUpRight className="size-3.5" aria-hidden="true" />
-            </Link>
-          </div>
-          <div
-            className="flex min-h-60 flex-1 flex-col justify-center py-6"
-            aria-live="polite"
-            aria-busy={loading || busy}
-          >
-            {loading ? (
-              <Skeleton className="h-36 w-full rounded-xl" />
-            ) : !active ? (
-              <>
-                <span className="mb-5 grid size-10 place-items-center rounded-full bg-success/10 text-success">
-                  <Check className="size-5" aria-hidden="true" />
+              <strong>Capture a meeting</strong>
+              <span className="capture-tile-description">
+                Notes, tasks &amp; decisions.
+              </span>
+              <span className="capture-tile-cta">
+                Invite Wilco{" "}
+                <ChevronRight className="size-3.5" aria-hidden="true" />
+              </span>
+            </button>
+            <div className="shortcut-stack">
+              <Link href="/record" className="shortcut-tile">
+                <span className="shortcut-icon" data-tone="record">
+                  <Mic aria-hidden="true" />
+                  <i />
                 </span>
-                <h3 className="text-2xl font-medium tracking-tight">
-                  {error
-                    ? "Your briefing is on hold."
-                    : "A little breathing room."}
+                <strong>
+                  Record
+                  <br />
+                  in person
+                </strong>
+                <ArrowRight className="shortcut-arrow" aria-hidden="true" />
+              </Link>
+              <Link href="/memory" className="shortcut-tile">
+                <span className="shortcut-icon">
+                  <MessageSquareText aria-hidden="true" />
+                </span>
+                <strong>
+                  Ask your
+                  <br />
+                  meetings
+                </strong>
+                <ArrowRight className="shortcut-arrow" aria-hidden="true" />
+              </Link>
+            </div>
+          </section>
+
+          {live.length > 0 && (
+            <section className="dashboard-live" aria-label="Ongoing recordings">
+              {live.map((capture) => (
+                <Link
+                  key={capture.id}
+                  href={
+                    capture.meeting_id
+                      ? `/meetings/${capture.meeting_id}`
+                      : "/meetings"
+                  }
+                >
+                  <span className="recording-dot" aria-hidden="true" />
+                  <span className="min-w-0 flex-1">
+                    <strong>{capture.title || capture.meeting_code}</strong>
+                    <small>{capture.status_label}</small>
+                  </span>
+                  <ChevronRight className="size-4" aria-hidden="true" />
+                </Link>
+              ))}
+            </section>
+          )}
+
+          <section aria-labelledby="recent-heading">
+            <div className="section-heading">
+              <h2 id="recent-heading">Recent meetings</h2>
+              <Link href="/meetings">View all</Link>
+            </div>
+            {loading ? (
+              <div className="flex flex-col gap-4">
+                <Skeleton className="h-48 rounded-3xl" />
+                <Skeleton className="h-48 rounded-3xl" />
+              </div>
+            ) : !meetings?.length ? (
+              <div className="recorded-empty">
+                <Video className="size-7 text-primary" aria-hidden="true" />
+                <h3>
+                  {meetings === null
+                    ? "Meetings couldn't load."
+                    : "Your first meeting starts here."}
                 </h3>
-                <p className="mt-2 text-sm text-muted-foreground">
-                  {error
-                    ? "Try loading it again above."
-                    : "You're all caught up."}
-                </p>
-              </>
+                <p>Invite Wilco, record in person, or upload a recording.</p>
+                <Link
+                  href="/meetings/new?source=upload"
+                  className="violet-outline"
+                >
+                  Upload a recording
+                </Link>
+              </div>
             ) : (
-              <>
-                <div className="mb-4 flex items-center gap-2 text-xs text-muted-foreground">
-                  {active.kind === "review" ? (
-                    <Video className="size-4" />
-                  ) : active.kind === "task" ? (
-                    <ListChecks className="size-4" />
-                  ) : (
-                    <Mic className="size-4" />
-                  )}
-                  {active.kind === "review"
-                    ? `${active.count} to confirm`
-                    : active.kind === "task"
-                      ? "Your next task"
-                      : "Optional voice setup"}
-                </div>
-                <h3 className="max-w-xl text-2xl leading-snug font-medium tracking-tight">
-                  {active.kind === "voice"
-                    ? "Put a name to your voice."
-                    : active.kind === "review"
-                      ? active.meeting.title
-                      : active.task.description}
-                </h3>
-                <p className="mt-2 text-sm text-muted-foreground">
-                  {active.kind === "voice"
-                    ? "Record once. Get better speaker names."
-                    : active.kind === "review"
-                      ? "Check the decisions, owners and names."
-                      : [
-                          active.task.meeting_title,
-                          formatDue(active.task) &&
-                            `Due ${formatDue(active.task)}`,
-                        ]
-                          .filter(Boolean)
-                          .join(" · ")}
-                </p>
-                <div className="mt-6 flex flex-wrap items-center gap-4">
-                  {active.kind === "task" ? (
-                    <>
-                      <Button
-                        size="lg"
-                        disabled={busy}
-                        onClick={() => void finishTask(active.task)}
-                      >
-                        <Check data-icon="inline-start" />
-                        {busy ? "Saving…" : "Mark done"}
-                      </Button>
-                      <Link
-                        href={`/tasks?task=${active.task.id}`}
-                        className="quiet-link"
-                      >
-                        Open task <ArrowUpRight className="size-3.5" />
-                      </Link>
-                    </>
-                  ) : (
-                    <Link
-                      href={
-                        active.kind === "voice"
-                          ? "/voice-setup"
-                          : `/meetings/${active.meeting.id}?review=1`
-                      }
-                      className="focus-action"
-                    >
-                      {active.kind === "voice"
-                        ? "Set up voice"
-                        : "Review meeting"}
-                      <ArrowRight className="size-4" aria-hidden="true" />
-                    </Link>
-                  )}
-                </div>
-              </>
-            )}
-          </div>
-          <div className="flex min-h-10 items-center justify-between border-t pt-4">
-            <p className="text-xs text-muted-foreground">
-              {queue.length
-                ? `${position + 1} of ${queue.length}`
-                : "Nothing to chase."}
-            </p>
-            {queue.length > 1 && (
-              <div className="flex gap-1">
-                <button
-                  type="button"
-                  aria-label="Previous item"
-                  disabled={position === 0}
-                  onClick={() => setCursor(position - 1)}
-                  className="focus-step"
-                >
-                  <ChevronLeft className="size-4" />
-                </button>
-                <button
-                  type="button"
-                  aria-label="Next item"
-                  disabled={position === queue.length - 1}
-                  onClick={() => setCursor(position + 1)}
-                  className="focus-step"
-                >
-                  <ChevronRight className="size-4" />
-                </button>
+              <div className="recorded-meeting-list">
+                {meetings.slice(0, 3).map((meeting) => {
+                  const review = queue.find(
+                    (item) =>
+                      item.kind === "review" && item.meeting.id === meeting.id,
+                  );
+                  return (
+                    <RecordedMeetingCard key={meeting.id} meeting={meeting} review={Boolean(review)} />
+                  );
+                })}
               </div>
             )}
-          </div>
-        </section>
-        <section className="recent-panel" aria-labelledby="recent-heading">
-          <div className="mb-4 flex items-center justify-between">
-            <h2 id="recent-heading" className="text-sm font-medium">
-              Recent conversations
-            </h2>
-            <Link href="/meetings" className="quiet-link">
-              View all <ArrowUpRight className="size-3.5" />
-            </Link>
-          </div>
-          {loading ? (
-            <Skeleton className="h-52 w-full rounded-xl" />
-          ) : !meetings?.length ? (
-            <p className="py-10 text-sm text-muted-foreground">
-              {meetings === null
-                ? "Meetings couldn't load."
-                : "Your first conversation starts above."}
-            </p>
-          ) : (
-            <ul className="flex flex-col">
-              {meetings.slice(0, 4).map((meeting, index) => (
-                <li key={meeting.id}>
-                  <Link
-                    href={`/meetings/${meeting.id}`}
-                    className="recent-meeting-row"
+          </section>
+        </div>
+
+        <div className="dashboard-secondary">
+          <MeetingAgenda />
+          <section className="next-step-panel" aria-labelledby="focus-heading">
+            <div className="section-heading">
+              <h2 id="focus-heading">
+                Needs you{" "}
+                {queue.length > 0 && (
+                  <span className="small-count">{queue.length}</span>
+                )}
+              </h2>
+              <Link href="/tasks">All tasks</Link>
+            </div>
+            <div aria-live="polite" aria-busy={loading || busy}>
+              {loading ? (
+                <Skeleton className="h-28 rounded-2xl" />
+              ) : !active ? (
+                <div className="next-step-empty">
+                  <Check className="size-5 text-primary" aria-hidden="true" />
+                  <span>
+                    {error
+                      ? "Your briefing is on hold."
+                      : "You're all caught up."}
+                  </span>
+                </div>
+              ) : (
+                <div className="next-step-content">
+                  <span className="next-step-kind">
+                    {active.kind === "voice"
+                      ? "Optional setup"
+                      : active.kind === "review"
+                        ? `${active.count} items to confirm`
+                        : "Your next task"}
+                  </span>
+                  <h3>
+                    {active.kind === "voice"
+                      ? "Put a name to your voice"
+                      : active.kind === "review"
+                        ? active.meeting.title
+                        : active.task.description}
+                  </h3>
+                  <p>
+                    {active.kind === "voice"
+                      ? "Record once for clearer speaker names."
+                      : active.kind === "review"
+                        ? "Check decisions, owners and speakers."
+                        : formatDue(active.task)
+                          ? `Due ${formatDue(active.task)}`
+                          : active.task.meeting_title}
+                  </p>
+                  <div className="mt-4 flex flex-wrap items-center gap-3">
+                    {active.kind === "task" ? (
+                      <>
+                        <Button
+                          size="lg"
+                          onClick={() => void finishTask(active.task)}
+                          disabled={busy}
+                        >
+                          <Check data-icon="inline-start" />
+                          {busy ? "Saving…" : "Mark done"}
+                        </Button>
+                        <Link
+                          href={`/tasks?task=${active.task.id}`}
+                          className="text-xs text-muted-foreground"
+                        >
+                          Open task
+                        </Link>
+                      </>
+                    ) : (
+                      <Link
+                        href={
+                          active.kind === "voice"
+                            ? "/voice-setup"
+                            : `/meetings/${active.meeting.id}?review=1`
+                        }
+                        className="violet-button"
+                      >
+                        {active.kind === "voice"
+                          ? "Set up voice"
+                          : "Review meeting"}
+                        <ArrowRight className="size-3.5" aria-hidden="true" />
+                      </Link>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+            {queue.length > 1 && (
+              <div className="next-step-pagination">
+                <span>
+                  {position + 1} of {queue.length}
+                </span>
+                <div>
+                  <button
+                    type="button"
+                    aria-label="Previous item"
+                    disabled={position === 0}
+                    onClick={() => setCursor(position - 1)}
                   >
-                    <span className="meeting-glyph" data-tone={index % 3}>
-                      <Video className="size-4" aria-hidden="true" />
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-sm font-medium">
-                        {meeting.title}
-                      </span>
-                      <span className="mt-1 block text-xs text-muted-foreground">
-                        {new Date(meeting.date).toLocaleDateString(undefined, {
-                          month: "short",
-                          day: "numeric",
-                        })}
-                        {meeting.duration_minutes
-                          ? ` · ${meeting.duration_minutes} min`
-                          : ""}
-                        {meeting.processing_state === "processing"
-                          ? " · Processing"
-                          : ""}
-                      </span>
-                    </span>
-                    <ArrowUpRight
-                      className="size-4 shrink-0 text-muted-foreground"
-                      aria-hidden="true"
-                    />
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          )}
-          <Link
-            href="/meetings?view=calendar"
-            className="mt-5 inline-flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground"
-          >
-            See what&apos;s coming up{" "}
-            <ArrowRight className="size-3.5" aria-hidden="true" />
+                    <ChevronLeft className="size-4" />
+                  </button>
+                  <button
+                    type="button"
+                    aria-label="Next item"
+                    disabled={position >= queue.length - 1}
+                    onClick={() => setCursor(position + 1)}
+                  >
+                    <ChevronRight className="size-4" />
+                  </button>
+                </div>
+              </div>
+            )}
+          </section>
+          <Link href="/meetings/new?source=upload" className="upload-shortcut">
+            Have a recording already?{" "}
+            <span>
+              Upload it <ArrowRight className="size-3.5" aria-hidden="true" />
+            </span>
           </Link>
-        </section>
+        </div>
       </div>
     </div>
   );

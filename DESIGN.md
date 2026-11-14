@@ -1,49 +1,47 @@
 # Wilco design system
 
-Wilco helps people stay in the conversation and leave with clear next steps. The reference video supplied on 15 November 2026 informs the dark canvas, blue and pink perimeter light, compact input, and generous spacing. Colour draws attention to the entrance; work stays calm.
+The supplied mobile reference image replaces the earlier video-based direction. Wilco now uses a light lilac canvas, white rounded surfaces, violet actions, compact meeting cards, and direct navigation. The interface is organised around actual meetings and actions.
 
-## Visual direction
+## Layout
 
-- Home has one composer for joining a meeting or asking about past meetings. A focused follow-up and recent conversations sit underneath. Do not add a statistics banner or competing promotional cards.
-- Atmosphere is static and scoped to Home. Keep it away from task text, transcripts, forms, and meeting review. The light theme uses the same structure with a pale, cool canvas.
-- Surfaces use a quiet border and restrained radius. The composer and focused review are distinct surfaces; recent meetings are simple rows. Avoid nested cards.
-- Geist carries interface and display text. Mukta provides Devanagari fallback. Keep display text compact enough that the next action remains visible. Doto remains available for existing call sites but Home does not use decorative counters.
+Home starts with the user's name and a compact greeting. The capture tile sits beside two stacked shortcuts for recording in person and asking past meetings. Recent meetings use cards with the date, duration, a short summary, participant circles, and an Open notes or Review notes action. The focused follow-up queue remains available beside the schedule on desktop and below the meeting cards on mobile.
 
-## Theme tokens
+Desktop has a white sidebar and two content columns. Mobile has a bottom bar for Home, Meetings, Calendar, and Settings, plus a central invite button. The profile button opens full navigation so secondary tools remain reachable. Calendar has Ongoing, Upcoming, and History tabs, week controls, tappable dates, real meeting links, and the existing auto-invite switches.
 
-All component colours come from `frontend/src/app/globals.css`. Define palette changes there, never as hard-coded component colours.
+## Palette and type
 
-| Role | Tokens |
+Define colours only in `frontend/src/app/globals.css`; components use theme tokens.
+
+| Role | Light token value |
 | --- | --- |
-| Canvas and copy | `--background`, `--foreground` |
-| Working surfaces | `--card`, `--card-foreground`, `--border` |
-| Secondary text | `--muted-foreground` |
-| Primary action | `--primary`, `--primary-foreground` |
-| Cool blue brand accent | `--marigold`, `--marigold-foreground` (legacy token names retained for existing consumers) |
-| Home perimeter light | `--aurora-a` (cobalt), `--aurora-b` (orchid) |
-| Recording, errors, success | `--destructive`, `--warning`, `--success` |
-| Small meeting markers | `--tint-sky`, `--tint-lilac`, `--tint-peach` and their foregrounds |
+| Canvas | `--background: #faf9fd` |
+| Surface | `--card: #ffffff` |
+| Copy | `--foreground: #24212d` |
+| Secondary copy | `--muted-foreground: #706a7b` |
+| Action | `--primary: #7d45df` |
+| Selected surface | `--accent: #f0e9fc` |
+| Capture tile | `--feature-top: #b184ef`, `--feature-bottom: #7741d7` |
 
-The dark canvas is `oklch(0.135 0.012 270)`; the light canvas is `oklch(0.982 0.004 260)`. The cool blue accent is `oklch(0.8 0.12 260)`. Keep colour out of dense body copy.
+The legacy `--marigold` token now follows violet for existing consumers. Light is the default; saved theme preferences remain supported. Dark mode uses the same structure and violet actions.
 
-## Primary journeys
+Geist carries the interface; Mukta remains the Devanagari fallback. Use compact sentence-case headings and body text. No oversized Home slogan or decorative counters.
 
-**Home:** paste a Meet or Teams link, continue to recording consent, then invite Wilco. Asking past meetings is a separate composer tab. Recording in person and uploading remain small secondary links. A live capture shows its real status; no decorative waveform implies that recording has started.
+## Components
 
-**Meeting review:** one task, decision, or uncertain speaker at a time. Confirm or edit inline. Open source evidence when needed. The full transcript, notes, and insights sit behind the Full meeting disclosure; citation deep links open it automatically. A skipped speaker remains unnamed. Saving a speaker name and opting into future voice learning are separate choices.
+- `RecordedMeetingCard` is shared by Home and Meetings. Keep processing and attention states visible.
+- `MeetingPeople` shows initials from the actual attendee names. Do not substitute stock portraits for real identities.
+- `MeetingAgenda` is shared by Home and Calendar. Dates filter events; tabs select event state. Show connection and empty states when the calendar has no data.
+- `MobileNavigation` reflects both pathname and calendar query state. Its central action opens the existing capture dialog.
+- Existing Base UI primitives handle dialogs, tabs, menus, and focus behaviour. Keep Lucide as the icon family.
 
-**Navigation:** Home, Meetings, Tasks, Memory, and Talk to Wilco are primary. More reveals the remaining tools. All pages remain available in command search. Mobile navigation uses the existing Base UI dialog for focus management and Escape dismissal.
+## Behaviour and trust
 
-**Capture:** keep one link field, an explicit recording acknowledgement, and optional title/style controls. Show a clear success state, queue state, or recoverable error. Loading notetaker status must not reset entered text or consent.
+Joining opens the event's meeting link. Inviting Wilco pre-fills the existing recording-consent form. A calendar's auto-invite switch uses the existing per-event API and reports failure without pretending the setting changed.
 
-## Copy and accessibility
+One task, decision, or uncertain speaker is reviewed at a time. Inline edits and source evidence remain available. Uncertain speakers can stay unnamed; using a correction for future voice matching has a separate opt-in. Detailed transcripts and insights remain behind Full meeting.
 
-Use short, concrete labels that describe the next action. Keep consent, access restrictions, errors, and uncertain identification explicit. Avoid repeated explanations and decorative labels. Label every input and icon-only control, associate field errors, show keyboard focus, and preserve contrast in both themes.
+## Motion and accessibility
 
-## Motion
+Use short interaction feedback, visible focus, labelled controls, and reduced-motion support. Hover changes are small and purposeful. The violet capture gradient is confined to its action tile; working surfaces stay white. Avoid background animation and simulated recording indicators. Keep recording consent, errors, confidentiality, and sharing rules explicit.
 
-Use short transitions for direct interaction feedback. Do not animate the Home atmosphere or run background particle loops. Animate transform and opacity where possible, respect reduced motion, and keep blur static and confined to existing overlay behaviour. Do not add an animation library solely for decoration.
-
-## Implementation
-
-Reuse the existing Base UI / shadcn primitives, Lucide icons, authentication, capture queue, and meeting APIs. `HomeComposer` owns the Home input. `GuidedReview` owns focused review. Theme styles belong in the shared stylesheet. See `docs/design-skills.md` for installed skills and `docs/coordination.md` before editing shared files.
+See `docs/coordination.md` before editing shared files and `docs/ui-reference.md` for previews and verification.

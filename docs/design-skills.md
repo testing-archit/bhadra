@@ -37,7 +37,7 @@ From `frontend/`, run `npx --no-install shadcn info --json` to inspect the actua
 
 ## Working agreement
 
-Read [coordination.md](coordination.md) before editing. The latest user instruction assigns the reference-video UI and UX rework to Codex in an isolated worktree.
+Read [coordination.md](coordination.md) before editing. The latest user instruction assigns the reference-image UI and UX rework to Codex in an isolated worktree.
 
 Use one skill for the immediate job. Keep `DESIGN.md`, the established theme tokens, and our Lucide icon family as the project defaults. Skill searches supply suggestions; check the top result against the requested outcome before using it. Do not import a suggested icon library, replace our palette, or generate a second design system merely because a skill recommends one.
 

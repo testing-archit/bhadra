@@ -1,31 +1,34 @@
 # Reference UI review
 
-This pass applies the supplied video's dark canvas, cool perimeter light, generous spacing, and compact input to Wilco's main meeting workflow. The Home atmosphere is static. Task, meeting, and review content stays on neutral surfaces.
+The latest supplied image governs this revision: light lilac canvas, white rounded cards, violet actions, compact meeting metadata, participant circles, and a mobile bottom bar. It replaces the previous dark hero direction.
 
-## Screens to review
+## Screens
 
-- [Dark Home](screenshots/wilco-home-dark.png)
-- [Light Home](screenshots/wilco-home-light.png)
-- [Mobile Home](screenshots/wilco-home-mobile.png)
-- [Meeting review](screenshots/wilco-review-dark.png)
-- [Recording confirmation with optional settings expanded](screenshots/wilco-capture-consent.png)
+- [Desktop Home](screenshots/wilco-violet-home-desktop.png)
+- [Mobile Home](screenshots/wilco-violet-home-mobile.png)
+- [Mobile Calendar](screenshots/wilco-violet-calendar-mobile.png)
+- [Meeting review](screenshots/wilco-violet-review.png)
+- [Recording confirmation](screenshots/wilco-violet-capture.png)
+- [Optional dark theme](screenshots/wilco-violet-dark.png)
 
-These are screenshots of the running implementation with local demo content. They are not generated mockups.
+These are screenshots of the running implementation. The calendar screenshots use synthetic scheduled events to show populated states. Saved meeting cards use local demo meetings. The app does not insert these fixture events into a real calendar; unlinked calendars show an explicit connection prompt.
 
-## What changed
+## Behaviour
 
-Home replaces the statistics banner with a meeting-link and memory composer, one focused follow-up, and recent conversations. Voice and file upload remain secondary actions. Five primary navigation destinations stay visible; More reveals the other tools and command search still reaches them.
+Home has a capture action, recording and memory shortcuts, shared meeting cards, a working schedule, and the focused follow-up queue. Meetings uses the same recorded-meeting cards. Participant circles use actual attendee initials rather than invented profile photos.
 
-Capture carries the pasted link into a compact confirmation, requires recording acknowledgement, and shows success or a recoverable failure. Availability checks do not reset the form. Title and note style remain optional.
+Ongoing, Upcoming, and History select event state. Date buttons filter events; week arrows change the date strip. Join meeting opens the event's conferencing link. Invite Wilco carries that link into the existing consent form. The auto-invite switch keeps the existing calendar API and reports errors without assuming an update succeeded.
 
-Meeting review supports inline task and decision edits, confirmation, and leaving uncertain speakers unnamed. Using a correction to improve future voice matches requires its own opt-in. Transcript, notes, and insights sit behind Full meeting; source and citation links open it automatically. Confidentiality and sharing restrictions remain in the existing API paths.
+Mobile navigation has Home, Meetings, Calendar, Settings, and a central invite action. Calendar and Meetings remain distinct even though they share a route with different query parameters. The profile button opens the full navigation menu. Light is the default; explicit saved theme choices remain supported.
+
+The previous inline review, unnamed-speaker action, separate voice-learning opt-in, confidentiality, and sharing rules remain in place.
 
 ## Verification
 
-Frontend type checking and a production build passed. Browser verification covered desktop dark and light, 390px mobile layout, composer switching, link handoff, consent gating, optional controls, capture success, failure preserving input, mobile focus trapping and restoration, inline edits, task and decision confirmation, unnamed speakers, detailed meeting disclosure, and reduced-motion styling. The browser reported no uncaught errors.
+Frontend TypeScript and production build passed. Nineteen browser checks covered desktop light and dark, 390px layout, shortcut destinations, schedule tabs, week/date selection, auto-invite switching, mobile calendar routing, central invite action, meeting-link handoff, consent gating, optional settings, capture success, capture failure preserving input, mobile keyboard focus, inline edits, task/decision confirmation, unnamed speakers, progressive meeting details, and reduced motion. No uncaught browser errors were reported.
 
-Reads used saved local demo meetings. Writes were intercepted, including capture requests and review updates, so the checks did not start a real recording, change saved notes, or call the AI generation services. A real two-person Meet and enrolled-voice acceptance test remains separate work.
+Mutations were intercepted. Verification did not start a bot, modify a real calendar, change saved meeting notes, or call AI generation services. The real two-person Meet and enrolled-voice acceptance test remains separate work.
 
 ## Local preview
 
-The isolated frontend runs at `http://localhost:3200`. A local-only proxy on port 3300 forwards to the existing backend on 8000. The shared checkout also contains the new implementation; its existing local frontend can reload those files. Production was not deployed by this checkpoint.
+The isolated frontend runs at `http://localhost:3200`, with a local-only proxy on 3300 forwarding to the existing backend on 8000. The reviewed files are also copied into the shared checkout after checking for concurrent edits. Checkpoint pushes use the UI topic branch; production remains unchanged.

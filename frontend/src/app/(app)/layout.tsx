@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { ShellProvider } from "@/components/shell/shell-context";
 import { Sidebar } from "@/components/shell/sidebar";
+import { MobileNavigation } from "@/components/shell/mobile-navigation";
 import { Topbar } from "@/components/shell/topbar";
 import { CommandPalette } from "@/components/shell/command-palette";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
@@ -65,25 +66,28 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </Dialog>
 
         <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-background">
-          <Topbar onOpenMenu={() => setDrawerOpen(true)} />
+          <Suspense fallback={<div className="h-22 shrink-0" />}><Topbar onOpenMenu={() => setDrawerOpen(true)} /></Suspense>
           <main
             id="main"
             className={
               fullBleed
-                ? "flex min-h-0 w-full flex-1"
-                : "min-h-0 flex-1 overflow-y-auto"
+                ? "flex min-h-0 w-full flex-1 pb-20 lg:pb-0"
+                : "min-h-0 flex-1 overflow-y-auto pb-24 lg:pb-0"
             }
           >
             {fullBleed ? (
               children
             ) : (
               <div
-                className={`mx-auto w-full max-w-6xl px-4 sm:px-8 ${pathname === "/dashboard" ? "py-0" : "py-6 sm:py-8"}`}
+                className={`mx-auto w-full max-w-6xl px-4 sm:px-8 ${pathname === "/dashboard" ? "py-4 sm:py-7" : "py-6 sm:py-8"}`}
               >
                 {children}
               </div>
             )}
           </main>
+          <Suspense fallback={null}>
+            <MobileNavigation />
+          </Suspense>
         </div>
       </div>
       <CommandPalette />

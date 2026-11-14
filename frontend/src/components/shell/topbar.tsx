@@ -1,53 +1,72 @@
 "use client";
 
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { Menu as MenuIcon, Moon, Search, Sun } from "lucide-react";
 import { NotificationBell } from "@/components/notification-bell";
 import { useTheme } from "@/lib/theme";
+import { useAuth } from "@/lib/auth-context";
 import { pageTitleFor } from "./nav-config";
 import { useShell } from "./shell-context";
 
-const iconButton =
-  "grid size-10 place-items-center rounded-lg text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring";
-
+const iconButton = "header-icon-button";
 export function Topbar({ onOpenMenu }: { onOpenMenu: () => void }) {
   const pathname = usePathname();
+  const params = useSearchParams();
+  const calendar = pathname === "/meetings" && params.get("view") === "calendar";
+  const { user } = useAuth();
   const { setCommandOpen } = useShell();
   const { resolved, setPreference } = useTheme();
-
+  const home = pathname === "/dashboard";
+  const hour = new Date().getHours();
+  const greeting =
+    hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
+  const name = user?.name || user?.email.split("@")[0] || "Your workspace";
+  const initials = name
+    .split(/\s+/)
+    .map((part) => part[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
   return (
-    <header className="z-30 flex h-16 shrink-0 items-center gap-2 bg-background px-4 sm:px-8">
+    <header className="workspace-topbar">
       <button
         type="button"
-        className={`${iconButton} -ml-1 lg:hidden`}
+        className={
+          home
+            ? "profile-avatar"
+            : `${iconButton} lg:hidden`
+        }
         onClick={onOpenMenu}
         aria-label="Open navigation"
       >
-        <MenuIcon className="size-5" />
+        {home ? initials : <MenuIcon className="size-5" />}
       </button>
-      <p
-        className="truncate text-xs font-medium text-muted-foreground"
-        aria-hidden="true"
-      >
-        {pageTitleFor(pathname)}
-      </p>
-      <div className="ml-auto flex items-center gap-1">
-        <button
-          type="button"
-          className={`${iconButton} lg:hidden`}
-          onClick={() => setCommandOpen(true)}
-          aria-label="Search"
-        >
-          <Search className="size-4" />
-        </button>
+      {home ? (
+        <div className="header-greeting">
+          <span>
+            {greeting} <span aria-hidden="true">☀</span>
+          </span>
+          <strong>{name}</strong>
+        </div>
+      ) : (
+        <p className="text-sm font-semibold">{calendar ? "Calendar" : pageTitleFor(pathname)}</p>
+      )}
+      <div className="ml-auto flex items-center gap-1.5">
         <button
           type="button"
           className={iconButton}
+          onClick={() => setCommandOpen(true)}
+          aria-label="Search"
+        >
+          <Search className="size-5" />
+        </button>
+        <button
+          type="button"
+          className={`${iconButton} header-theme-toggle`}
           onClick={() => setPreference(resolved === "dark" ? "light" : "dark")}
           aria-label={
             resolved === "dark" ? "Switch to light mode" : "Switch to dark mode"
           }
-          title={resolved === "dark" ? "Light mode" : "Dark mode"}
         >
           {resolved === "dark" ? (
             <Sun className="size-4" />

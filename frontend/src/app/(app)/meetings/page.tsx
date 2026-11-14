@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { AlertTriangle, Bot, CalendarDays, Clock, Loader2, Search, SlidersHorizontal, Users, Video, X } from "lucide-react";
+import { useSearchParams } from "next/navigation";
+import { AlertTriangle, Bot, CalendarDays, Loader2, Search, SlidersHorizontal, Video, X } from "lucide-react";
 import { api, ApiError, type DirectoryUser, type MeetingSummary } from "@/lib/api";
-import { Badge } from "@/components/ui/badge";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PageHeader } from "@/components/page-header";
@@ -13,7 +13,8 @@ import { EmptyState } from "@/components/empty-state";
 import { useShell } from "@/components/shell/shell-context";
 import { cn } from "@/lib/utils";
 import { SOURCE_LABELS } from "@/lib/labels";
-import { CalendarSchedule } from "@/components/calendar-schedule";
+import { RecordedMeetingCard } from "@/components/recorded-meeting-card";
+import { MeetingAgenda } from "@/components/meeting-agenda";
 
 
 const selectClass = "h-8 rounded-lg border bg-background px-2.5 text-sm text-foreground";
@@ -31,7 +32,8 @@ function dayBucket(date: Date): string {
   return day.toLocaleDateString(undefined, { month: "long", year: "numeric" });
 }
 
-export default function MeetingsPage() {
+function MeetingsContent() {
+  const searchParams = useSearchParams();
   const { openNotetaker } = useShell();
   const [meetings, setMeetings] = useState<MeetingSummary[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -48,8 +50,8 @@ export default function MeetingsPage() {
   const [view, setView] = useState<"recorded" | "calendar">("recorded");
 
   useEffect(() => {
-    if (new URLSearchParams(window.location.search).get("view") === "calendar") setView("calendar");
-  }, []);
+    setView(searchParams.get("view") === "calendar" ? "calendar" : "recorded");
+  }, [searchParams]);
 
   function chooseView(next: "recorded" | "calendar") {
     setView(next);
@@ -116,18 +118,18 @@ export default function MeetingsPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader
+      {view === "recorded" ? <PageHeader
         title="Meetings"
         actions={
           <Button onClick={() => openNotetaker()}>
             <Bot /> Invite Wilco
           </Button>
         }
-      />
+      /> : <h1 className="sr-only">Calendar</h1>}
 
       <NotetakerActivity />
 
-      <div className="flex gap-1 self-start rounded-lg bg-muted p-0.5" role="group" aria-label="Meetings view">
+      <div className="hidden gap-1 self-start rounded-lg bg-muted p-0.5 sm:flex" role="group" aria-label="Meetings view">
         {([
           ["recorded", "Recorded", Video],
           ["calendar", "Calendar", CalendarDays],
@@ -147,7 +149,7 @@ export default function MeetingsPage() {
         ))}
       </div>
 
-      {view === "calendar" ? <CalendarSchedule /> : <>
+      {view === "calendar" ? <MeetingAgenda /> : <>
       <div className="flex flex-col gap-3">
         <div className="flex gap-2">
           <div className="relative flex-1">
@@ -227,68 +229,13 @@ export default function MeetingsPage() {
       {groups.map((group) => (
         <section key={group.label} className="flex flex-col gap-1">
           <h2 className="px-1 pb-1 text-sm font-medium text-muted-foreground">{group.label}</h2>
-          <div className="overflow-hidden rounded-xl border bg-card">
-            {group.items.map((meeting) => <MeetingRow key={meeting.id} meeting={meeting} />)}
+          <div className="meeting-card-grid">
+            {group.items.map((meeting) => <RecordedMeetingCard key={meeting.id} meeting={meeting} />)}
           </div>
         </section>
       ))}
       </>}
     </div>
-  );
-}
-
-function MeetingRow({ meeting }: { meeting: MeetingSummary }) {
-  const date = new Date(meeting.date);
-  const noItems = meeting.task_count === 0 && meeting.decision_count === 0;
-  return (
-    <Link
-      href={`/meetings/${meeting.id}`}
-      className="group flex gap-4 border-b px-4 py-3.5 outline-none transition-colors last:border-b-0 hover:bg-muted/50 focus-visible:bg-muted/60"
-    >
-      <div className="hidden w-14 shrink-0 flex-col items-center justify-center rounded-lg bg-muted py-1.5 text-center sm:flex">
-        <span className="text-xs text-muted-foreground">{date.toLocaleDateString(undefined, { month: "short" })}</span>
-        <span className="text-lg leading-none font-semibold tabular-nums">{date.getDate()}</span>
-      </div>
-      <div className="min-w-0 flex-1">
-        <div className="flex items-start justify-between gap-3">
-          <p className="truncate font-medium group-hover:text-primary">{meeting.title}</p>
-          <div className="flex shrink-0 items-center gap-1.5">
-            {meeting.processing_state === "processing" && (
-              <Badge variant="outline" className="gap-1"><Loader2 className="size-3 animate-spin" /> Processing</Badge>
-            )}
-            {meeting.processing_state === "attention" && (
-              <Badge variant="outline" className="gap-1 border-warning/50 text-warning"><AlertTriangle className="size-3" /> Needs attention</Badge>
-            )}
-            {meeting.processing_state !== "processing" && !noItems && (
-              <span className="text-xs text-muted-foreground tabular-nums">
-                {meeting.task_count} task{meeting.task_count === 1 ? "" : "s"}, {meeting.decision_count} decision{meeting.decision_count === 1 ? "" : "s"}
-              </span>
-            )}
-          </div>
-        </div>
-        {meeting.summary && <p className="mt-0.5 line-clamp-1 text-sm text-muted-foreground">{meeting.summary}</p>}
-        <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
-          <span className="flex items-center gap-1">
-            <Clock className="size-3.5" />
-            {date.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}
-            {meeting.duration_minutes ? `, ${meeting.duration_minutes} min` : ""}
-          </span>
-          {meeting.attendees.length > 0 && (
-            <span className="flex min-w-0 items-center gap-1">
-              <Users className="size-3.5 shrink-0" />
-              <span className="truncate">
-                {meeting.attendees.slice(0, 3).map((person) => person.name).join(", ")}
-                {meeting.attendees.length > 3 && ` +${meeting.attendees.length - 3}`}
-              </span>
-            </span>
-          )}
-          {meeting.source && <span>{SOURCE_LABELS[meeting.source] ?? meeting.source}</span>}
-          {meeting.projects.map((project) => (
-            <Badge key={project.id} variant="outline" className="h-5 text-[11px]">{project.name}</Badge>
-          ))}
-        </div>
-      </div>
-    </Link>
   );
 }
 
@@ -317,4 +264,8 @@ function NotetakerActivity() {
       ))}
     </div>
   );
+}
+
+export default function MeetingsPage() {
+  return <Suspense fallback={<Skeleton className="h-64 rounded-2xl" />}><MeetingsContent /></Suspense>;
 }

@@ -49,3 +49,8 @@ Four additional catalog skills are installed and linked: `improve-ui`, `fixing-a
 Codex reworked Home, the shared shell, the capture dialog, and guided meeting review on `codex/reference-ui-20261115`. The new interface uses a static cool atmosphere on Home, a compact composer, a focused follow-up, five primary destinations, and progressive disclosure for detailed meeting content. Capture consent remains mandatory; voice learning has a separate opt-in. `DESIGN.md` describes the current direction.
 
 Preview runs from the isolated worktree on `http://localhost:3200`. A temporary loopback proxy on port 3300 forwards to the existing local backend on 8000, because backend CORS does not allow 3200. The proxy and preview env file are local-only. UI checks use saved demo reads and intercept mutations, so verification does not send a bot into a real meeting or change saved notes.
+
+
+## Latest image reference revision
+
+The user rejected the dark hero and supplied a light/violet mobile meeting-app image. That image now governs the UI direction. Codex replaced the hero with the capture/shortcut tiles, shared meeting cards, a working calendar agenda, and mobile bottom navigation on the existing UI branch. The light theme is now the default; explicit saved theme choices are retained. Existing recording consent, guided review, and access rules remain in place. `DESIGN.md` reflects this revision.
