@@ -65,6 +65,10 @@ MEETINGS = [
         ],
         "decisions": [
             ("Onboarding defaults to Hindi when the browser language is Hindi", "Most pilot users read Hindi first; English stays one tap away"),
+            ("Ship transcription accuracy fixes before any new feature this sprint", "Wrong words in notes cost more trust than missing features",
+             ["Build WhatsApp sharing first", "Split the sprint half and half"], None),
+            ("Store recordings for 30 days, then keep only the transcript", "Cuts storage cost and limits how much audio we hold",
+             ["Keep audio forever", "Delete audio right after transcription"], None),
         ],
         "risks": [("Name spellings in transcripts erode trust in the notes", "Medium")],
     },
@@ -92,6 +96,10 @@ MEETINGS = [
         "decisions": [
             ("Every voice entry is read back aloud before saving", "A wrong udhaar amount causes a dispute with the customer"),
             ("Support Marathi and Hindi in the first pilot", "All five Pune shops speak one or both"),
+            ("Pilot with 5 shops in Pune before expanding", "Small enough to visit every shop each week",
+             ["Launch in 20 shops across two cities"], None),
+            ("Month-end statements go out on WhatsApp, not SMS", "Every shopkeeper and most customers already use WhatsApp daily",
+             ["SMS", "Printed slips at the counter"], None),
         ],
         "risks": [
             ("Background noise in the shop lowers transcription accuracy", "High"),
@@ -120,6 +128,10 @@ MEETINGS = [
         ],
         "decisions": [
             ("Keep a ready-to-adapt demo flow before the problem statement drops", "The build window is only two days"),
+            ("Submit under the Small business track with the kirana voice ledger", "Strongest pilot evidence and a clear everyday user",
+             ["Healthcare track with ASHA intake", "Education track"], None),
+            ("Demo video stays under 2 minutes", "Judges watch many entries; the core loop fits in 90 seconds", None,
+             "Reverses the 14 Nov idea of a 4-minute walkthrough of every feature"),
         ],
         "risks": [("Two-day window leaves no time for new infrastructure", "High")],
     },
@@ -143,6 +155,8 @@ MEETINGS = [
         ],
         "decisions": [
             ("Recordings save offline first and upload when the network returns", "Many villages have no coverage"),
+            ("Ask for spoken consent at the start of every health recording", "Health data needs explicit consent, and many users cannot sign a form",
+             ["Written consent form"], None),
         ],
         "risks": [("Health data needs explicit consent before recording", "High")],
     },
@@ -164,7 +178,11 @@ MEETINGS = [
             ("me", "Add the pilot numbers slide (140 meetings, 9 teams)", -4, "Medium", "done"),
             ("mate", "Make a weekly retention chart for the pilot teams", 2, "Medium", "pending"),
         ],
-        "decisions": [("The pitch opens with the Hinglish problem, then the product", "Mentor feedback")],
+        "decisions": [
+            ("The pitch opens with the Hinglish problem, then the product", "Mentor feedback"),
+            ("Free for teams under 10 people during the pilot", "Removes the purchase decision while we prove retention",
+             ["₹199 per user per month from day one"], None),
+        ],
         "risks": [],
     },
     {
@@ -184,10 +202,28 @@ MEETINGS = [
             ("Priya", "Shrink the sign-up form to name and phone number", -6, "Low", "done"),
             ("me", "Check every onboarding string in Hindi with two native speakers", 10, "Low", "pending"),
         ],
-        "decisions": [("Onboarding starts with one large mic button", "Voice is the main way in for our users")],
+        "decisions": [
+            ("Onboarding starts with one large mic button", "Voice is the main way in for our users"),
+            ("Sign-up asks only for name and phone number", "Every extra field lost users in the paper prototype test",
+             ["Email and password", "Google sign-in only"], None),
+            ("Use Baloo 2 and Mukta for all app text", "Both render Devanagari cleanly and match in weight", None,
+             "Replaces the earlier choice of a Latin-only font with a system fallback for Hindi"),
+        ],
         "risks": [],
     },
 ]
+
+
+def _decision(meeting_id, project_id, entry, speakers) -> Decision:
+    """entry: (text, reason) or (text, reason, alternatives, conflict_note).
+    A conflict_note marks a decision that reverses an earlier one."""
+    text, reason, *rest = entry
+    alternatives = rest[0] if rest else None
+    conflict_note = rest[1] if len(rest) > 1 else None
+    return Decision(
+        meeting_id=meeting_id, project_id=project_id, decision=text, reason=reason,
+        alternatives=alternatives, conflict_note=conflict_note, participants=sorted(speakers),
+    )
 
 
 async def main(emails: list[str], reset: bool) -> None:
@@ -202,7 +238,20 @@ async def main(emails: list[str], reset: bool) -> None:
 
         existing = (await db.scalars(select(Meeting).where(Meeting.client_meeting_id.like(f"{SEED_PREFIX}%")))).all()
         if existing and not reset:
-            print(f"Demo data already present ({len(existing)} meetings). Use --reset to replace it.")
+            # Top up: add demo decisions missing from the seeded meetings,
+            # leaving everything people have changed untouched.
+            added = 0
+            for meeting in existing:
+                spec = MEETINGS[int(meeting.client_meeting_id.removeprefix(SEED_PREFIX))]
+                have = set((await db.scalars(select(Decision.decision).where(Decision.meeting_id == meeting.id))).all())
+                project_id = await db.scalar(select(Project.id).where(Project.name == spec["project"]))
+                speakers = {line.split(":", 1)[0].split(" (")[0] for line in spec["transcript"].splitlines()}
+                for entry in spec["decisions"]:
+                    if entry[0] not in have:
+                        db.add(_decision(meeting.id, project_id, entry, speakers))
+                        added += 1
+            await db.commit()
+            print(f"Demo data already present ({len(existing)} meetings); added {added} missing decisions. Use --reset to rebuild it all.")
             return
         if existing:
             await db.execute(delete(Meeting).where(Meeting.client_meeting_id.like(f"{SEED_PREFIX}%")))
@@ -265,11 +314,8 @@ async def main(emails: list[str], reset: bool) -> None:
                     priority=priority, status=status, origin="ai",
                 ))
                 counts["tasks"] += 1
-            for text, reason in spec["decisions"]:
-                db.add(Decision(
-                    meeting_id=meeting.id, project_id=project.id, decision=text, reason=reason,
-                    participants=sorted(speakers),
-                ))
+            for entry in spec["decisions"]:
+                db.add(_decision(meeting.id, project.id, entry, speakers))
                 counts["decisions"] += 1
             for text, severity in spec["risks"]:
                 db.add(Risk(meeting_id=meeting.id, project_id=project.id, description=text, severity=severity))
