@@ -87,6 +87,10 @@ async def test_duplicate_submissions_never_send_two_bots(client, member_user, ot
 
     claimed = (await client.post("/api/bot/capture-requests/claim", headers=BOT, json={"capacity": 5})).json()["jobs"]
     assert [job["capture_request_id"] for job in claimed if job["meet_url"] == url.lower()] == [first.json()["id"]]
+    # The notetaker's chat notice names who invited it.
+    job = next(job for job in claimed if job["capture_request_id"] == first.json()["id"])
+    assert job["requested_by_name"] == (member_user.name or member_user.email.split("@")[0])
+    assert "app_url" in job
     # A second poll (another replica, or the next tick) gets nothing new.
     again = (await client.post("/api/bot/capture-requests/claim", headers=BOT, json={"capacity": 5})).json()["jobs"]
     assert first.json()["id"] not in {job["capture_request_id"] for job in again}

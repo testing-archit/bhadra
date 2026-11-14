@@ -423,6 +423,9 @@ async def claim_capture_requests(body: ClaimRequest, db: AsyncSession = Depends(
                     "event_start": now.isoformat(),
                     # Lets the bot cap its stay to the scheduled meeting.
                     "event_end": capture.scheduled_end.isoformat() if capture.scheduled_end else None,
+                    # For the notice the notetaker posts in the call's chat.
+                    "requested_by_name": (requester.name or requester.email.split("@")[0]) if requester else None,
+                    "app_url": (settings.public_app_url or "").rstrip("/") or None,
                 }
             )
     await db.commit()

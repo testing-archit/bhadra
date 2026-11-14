@@ -24,7 +24,7 @@ NOTETAKER_EMAIL = _env("NOTETAKER_EMAIL", "notetaker@example.com").lower()
 # Shown in Meet when the signed-in session has expired and the bot has to
 # fall back to joining as a named guest. When signed in, Meet shows the Google
 # account's own profile name instead — set that to the same thing.
-BOT_DISPLAY_NAME = _env("BOT_DISPLAY_NAME", "Bhadra Notetaker")
+BOT_DISPLAY_NAME = _env("BOT_DISPLAY_NAME", "Charcha Notetaker")
 MEETING_LANGUAGE = _env("MEETING_LANGUAGE", "hinglish")
 
 STATE_DIR = Path(_env("STATE_DIR", str(Path(__file__).parent / "data")))
@@ -60,6 +60,11 @@ MAX_MEETING_MINUTES = int(_env("MAX_MEETING_MINUTES", "240"))
 # and CPU shortage is what damages recordings, so check audio before enabling.
 TEAMS_LOGO_CAMERA = _env("TEAMS_LOGO_CAMERA").lower() in {"1", "true", "yes"}
 TEAMS_LOGO_IMAGE = Path(_env("TEAMS_LOGO_IMAGE", str(Path(__file__).parent / "assets" / "logo_card.png")))
+
+# Google Meet only: post a short notice in the call's chat on joining (who
+# invited the notetaker, that it records, how to make it leave), like any
+# well-behaved notetaker. Off with ANNOUNCE_IN_CHAT=0.
+ANNOUNCE_IN_CHAT = _env("ANNOUNCE_IN_CHAT", "1").lower() not in {"0", "false", "no"}
 
 EXIT_PHRASES = [
     p.strip().lower()

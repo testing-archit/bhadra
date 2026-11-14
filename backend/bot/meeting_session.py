@@ -33,6 +33,7 @@ from pathlib import Path
 from playwright.async_api import BrowserContext, Page, async_playwright
 
 import config
+import meet_chat
 import teams_dom
 import uploader
 
@@ -557,6 +558,22 @@ class MeetingSession:
         log.warning("Could not turn captions on yet — retrying every %ss", CAPTION_RETRY_SECONDS)
         return False
 
+    async def announce(self, page: Page) -> None:
+        """Tells everyone in the call, in chat, that the notetaker is here and
+        recording, who invited it, and how to make it leave."""
+        if not config.ANNOUNCE_IN_CHAT:
+            return
+        notice = meet_chat.join_notice(
+            config.BOT_DISPLAY_NAME,
+            self.job.get("requested_by_name"),
+            self.job.get("app_url"),
+            config.EXIT_PHRASES[0] if config.EXIT_PHRASES else "notetaker please leave",
+        )
+        if await meet_chat.send(page, notice):
+            log.info("Posted the join notice in chat")
+        else:
+            await self.shot(page, "05_chat_failed")
+
     async def stay(self, page: Page) -> str:
         """Blocks until the bot should leave; returns why."""
         joined = time.monotonic()
@@ -682,6 +699,7 @@ class MeetingSession:
                     await page.expose_function("onCaptions", self.captions.on_captions)
                     await page.evaluate(self.CAPTION_WATCHER_JS)
                     self.captions_enabled = await self.enable_captions(page)
+                    await self.announce(page)
                     reason = await self.stay(page)
                     log.info("Leaving: %s", reason)
                     await self.leave(page)
@@ -734,6 +752,10 @@ class TeamsSession(MeetingSession):
 
     PREJOIN_TIMEOUT_SECONDS = 45
     JOIN_ENABLE_SECONDS = 10
+
+    async def announce(self, page: Page) -> None:
+        # Anonymous Teams guests often can't post in chat; the notice is Meet-only.
+        return
 
     def __init__(self, job: dict) -> None:
         super().__init__(job)
