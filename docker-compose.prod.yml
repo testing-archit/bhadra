@@ -33,7 +33,7 @@ services:
       DATABASE_URL: postgresql+asyncpg://charcha:${POSTGRES_PASSWORD}@postgres:5432/charcha
       DATABASE_SSL: "false"
       QDRANT_URL: http://qdrant:6333
-      ALLOWED_ORIGINS: https://charcha.example.com,http://34.131.207.226
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-https://charcha.example.com}
       RECORDINGS_DIR: /app/recordings
     depends_on:
       postgres:
@@ -49,8 +49,8 @@ services:
         # Empty means same-origin requests. Nginx routes /api/* to the backend,
         # so one frontend image works on both the temporary IP and final domain.
         NEXT_PUBLIC_BACKEND_URL: ""
-        NEXT_PUBLIC_GOOGLE_CLIENT_ID: "1045852584689-8kjdn2euq8fft6rkjg0mu6a6ssq01uoe.apps.googleusercontent.com"
-        NEXT_PUBLIC_APP_URL: "https://charcha.example.com"
+        NEXT_PUBLIC_GOOGLE_CLIENT_ID: "${GOOGLE_CLIENT_ID:-}"
+        NEXT_PUBLIC_APP_URL: "${APP_URL:-https://charcha.example.com}"
         NEXT_PUBLIC_CHROME_WEB_STORE_URL: "${CHROME_WEB_STORE_URL:-}"
     restart: unless-stopped
     depends_on:

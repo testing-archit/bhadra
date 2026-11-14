@@ -25,6 +25,9 @@ declare global {
 
 const CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "";
 
+/** False when no OAuth client is configured; sign-in pages then offer email only. */
+export const googleSignInEnabled = Boolean(CLIENT_ID);
+
 export function GoogleLoginButton() {
   const [scriptReady, setScriptReady] = useState(false);
   const [busy, setBusy] = useState(false);

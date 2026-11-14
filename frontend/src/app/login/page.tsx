@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
-import { GoogleLoginButton } from "@/components/google-login-button";
+import { GoogleLoginButton, googleSignInEnabled } from "@/components/google-login-button";
 import { EmailPasswordAuthForm } from "@/components/email-password-auth-form";
 import { Separator } from "@/components/ui/separator";
 import { VoiceDisc, Wordmark } from "@/components/brand";
@@ -46,12 +46,16 @@ export default function LoginPage() {
             <h2 className="text-2xl font-bold">Sign in</h2>
             <p className="mt-1 text-sm text-muted-foreground">Pick up where your last charcha left off.</p>
           </div>
-          <GoogleLoginButton />
-          <div className="flex items-center gap-3">
-            <Separator className="flex-1" />
-            <span className="text-xs text-muted-foreground">or use email</span>
-            <Separator className="flex-1" />
-          </div>
+          {googleSignInEnabled && (
+            <>
+              <GoogleLoginButton />
+              <div className="flex items-center gap-3">
+                <Separator className="flex-1" />
+                <span className="text-xs text-muted-foreground">or use email</span>
+                <Separator className="flex-1" />
+              </div>
+            </>
+          )}
           <EmailPasswordAuthForm />
           <Link href="/extension" className="text-sm font-semibold text-primary underline-offset-4 hover:underline">
             Get the Chrome extension

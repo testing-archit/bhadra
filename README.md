@@ -123,7 +123,7 @@ Backend tests require a reachable PostgreSQL database configured through `backen
 
 ## Deployment status
 
-Local development runs the web workspace at `http://localhost:3001` and the API at `http://localhost:8080`. The production deployment is temporarily served at `http://34.131.207.226` (reserved static IP); its final hostname will be `https://charcha.example.com` after DNS and TLS are configured. Use `npm run build` for a local extension build and `npm run build:production` for the production Chrome package so login, meeting capture, processing, and deep links use the correct shared Charcha environment.
+Local development runs the web workspace at `http://localhost:3001` and the API at `http://localhost:8080`. The hackathon deployment runs on a GCP VM over plain HTTP on its external IP (`docker compose -f docker-compose.prod.yml up -d postgres backend frontend nginx`, with `ALLOWED_ORIGINS` and `APP_URL` set to that address in the root `.env`). For a real domain, follow `nginx/ssl.conf.example`. Use `npm run build` for a local extension build and `npm run build:production` for the production Chrome package so login, meeting capture, processing, and deep links use the correct shared Charcha environment.
 
 ### Extension releases and automatic updates
 
