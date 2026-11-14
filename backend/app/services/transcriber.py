@@ -1,8 +1,10 @@
 import asyncio
 import json
 import logging
+import os
 import re
 import subprocess
+import tempfile
 from collections import Counter
 from typing import Any
 
@@ -42,6 +44,63 @@ def _ffmpeg_to_ogg(audio_bytes: bytes, reencode: bool) -> bytes:
     if not result.stdout:
         raise RuntimeError("ffmpeg produced no audio")
     return result.stdout
+
+
+_CHUNK_SECONDS = 25.0
+_MAX_SINGLE_SECONDS = 28.0
+# The Gnani account allows one active request at a time (429 RATE_LIMITED
+# otherwise), so every Prisma call in this process queues on one lock and a
+# 429 from elsewhere (another process) is retried with a short back-off.
+_RATE_LIMIT_RETRIES = 8
+_prisma_lock: asyncio.Lock | None = None
+
+
+def _lock() -> asyncio.Lock:
+    global _prisma_lock
+    if _prisma_lock is None:
+        _prisma_lock = asyncio.Lock()
+    return _prisma_lock
+
+
+def _probe_seconds(path: str) -> float | None:
+    try:
+        result = subprocess.run(
+            ["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "default=nw=1:nk=1", path],
+            capture_output=True, text=True, timeout=60, check=True,
+        )
+        return float(result.stdout.strip())
+    except (OSError, ValueError, subprocess.SubprocessError):
+        return None
+
+
+def _segment_to_ogg(path: str, out_dir: str) -> list[str]:
+    subprocess.run(
+        ["ffmpeg", "-nostdin", "-v", "error", "-y", "-i", path, "-vn", "-ac", "1", "-ar", "16000",
+         "-c:a", "libopus", "-b:a", "32k", "-f", "segment", "-segment_time", str(_CHUNK_SECONDS),
+         "-reset_timestamps", "1", os.path.join(out_dir, "chunk_%04d.ogg")],
+        capture_output=True, timeout=_CONVERT_TIMEOUT_SECONDS, check=True,
+    )
+    return sorted(os.path.join(out_dir, name) for name in os.listdir(out_dir) if name.startswith("chunk_"))
+
+
+async def _split_for_prisma(audio_bytes: bytes, mime_type: str) -> list[tuple[float, float, tuple[str, bytes, str]]]:
+    """(offset seconds, length seconds, upload) pieces of at most ~25 s each.
+    Audio ffprobe can't read, or that is short enough, goes up whole."""
+    with tempfile.TemporaryDirectory(prefix="prisma-") as work:
+        source = os.path.join(work, "source")
+        with open(source, "wb") as handle:
+            handle.write(audio_bytes)
+        seconds = await asyncio.to_thread(_probe_seconds, source)
+        if seconds is None or seconds <= _MAX_SINGLE_SECONDS:
+            return [(0.0, seconds or 0.0, await _prisma_upload(audio_bytes, mime_type))]
+        files = await asyncio.to_thread(_segment_to_ogg, source, work)
+        pieces = []
+        for index, path in enumerate(files):
+            offset = index * _CHUNK_SECONDS
+            with open(path, "rb") as handle:
+                pieces.append((offset, min(_CHUNK_SECONDS, max(seconds - offset, 0.0)), (f"meeting_{index:04d}.ogg", handle.read(), "audio/ogg")))
+        logger.info("Split %.0f s of audio into %d Prisma chunks", seconds, len(pieces))
+        return pieces
 
 
 async def _prisma_upload(audio_bytes: bytes, mime_type: str) -> tuple[str, bytes, str]:
@@ -272,28 +331,52 @@ async def transcribe_audio_detailed(
     if terms:
         data["key_terms"] = json.dumps(terms, ensure_ascii=False)
 
-    upload = await _prisma_upload(audio_bytes, mime_type)
-    timeout = httpx.Timeout(timeout_seconds, connect=20.0)
+    # Prisma's REST endpoint takes at most 30 s of audio per request
+    # (MAX_AUDIO_DURATION_EXCEEDED), so longer audio goes up in ~25 s chunks,
+    # a few at a time, and the turns are stitched back on one timeline.
+    pieces = await _split_for_prisma(audio_bytes, mime_type)
+    timeout = httpx.Timeout(min(timeout_seconds, 300.0), connect=20.0)
+
+    async def transcribe_piece(client: httpx.AsyncClient, upload: tuple[str, bytes, str]) -> dict:
+        for attempt in range(_RATE_LIMIT_RETRIES):
+            async with _lock():
+                response = await client.post(
+                    settings.gnani_stt_url,
+                    headers={"X-API-Key-ID": settings.gnani_api_key},
+                    files={"audio_file": upload},
+                    data=data,
+                )
+            if response.status_code == 429 or (response.status_code >= 500 and attempt < 1):
+                await asyncio.sleep(min(1.0 + attempt, 5.0))
+                continue
+            break
+        if not response.is_success:
+            raise RuntimeError(f"Gnani Prisma error {response.status_code}: {response.text}")
+        piece_payload = response.json()
+        if piece_payload.get("success") is False:
+            raise RuntimeError(f"Gnani Prisma rejected the audio: {piece_payload.get('message') or piece_payload.get('error') or 'unknown error'}")
+        return piece_payload
+
     async with httpx.AsyncClient(timeout=timeout) as client:
-        response = await client.post(
-            settings.gnani_stt_url,
-            headers={"X-API-Key-ID": settings.gnani_api_key},
-            files={"audio_file": upload},
-            data=data,
-        )
+        payloads = [await transcribe_piece(client, upload) for _, _, upload in pieces]
 
-    if not response.is_success:
-        raise RuntimeError(f"Gnani Prisma error {response.status_code}: {response.text}")
-
-    payload = response.json()
-    if payload.get("success") is False:
-        raise RuntimeError(f"Gnani Prisma rejected the audio: {payload.get('message') or payload.get('error') or 'unknown error'}")
-    turns = _turns_from_prisma(payload)
+    turns = []
+    languages: Counter[str] = Counter()
+    for (offset, length, _upload), piece_payload in zip(pieces, payloads):
+        if piece_payload.get("detected_language_code"):
+            languages[piece_payload["detected_language_code"]] += 1
+        for turn in _turns_from_prisma(piece_payload):
+            if len(pieces) > 1:
+                turn["start"] = round(turn["start"] + offset, 3)
+                turn["end"] = round(max(turn["end"] + offset, turn["start"]) if turn["end"] else offset + length, 3)
+            turns.append(turn)
+    payload = payloads[0] if len(payloads) == 1 else {"detected_language_code": languages.most_common(1)[0][0] if languages else None}
+    total_seconds = sum(length for _, length, _ in pieces)
 
     await vocabulary_service.record_applied(vocabulary_service.apply_to_turns(turns, vocabulary.rules))
     diagnostics = _diagnostics(turns, expected_speakers)
     metadata = payload.get("metadata") or {}
-    duration = _number(metadata.get("duration", payload.get("duration", 0)))
+    duration = _number(metadata.get("duration", payload.get("duration", 0))) or total_seconds
     usage_ledger.record_audio("transcription", "gnani", settings.gnani_stt_model, duration)
     return {
         "transcript": format_transcript(turns),

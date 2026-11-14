@@ -145,3 +145,41 @@ async def test_supported_formats_are_sent_unchanged():
 
     assert await _prisma_upload(b"m4a-bytes", "audio/mp4") == ("meeting.m4a", b"m4a-bytes", "audio/mp4")
     assert await _prisma_upload(b"wav-bytes", "audio/wav") == ("meeting.wav", b"wav-bytes", "audio/wav")
+
+
+async def test_long_audio_is_sent_in_chunks_and_stitched_on_one_timeline(tmp_path):
+    import shutil
+    import subprocess
+
+    import httpx
+
+    from app.services import transcriber
+
+    if not shutil.which("ffmpeg"):
+        pytest.skip("ffmpeg not installed")
+    long_clip = tmp_path / "long.webm"
+    subprocess.run(
+        ["ffmpeg", "-nostdin", "-v", "error", "-f", "lavfi", "-i", "sine=frequency=300:duration=60", "-c:a", "libopus", str(long_clip)],
+        check=True,
+    )
+    sent = []
+
+    async def fake_post(self, url, **kwargs):
+        sent.append(kwargs["files"]["audio_file"][0])
+        return httpx.Response(200, json={"success": True, "transcript": f"part {len(sent)}", "detected_language_code": "hi-IN"}, request=httpx.Request("POST", url))
+
+    with patch.object(httpx.AsyncClient, "post", fake_post):
+        result = await transcriber.transcribe_audio_detailed(long_clip.read_bytes(), "audio/webm", "hinglish")
+    assert len(sent) == 3 and all(name.endswith(".ogg") for name in sent)
+    assert [turn["text"] for turn in result["turns"]] == ["part 1", "part 2", "part 3"]
+    assert [turn["start"] for turn in result["turns"]] == [0.0, 25.0, 50.0]
+    assert result["language"] == "hi-IN"
+
+
+def test_vector_search_off_mode_skips_indexing_and_signals_search():
+    from app.services import qdrant_service
+
+    with patch.object(settings, "vector_store", "none"):
+        assert qdrant_service.upsert_meeting("m1", "t", "2026-11-15", "s", "transcript", [], []) is None
+        with pytest.raises(qdrant_service.VectorSearchOff):
+            qdrant_service.search("anything", top_k=3)
