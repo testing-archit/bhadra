@@ -48,6 +48,8 @@ See `docs/coordination.md` before editing shared files and `docs/ui-reference.md
 
 ## Tasks
 
-Focus is the default task layout. Show one full task title, its due date, owner, and Done / Snooze / Reassign actions. Swiping or using the previous/next buttons only browses. A successful change advances the queue and offers Undo, including after the last task. Failed saves keep the current task visible. Snooze explicitly changes the due date and places the task at the back of the current browsing session.
+The user rejected the single-card deck as too empty, then chose compact task cards. Cards are now the default. Keep several task titles visible together in a two-column desktop grid, stacking on mobile. Each card shows a completion control, due date, project/source, and the real owner's initial. High priority and in-progress status get explicit labels only when relevant. Don't shorten or rewrite the task itself.
 
-Meeting context opens on demand; never offer a meeting link for a task marked `meeting_hidden`. Scope and layout are compact selectors. Filters are initially collapsed. List and Board remain available, with additional task details and follow-up tools disclosed only when opened. The old browser preference for Board does not override the new default; explicit layout selections and links are still honoured.
+The title or details arrow expands that card's meeting source and Done / Snooze / Reassign actions. Only one card expands at a time. Saving waits for success, errors leave the card open, and Undo remains available after the last task. Restricted tasks never offer meeting links. Search stays visible; advanced filters are disclosed. List, Board, completed tasks, exports and bulk tools remain accessible.
+
+A compact Waiting on strip shows actual owners and pending counts from accessible delegated tasks. Tapping a person opens their waiting tasks. Keep theme tokens, Geist, real data and quiet interaction feedback; don't add decorative metrics, empty columns or invented suggestions to fill space.
