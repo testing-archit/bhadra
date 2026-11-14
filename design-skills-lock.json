@@ -124,6 +124,57 @@
         "scripts/tests/test_web_stack_freshness.py": "83a6d597410f442441cdb17d0913be151404a608ada6a2487dd2bfe2fbf31e5d",
         "scripts/validate_data.py": "a599aa256049cf30954d1f164721b99e453eb7e4cb8241bcab2d5573e6cf58b8"
       }
+    },
+    {
+      "name": "improve-ui",
+      "repository": "https://github.com/ibelick/ui-skills",
+      "path": "skills/improve-ui",
+      "revision": "65cc0edb4f64fe8bfe7e9c59466074de25bece76",
+      "files": {
+        "LICENSE.upstream.txt": "c615621c4cc1676ccde194e7a01b6469ba477780251bd71e007fc473a49c2c2b",
+        "SKILL.md": "fa2ac808f6d9dab7bb3620880b014d2c18e227e5b006102856038096e573e69a",
+        "agents/openai.yaml": "933af431364517518cbcfcd4e70eb8e8b390ead920abc48c071a4eedb6747183",
+        "references/plan-template.md": "8faca7a14659a7f951d3b89fb730a43a4ce99966cc00481bf83d82b90f34b868"
+      }
+    },
+    {
+      "name": "fixing-accessibility",
+      "repository": "https://github.com/ibelick/ui-skills",
+      "path": "skills/fixing-accessibility",
+      "revision": "65cc0edb4f64fe8bfe7e9c59466074de25bece76",
+      "files": {
+        "LICENSE.upstream.txt": "c615621c4cc1676ccde194e7a01b6469ba477780251bd71e007fc473a49c2c2b",
+        "SKILL.md": "549261e8a53b53a1a20c0ddbf736821e5fc0876ad82eee76e0efab8e9ee9dadf"
+      }
+    },
+    {
+      "name": "fixing-motion-performance",
+      "repository": "https://github.com/ibelick/ui-skills",
+      "path": "skills/fixing-motion-performance",
+      "revision": "65cc0edb4f64fe8bfe7e9c59466074de25bece76",
+      "files": {
+        "LICENSE.upstream.txt": "c615621c4cc1676ccde194e7a01b6469ba477780251bd71e007fc473a49c2c2b",
+        "SKILL.md": "0a2d654902bc04263ce68c8c02967ef03f17b482e855360a5463211d99d7baa9"
+      }
+    },
+    {
+      "name": "ux-writing",
+      "repository": "https://github.com/content-designer/ux-writing-skill",
+      "path": ".",
+      "revision": "98cacde4ba2dd10ed28df43a8d53eef1e321c539",
+      "files": {
+        "LICENSE": "6f3b004f129a7de55824bef23ca8fdde66adda81c5055bb6f357a4b769186a3b",
+        "SKILL.md": "67dda2a5ba7e26f69860e1018a37068ca201735ff8ae98199c143138d91b4550",
+        "docs/figma-integration.md": "72d4b14c4669a166536e8f3bf93d31a5b3a0ff20067bb59a283bba37b1ddd2a3",
+        "examples/real-world-improvements.md": "eae1497ec7d236a4e7e91e6855f91842ad2e6834b809ca15452527c299e7f78f",
+        "references/accessibility-guidelines.md": "58ea6f63b2156530bd7a7b422b828fbf8330978e989b71a3703ca2ebdb067ba0",
+        "references/content-usability-checklist.md": "29a7437f542b6ea3215f8cb1ec5295b93955385fc90811d1fbd7bf2e2c96dad3",
+        "references/patterns-detailed.md": "afc09a320f4b7bc23a62678da136a373afc1552c86a4d2e20648af8a04e323f6",
+        "references/voice-chart-template.md": "aef230903e2c93bc6c69fe3d9a12da7d5bd2dca36cf7688066481e549e4fb4f3",
+        "templates/empty-state-template.md": "efd184648b4b0399dc48049c157a3be3ef45157bb734b7b61f119d94710dda9d",
+        "templates/error-message-template.md": "728795bffb33b482169eb0f312798714d95ebb976d68a00d77dae32be4c5fd70",
+        "templates/onboarding-flow-template.md": "1c49b2427400263601f10679c12046be99125d1f7a81dee6b563a26618d7ed3b"
+      }
     }
   ]
 }

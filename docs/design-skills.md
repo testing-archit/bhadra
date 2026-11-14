@@ -1,14 +1,18 @@
 # Design skills for Wilco
 
-Three upstream skills are bundled in `.agents/skills/` for project use. Both Codex accounts share this project directory. Claude Code uses links in `.claude/skills/`; existing animation and impeccable skills remain in place.
+Seven upstream skills are bundled in `.agents/skills/` for project use. Both Codex accounts share this project directory. Claude Code uses links in `.claude/skills/`; existing animation and impeccable skills remain in place.
 
 | Skill | Use in Wilco | Source |
 | --- | --- | --- |
 | frontend-design | Set a deliberate direction for a new screen; simplify hierarchy and copy | [Anthropic](https://github.com/anthropics/skills/tree/main/skills/frontend-design) |
 | shadcn | Compose and maintain our existing Base UI components with Tailwind tokens | [shadcn](https://github.com/shadcn-ui/ui/tree/main/skills/shadcn) |
 | ui-ux-pro-max | Search UX, accessibility, responsive, and Next.js implementation guidance | [UI UX Pro Max](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill/tree/main/.claude/skills/ui-ux-pro-max) |
+| improve-ui | Read-only UI review and implementation plans for handoff | [ibelick](https://github.com/ibelick/ui-skills/tree/main/skills/improve-ui) |
+| fixing-accessibility | Names, keyboard access, focus, dialogs, and form errors | [ibelick](https://github.com/ibelick/ui-skills/tree/main/skills/fixing-accessibility) |
+| fixing-motion-performance | Audit transitions and avoid expensive animation work | [ibelick](https://github.com/ibelick/ui-skills/tree/main/skills/fixing-motion-performance) |
+| ux-writing | Shorten labels, onboarding, empty states, and error copy | [content-designer](https://github.com/content-designer/ux-writing-skill) |
 
-The first skill includes its Apache 2.0 license; the other bundles retain their upstream MIT licenses. `design-skills-lock.json` records exact upstream revisions and file checksums. All bundled source files were compared with those revisions. Existing `skills-lock.json` belongs to the earlier skill setup and is preserved.
+The first skill includes its Apache 2.0 license; the other bundles retain their upstream MIT licenses. `design-skills-lock.json` records exact upstream revisions and file checksums. All bundled source files were compared with those revisions. UX Writing includes its references, templates, and examples; repository demo videos and release archives are excluded. Existing `skills-lock.json` belongs to the earlier skill setup and is preserved.
 
 ## Activate and verify
 
@@ -33,9 +37,11 @@ From `frontend/`, run `npx --no-install shadcn info --json` to inspect the actua
 
 ## Working agreement
 
-Read [coordination.md](coordination.md) before editing. Claude currently owns the UI changes.
+Read [coordination.md](coordination.md) before editing. The latest user instruction assigns the reference-video UI and UX rework to Codex in an isolated worktree.
 
 Use one skill for the immediate job. Keep `DESIGN.md`, the established theme tokens, and our Lucide icon family as the project defaults. Skill searches supply suggestions; check the top result against the requested outcome before using it. Do not import a suggested icon library, replace our palette, or generate a second design system merely because a skill recommends one.
+
+`improve-ui` is a review and handoff workflow, not an implementation skill. Use the other skills for authorized edits. Copy-length targets are heuristics; keep essential consent, access, and recovery information. Audit results require actual evidence and do not follow from installing a skill.
 
 Wilco's agreed flow remains a focused Home action, guided review of tasks/decisions/uncertain speakers, and a clean recap. Preserve visible recording consent and conservative speaker identification. Keep advanced details behind explicit controls.
 
