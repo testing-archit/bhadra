@@ -15,7 +15,7 @@ import uuid
 
 from app.database.db import async_session
 from app.database.models import Meeting, MeetingAttendee, RecordingSession, Trace
-from app.services import followup_service, insight_service, jira_service, processing_service, transcriber, transcript_service, vocabulary_service, voice_identity
+from app.services import board_service, followup_service, insight_service, jira_service, processing_service, transcriber, transcript_service, vocabulary_service, voice_identity
 from sqlalchemy import select
 from app.services.meeting_index_service import rebuild_meeting_index
 from app.services import usage_ledger
@@ -149,6 +149,7 @@ async def extract(meeting_id: uuid.UUID, template: str | None, *, adopt_title: b
             logger.exception("Extraction failed for meeting %s", meeting_id)
             return False
     await followup_service.announce_notes(meeting_id)
+    await board_service.ensure_from_meeting(meeting_id)
     await followup_service.notify_task_owners(meeting_id)
     await jira_service.auto_send(meeting_id)
     await vocabulary_service.learn_from_meeting(meeting_id)

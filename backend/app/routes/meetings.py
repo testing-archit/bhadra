@@ -1504,6 +1504,10 @@ async def ingest_meeting(
             user_department,
             decision_checks,
         )
+        # A structured, editable board uses the notes already extracted above;
+        # it incurs no additional model call and survives a failed indexing job.
+        from app.services import board_service
+        background_tasks.add_task(board_service.ensure_from_meeting, meeting_id)
         if extraction_error is None:
             background_tasks.add_task(followup_service.announce_notes, meeting_id)
             background_tasks.add_task(followup_service.notify_task_owners, meeting_id)
