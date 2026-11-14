@@ -97,3 +97,14 @@ async def test_live_tasks_are_held_then_created_on_the_meeting(client, member_us
         async with async_session() as db:
             await db.delete(await db.get(CaptureRequest, capture_id))
             await db.commit()
+
+
+async def test_bot_speak_returns_timbre_audio(client):
+    async def fake_synthesize(text, language=None):
+        return b"ID3audio"
+
+    with patch.object(settings, "bot_api_secret", BOT_SECRET), patch("app.services.tts_service.synthesize", fake_synthesize):
+        response = await client.post("/api/bot/speak", headers=BOT, json={"text": "Vedant sends the invoice by Friday."})
+    assert response.status_code == 200
+    assert response.headers["content-type"] == "audio/mpeg"
+    assert response.content == b"ID3audio"

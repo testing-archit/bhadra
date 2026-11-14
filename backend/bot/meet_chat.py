@@ -43,26 +43,44 @@ async def open_panel(page: Page) -> bool:
         return False
 
 
+async def _box_text(page: Page) -> str:
+    try:
+        box = page.locator(CHAT_INPUT).first
+        value = await box.input_value() if await box.evaluate("e => 'value' in e") else await box.inner_text()
+        return (value or "").strip()
+    except Exception:
+        return ""
+
+
 async def send(page: Page, text: str) -> bool:
-    """Posts `text` to everyone in the call. False if chat was unreachable
-    (disabled by the host, markup changed); never raises."""
+    """Posts `text` to everyone in the call and confirms it left the message
+    box. False if chat was unreachable (disabled by the host, markup
+    changed) or the message wouldn't send; never raises."""
     try:
         if not await open_panel(page):
             return False
         box = page.locator(CHAT_INPUT).first
         await box.click(timeout=3000)
-        # Meet sends on Enter, so a multi-line message goes line by line
-        # joined with Shift+Enter.
-        lines = text.split("\n")
+        # Meet sends on Enter. Lines are joined with Shift+Enter, and the
+        # whole message is inserted at once rather than typed key by key.
+        lines = [line for line in text.split("\n")]
         for index, line in enumerate(lines):
-            await box.type(line, delay=4)
+            if line:
+                await page.keyboard.insert_text(line)
             if index < len(lines) - 1:
                 await page.keyboard.press("Shift+Enter")
-        send_button = page.locator(SEND_BUTTON).first
-        if await send_button.count() and await send_button.is_enabled():
-            await send_button.click(timeout=3000)
-        else:
-            await page.keyboard.press("Enter")
+        await page.wait_for_timeout(300)
+        await page.keyboard.press("Enter")
+        await page.wait_for_timeout(800)
+        if await _box_text(page):
+            # Still sitting in the box: try the send button.
+            button = page.locator(SEND_BUTTON).first
+            if await button.count():
+                await button.click(timeout=3000)
+                await page.wait_for_timeout(800)
+        if await _box_text(page):
+            log.warning("Chat message did not send; it is still in the message box")
+            return False
         return True
     except Exception as error:
         log.warning("Could not post to the Meet chat: %s", error)
@@ -76,7 +94,7 @@ def join_notice(display_name: str, requested_by: str | None, app_url: str | None
     lines = [
         f"Hi, I'm {display_name}{invited}. I'm recording this call so Charcha can write up the notes, tasks and decisions.",
         f'To stop me, say "{leave_phrase}" or remove me from the call.',
-        'Ask me about this call here: start your message with "Charcha", e.g. "Charcha recap" or "Charcha, what did we decide?"',
+        'Ask me about this call by saying "Charcha, ..." out loud (with captions on) or typing it here, e.g. "Charcha recap" or "Charcha, what did we decide?"',
         'Add a task the same way: "Charcha, add task: Vedant to send the invoice by Friday".',
     ]
     if app_url:

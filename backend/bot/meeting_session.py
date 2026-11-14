@@ -147,6 +147,10 @@ PARTICIPANT_COUNT_JS = """
 # Captions this recent mean someone else is in the call (the bot never
 # speaks), whatever the participant count says.
 SPEECH_IS_COMPANY_SECONDS = 30
+# "Charcha, <question>" said aloud. Captions spell the name a few ways.
+WAKE_RE = re.compile(r"(?:^|[.!?]\s+|\b(?:hey|hi|ok|okay|so|achha|acha)\s+)(?:char\s?cha+|charchaa|carcha|charchya)\b[\s,:.!-]+(.+?)(?=$|\b(?:hey\s+)?(?:char\s?cha+|charchaa|carcha)\b)", re.IGNORECASE)
+# A spoken question is answered once its speaker has paused this long.
+SPOKEN_QUESTION_PAUSE_SECONDS = 2.5
 
 # Meet's own wording when the bot is the only one left in the call.
 ALONE_PHRASES = [
@@ -232,6 +236,20 @@ def _norm(word: str) -> str:
     return "".join(ch for ch in word.lower() if ch.isalnum())
 
 
+def spoken_summary(text: str, limit: int = 420) -> str:
+    """What the notetaker says aloud: the reply's opening, cut at a
+    sentence, without the quoted question or list dashes."""
+    lines = [line.strip().lstrip("-").strip() for line in text.splitlines() if line.strip()]
+    if lines and lines[0].startswith('"') and lines[0].endswith(":"):
+        lines = lines[1:]
+    spoken = ". ".join(lines)
+    if len(spoken) > limit:
+        cut = spoken[:limit]
+        stop = max(cut.rfind(". "), cut.rfind("? "), cut.rfind("! "))
+        spoken = cut[: stop + 1] if stop > limit // 3 else cut
+    return spoken
+
+
 class CaptionLog:
     """Every word Meet captioned, timed by when it first appeared.
 
@@ -255,6 +273,9 @@ class CaptionLog:
         self._blocks: dict[int, dict] = {}
         self._last_heard: float | None = None
         self.exit_requested = asyncio.Event()
+        # Meet block id -> (speaker, latest text, last change); read by the
+        # spoken wake word ("Charcha, ...") detector.
+        self.latest: dict[int, tuple[str, str, float]] = {}
 
     def heard_within(self, seconds: float) -> bool:
         return self._last_heard is not None and time.monotonic() - self._last_heard <= seconds
@@ -271,6 +292,7 @@ class CaptionLog:
             self._last_heard = time.monotonic()
             if any(phrase in text.lower() for phrase in config.EXIT_PHRASES):
                 self.exit_requested.set()
+            self.latest[item["id"]] = (item.get("speaker") or "", text, time.monotonic())
             block = self._blocks.setdefault(item["id"], {"speaker": "", "words": [], "visible": 0})
             block["speaker"] = block["speaker"] or item.get("speaker") or ""
             words = text.split()
@@ -371,6 +393,8 @@ class MeetingSession:
         self.dir.mkdir(parents=True, exist_ok=True)
         self.audio_path = self.dir / "audio.webm"
         self.sink = f"meet_{uuid.uuid4().hex[:8]}"
+        self.voice_sink = f"voice_{uuid.uuid4().hex[:8]}"
+        self.voice_mic = f"{self.voice_sink}_mic"
         self.sink_module: str | None = None
         self.ffmpeg: subprocess.Popen | None = None
         self.captions = CaptionLog()
@@ -412,6 +436,18 @@ class MeetingSession:
             "load-module", "module-null-sink",
             f"sink_name={self.sink}", f"sink_properties=device.description={self.sink}",
         )
+        # The notetaker's voice: Timbre audio is played into voice_sink, and
+        # Chromium uses voice_mic (that sink's monitor) as its microphone.
+        try:
+            self.voice_modules = [
+                _pactl("load-module", "module-null-sink", f"sink_name={self.voice_sink}",
+                       f"sink_properties=device.description={self.voice_sink}"),
+                _pactl("load-module", "module-remap-source", f"master={self.voice_sink}.monitor",
+                       f"source_name={self.voice_mic}", f"source_properties=device.description={self.voice_mic}"),
+            ]
+        except Exception:
+            log.warning("Could not create the notetaker's voice device; it will answer in chat only")
+            self.voice_modules = []
 
     def start_recording(self) -> None:
         self.ffmpeg = subprocess.Popen(
@@ -448,6 +484,11 @@ class MeetingSession:
             self.recorded_seconds = time.monotonic() - self.captions.audio_started_at
 
     def remove_sink(self) -> None:
+        for module in reversed(getattr(self, "voice_modules", [])):
+            try:
+                _pactl("unload-module", module)
+            except Exception:
+                pass
         if self.sink_module:
             try:
                 _pactl("unload-module", self.sink_module)
@@ -578,19 +619,81 @@ class MeetingSession:
         else:
             await self.shot(page, "05_chat_failed")
 
+    async def speak(self, page: Page, text: str) -> None:
+        """Says `text` in the call with Gnani Timbre: unmute, play the audio
+        into the notetaker's microphone, mute again. Never raises."""
+        if not config.SPEAK_IN_CALL or not getattr(self, "voice_modules", None):
+            return
+        audio = await asyncio.to_thread(uploader.speech, spoken_summary(text))
+        if not audio:
+            return
+        path = self.dir / f"speech_{uuid.uuid4().hex[:6]}.mp3"
+        path.write_bytes(audio)
+        try:
+            if not await _click_if_visible(page, 'button[aria-label*="Turn on microphone"]', timeout_ms=1500):
+                await page.keyboard.press("Control+KeyD")
+            await page.wait_for_timeout(400)
+            await asyncio.to_thread(
+                subprocess.run,
+                ["ffmpeg", "-nostdin", "-loglevel", "error", "-re", "-i", str(path), "-ac", "1", "-ar", "48000",
+                 "-f", "pulse", "-device", self.voice_sink, "charcha-voice"],
+                timeout=120,
+            )
+            await page.wait_for_timeout(300)
+            log.info("Spoke %d bytes of audio in the call", len(audio))
+        except Exception as error:
+            log.warning("Could not speak in the call: %s", error)
+        finally:
+            if not await _click_if_visible(page, 'button[aria-label*="Turn off microphone"]', timeout_ms=1500):
+                await page.keyboard.press("Control+KeyD")
+
+    async def post_reply(self, page: Page, reply: str | None, kind: str) -> None:
+        if not reply:
+            log.warning("No %s reply came back from Charcha", kind)
+            return
+        self.chat.remember_sent(reply)
+        sent = await meet_chat.send(page, reply)
+        log.info("Chat %s %s: %s", kind, "posted" if sent else "NOT posted", reply[:160].replace("\n", " / "))
+        await self.speak(page, reply)
+        self.replies = getattr(self, "replies", 0) + 1
+        await self.shot(page, f"06_chat_{kind}_{self.replies}")
+
+    def spoken_questions(self) -> list[tuple[str, str]]:
+        """(speaker, question) for each "Charcha, ..." said aloud, once the
+        speaker has paused, so the whole question is in the captions."""
+        found = []
+        handled = getattr(self, "_spoken_handled", set())
+        self._spoken_handled = handled
+        now = time.monotonic()
+        for block_id, (speaker, text, changed) in list(self.captions.latest.items()):
+            if now - changed < SPOKEN_QUESTION_PAUSE_SECONDS:
+                continue
+            if speaker.strip().lower() in {"you", config.BOT_DISPLAY_NAME.lower()}:
+                continue  # the notetaker's own voice
+            for match in WAKE_RE.finditer(text):
+                question = re.split(r"(?<=[.!?])\s", match.group(1).strip())[0].strip(" ,.?!")
+                key = (block_id, match.start())
+                if key in handled or len(question) < 4:
+                    continue
+                handled.add(key)
+                if any(phrase in f"charcha {question}".lower() for phrase in config.EXIT_PHRASES):
+                    continue
+                found.append((speaker, question))
+        return found
+
     async def answer_chat(self, page: Page) -> None:
         """Answers new "Charcha, ..." messages in the call's chat from what
         was said so far. Never raises: chat must not cost the recording."""
         if not self.chat_ready or not config.ANSWER_IN_CHAT:
             return
-        for question in (await self.chat.new_questions(page))[:3]:
-            log.info("Chat question: %s", question[:120])
+        spoken = [(f"asked aloud by {who}" if who else "asked aloud", q) for who, q in self.spoken_questions()]
+        typed = [("", q) for q in await self.chat.new_questions(page)]
+        for asked, question in (typed + spoken)[:3]:
+            log.info("%s question: %s", "Spoken" if asked else "Chat", question[:120])
             task = meet_chat.task_text(question)
             if task and self.capture_request_id:
                 reply = await asyncio.to_thread(uploader.live_task, task, self.capture_request_id)
-                if reply:
-                    self.chat.remember_sent(reply)
-                    await meet_chat.send(page, reply)
+                await self.post_reply(page, reply, "task")
                 continue
             reply = await asyncio.to_thread(
                 uploader.live_answer,
@@ -599,9 +702,9 @@ class MeetingSession:
                 self.capture_request_id,
                 self.job.get("title") or "",
             )
-            if reply:
-                self.chat.remember_sent(reply)
-                await meet_chat.send(page, reply)
+            if reply and asked:
+                reply = f'"{question}" ({asked}):\n{reply}'
+            await self.post_reply(page, reply, "answer")
 
     async def stay(self, page: Page) -> str:
         """Blocks until the bot should leave; returns why."""
@@ -705,7 +808,7 @@ class MeetingSession:
             async with async_playwright() as p:
                 browser = await p.chromium.launch(
                     headless=False,  # on Xvfb — headless Chromium renders no WebRTC audio
-                    env={**os.environ, "PULSE_SINK": self.sink, "PULSE_LATENCY_MSEC": str(PULSE_LATENCY_MS)},
+                    env={**os.environ, "PULSE_SINK": self.sink, "PULSE_SOURCE": self.voice_mic, "PULSE_LATENCY_MSEC": str(PULSE_LATENCY_MS)},
                     ignore_default_args=["--enable-automation"],
                     args=[
                         "--no-sandbox",

@@ -16,7 +16,7 @@ import logging
 import re
 import uuid
 
-from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, Header, HTTPException, Request, UploadFile
+from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, Header, HTTPException, Request, Response, UploadFile
 from pydantic import BaseModel, Field
 from sqlalchemy import func, or_, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
@@ -464,6 +464,22 @@ async def live_answer(body: LiveQuestion, db: AsyncSession = Depends(get_db)) ->
         logger.exception("Live answer failed")
         text = "Sorry, I couldn't answer that just now. Try again in a moment."
     return {"answer": text}
+
+
+class BotSpeech(BaseModel):
+    text: str = Field(min_length=1, max_length=5000)
+
+
+@router.post("/speak", dependencies=[Depends(require_bot)])
+async def bot_speak(body: BotSpeech) -> Response:
+    """MP3 of an answer, for the notetaker to say in the call (Gnani Timbre)."""
+    from app.services import tts_service
+
+    try:
+        audio = await tts_service.synthesize(body.text)
+    except (tts_service.SpeechNotConfigured, ValueError) as error:
+        raise HTTPException(status_code=422, detail=str(error)) from error
+    return Response(content=audio, media_type="audio/mpeg")
 
 
 class LiveTask(BaseModel):

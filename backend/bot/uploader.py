@@ -211,3 +211,14 @@ def live_task(text: str, capture_request_id: str) -> str | None:
     except Exception as error:
         log.warning("Live task failed: %s", error)
         return None
+
+
+def speech(text: str) -> bytes | None:
+    """MP3 of `text` spoken by Gnani Timbre, via the backend; None on failure."""
+    try:
+        response = httpx.post(f"{config.BACKEND_URL}/api/bot/speak", headers=_bot_headers(), json={"text": text}, timeout=60)
+        response.raise_for_status()
+        return response.content or None
+    except Exception as error:
+        log.warning("Speech failed: %s", error)
+        return None

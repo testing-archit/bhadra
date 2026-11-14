@@ -68,6 +68,9 @@ ANNOUNCE_IN_CHAT = _env("ANNOUNCE_IN_CHAT", "1").lower() not in {"0", "false", "
 # Answer chat messages that start with "Charcha" from the call so far
 # (needs ANNOUNCE_IN_CHAT: the panel is opened by the notice).
 ANSWER_IN_CHAT = _env("ANSWER_IN_CHAT", "1").lower() not in {"0", "false", "no"}
+# Also say the answers out loud in the call (Gnani Timbre through a virtual
+# microphone). The notetaker unmutes only while it speaks.
+SPEAK_IN_CALL = _env("SPEAK_IN_CALL", "1").lower() not in {"0", "false", "no"}
 
 EXIT_PHRASES = [
     p.strip().lower()
