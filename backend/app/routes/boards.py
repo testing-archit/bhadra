@@ -9,12 +9,28 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database.db import get_db
-from app.database.models import Meeting, MeetingBoard, MeetingBoardRevision, User
+from app.database.models import CaptureRequest, LiveCaption, Meeting, MeetingBoard, MeetingBoardRevision, User
 from app.dependencies import get_current_user, user_can_read_meeting
-from app.services import board_service
+from app.services import board_service, capture_service
 
 
 router = APIRouter(prefix="/api/boards", tags=["boards"])
+
+
+async def _readable_capture(db: AsyncSession, user: User, capture_id: uuid.UUID) -> CaptureRequest:
+    capture = await db.get(CaptureRequest, capture_id)
+    if capture is None:
+        raise HTTPException(status_code=404, detail="Board not found")
+    if capture.meeting_id:
+        meeting = await db.get(Meeting, capture.meeting_id)
+        if meeting is None or meeting.deleted_at is not None or not await user_can_read_meeting(db, user, meeting.id):
+            raise HTTPException(status_code=404, detail="Board not found")
+        return capture
+    emails = {str(person.get("email") or "").strip().lower() for person in (capture.invitees or []) if isinstance(person, dict)}
+    if (user.id != capture.user_id and user.id not in await capture_service.subscriber_ids(db, capture.id)
+            and user.email.lower() not in emails and user.email.lower() != (capture.organizer_email or "").lower()):
+        raise HTTPException(status_code=404, detail="Board not found")
+    return capture
 
 
 class BoardNode(BaseModel):
@@ -57,7 +73,12 @@ class BoardUpdate(BaseModel):
 
 async def _readable_board(db: AsyncSession, user: User, board_id: uuid.UUID) -> MeetingBoard:
     board = await db.get(MeetingBoard, board_id)
-    if board is None or board.meeting_id is None:
+    if board is None:
+        raise HTTPException(status_code=404, detail="Board not found")
+    if board.meeting_id is None and board.capture_request_id is not None:
+        await _readable_capture(db, user, board.capture_request_id)
+        return board
+    if board.meeting_id is None:
         raise HTTPException(status_code=404, detail="Board not found")
     meeting = await db.get(Meeting, board.meeting_id)
     if meeting is None or meeting.deleted_at is not None or not await user_can_read_meeting(db, user, meeting.id):
@@ -77,6 +98,40 @@ async def meeting_board(
     board = await board_service.ensure_for_meeting(db, meeting)
     await db.commit()
     return board_service.serialize(board)
+
+
+@router.get("/captures/{capture_id}")
+async def capture_board(
+    capture_id: uuid.UUID,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    capture = await _readable_capture(db, user, capture_id)
+    if capture.meeting_id:
+        meeting = await db.get(Meeting, capture.meeting_id)
+        if meeting is None or meeting.deleted_at is not None or not await user_can_read_meeting(db, user, meeting.id):
+            raise HTTPException(status_code=404, detail="Board not found")
+        board = await board_service.ensure_for_meeting(db, meeting)
+        await db.commit()
+        return board_service.serialize(board)
+    board = await board_service.ensure_for_capture(db, capture)
+    await db.commit()
+    return board_service.serialize(board)
+
+
+@router.get("/captures/{capture_id}/captions")
+async def capture_captions(
+    capture_id: uuid.UUID,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> list[dict]:
+    await _readable_capture(db, user, capture_id)
+    rows = list((await db.scalars(
+        select(LiveCaption).where(LiveCaption.capture_request_id == capture_id)
+        .order_by(LiveCaption.seq.desc()).limit(250)
+    )).all())[::-1]
+    return [{"seq": row.seq, "speaker": row.speaker, "text": row.text,
+             "start": row.start_seconds, "end": row.end_seconds} for row in rows]
 
 
 @router.put("/{board_id}")
@@ -128,3 +183,21 @@ async def board_history(
     )).all()
     return [{"version": row.version, "source": row.source, "actor_id": str(row.actor_id) if row.actor_id else None,
              "created_at": row.created_at.isoformat() if row.created_at else None} for row in rows]
+
+
+class BoardPause(BaseModel):
+    paused: bool
+
+
+@router.post("/{board_id}/pause")
+async def pause_board(
+    board_id: uuid.UUID,
+    body: BoardPause,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    await _readable_board(db, user, board_id)
+    board = (await db.execute(select(MeetingBoard).where(MeetingBoard.id == board_id).with_for_update())).scalar_one()
+    board.paused = body.paused
+    await db.commit()
+    return board_service.serialize(board)

@@ -24,10 +24,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
 from app.database.db import get_db
-from app.database.models import CaptureEvent, CaptureRequest, Meeting, MeetingInsight, RecordingSession, ServiceHeartbeat, User
+from app.database.models import CaptureEvent, CaptureRequest, LiveCaption as LiveCaptionRow, Meeting, MeetingInsight, RecordingSession, ServiceHeartbeat, User
 from app.routes import meetings
 from app.routes.recordings import _session_dir, _speaker_activity
-from app.services import attendee_service, capture_service, live_assist, notetaker_monitor, processing_service, series_service, usage_ledger, speaker_mapping, transcriber, transcript_service, voice_identity
+from app.services import attendee_service, board_service, capture_service, live_assist, notetaker_monitor, processing_service, series_service, usage_ledger, speaker_mapping, transcriber, transcript_service, voice_identity
 
 router = APIRouter(prefix="/api/bot", tags=["bot"])
 logger = logging.getLogger(__name__)
@@ -253,6 +253,8 @@ async def bot_ingest(
         capture.meeting_id = uuid.UUID(result["meeting_id"])
         if capture.live_tasks and not result.get("deduplicated"):
             await _attach_live_tasks(db, capture, capture.meeting_id)
+        if meeting_row is not None:
+            await board_service.finalize_capture_board(db, capture, meeting_row)
         if capture_service.can_transition(capture.status, "completed"):
             capture.status = "completed"
             capture.status_detail = None
@@ -457,6 +459,63 @@ class LiveQuestion(BaseModel):
     captions: list[LiveCaption] = Field(default_factory=list, max_length=20_000)
     capture_request_id: uuid.UUID | None = None
     title: str = Field(default="", max_length=500)
+
+
+class CaptionChunk(BaseModel):
+    seq: int = Field(ge=1, le=100000)
+    speaker: str = Field(default="", max_length=200)
+    text: str = Field(min_length=1, max_length=2000)
+    start: float = Field(ge=0, le=28800)
+    end: float = Field(ge=0, le=28800)
+
+
+class CaptionBatch(BaseModel):
+    captions: list[CaptionChunk] = Field(max_length=50)
+
+
+@router.post("/capture-requests/{request_id}/captions", dependencies=[Depends(require_bot)])
+async def live_captions(
+    request_id: uuid.UUID,
+    body: CaptionBatch,
+    background_tasks: BackgroundTasks,
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """Persist finalized caption deltas; AI runs separately and infrequently."""
+    capture = await db.get(CaptureRequest, request_id)
+    if capture is None or capture.status not in {"capturing", "stopped"}:
+        raise HTTPException(status_code=404, detail="Active capture not found")
+    await board_service.ensure_for_capture(db, capture)
+    rows = []
+    for chunk in body.captions:
+        if chunk.end < chunk.start:
+            raise HTTPException(status_code=422, detail="Caption end precedes start")
+        rows.append({
+            "capture_request_id": request_id, "seq": chunk.seq,
+            "speaker": chunk.speaker.strip() or "Someone", "text": chunk.text.strip(),
+            "start_seconds": chunk.start, "end_seconds": chunk.end,
+        })
+    if rows:
+        statement = pg_insert(LiveCaptionRow).values(rows).on_conflict_do_nothing(constraint="uq_live_caption_seq")
+        await db.execute(statement)
+    await db.commit()
+    if rows:
+        background_tasks.add_task(board_service.refresh_live_board, request_id)
+    return {"accepted": len(rows)}
+
+
+@router.post("/capture-requests/{request_id}/board/refresh", dependencies=[Depends(require_bot)])
+async def request_live_board(
+    request_id: uuid.UUID,
+    background_tasks: BackgroundTasks,
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    capture = await db.get(CaptureRequest, request_id)
+    if capture is None or capture.status not in {"capturing", "stopped"}:
+        raise HTTPException(status_code=404, detail="Active capture not found")
+    board = await board_service.ensure_for_capture(db, capture)
+    await db.commit()
+    background_tasks.add_task(board_service.refresh_live_board, request_id, force=True)
+    return {"board_id": str(board.id), "url": f"{settings.public_app_url.rstrip('/')}/meetings/live/{request_id}"}
 
 
 @router.post("/live-answer", dependencies=[Depends(require_bot)])

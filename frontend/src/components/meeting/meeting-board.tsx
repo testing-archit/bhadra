@@ -7,7 +7,7 @@ import {
   applyEdgeChanges, applyNodeChanges, type Connection, type Edge,
   type EdgeChange, type Node, type NodeChange, type NodeProps,
 } from "@xyflow/react";
-import { ArrowUpRight, Check, Plus, Save, Trash2 } from "lucide-react";
+import { ArrowUpRight, Check, Pause, Play, Plus, Save, Trash2 } from "lucide-react";
 import { api, ApiError, type BoardNodeKind, type MeetingBoardNode, type MeetingBoardRecord } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -47,7 +47,7 @@ function toFlowNodes(board: MeetingBoardRecord): FlowNode[] {
   }));
 }
 
-export function MeetingBoard({ meetingId }: { meetingId: string }) {
+export function MeetingBoard({ meetingId, captureId }: { meetingId?: string; captureId?: string }) {
   const [board, setBoard] = useState<MeetingBoardRecord | null>(null);
   const [nodes, setNodes] = useState<FlowNode[]>([]);
   const [edges, setEdges] = useState<Edge[]>([]);
@@ -58,13 +58,13 @@ export function MeetingBoard({ meetingId }: { meetingId: string }) {
   const [saved, setSaved] = useState(false);
 
   const load = useCallback(async () => {
-    const result = await api.getMeetingBoard(meetingId);
+    const result = meetingId ? await api.getMeetingBoard(meetingId) : await api.getCaptureBoard(captureId!);
     setBoard(result);
     setNodes(toFlowNodes(result));
     setEdges(result.edges.map((edge) => ({ ...edge, type: "smoothstep" })));
     setDirty(false);
     setError(null);
-  }, [meetingId]);
+  }, [meetingId, captureId]);
 
   useEffect(() => { void load().catch(() => setError("Could not load this board.")); }, [load]);
   useEffect(() => {
@@ -154,6 +154,9 @@ export function MeetingBoard({ meetingId }: { meetingId: string }) {
         <p className="text-xs text-muted-foreground">Move ideas, connect related points, and edit the AI draft together.</p>
       </div>
       <Button size="sm" variant="outline" onClick={addIdea}><Plus className="size-4" />Add idea</Button>
+      {captureId && <Button size="sm" variant="outline" onClick={() => void api.pauseMeetingBoard(board.id, !board.paused).then(setBoard).catch(() => setError("Could not change AI board updates."))}>
+        {board.paused ? <Play className="size-4" /> : <Pause className="size-4" />}{board.paused ? "Resume AI" : "Pause AI"}
+      </Button>}
       <Button size="sm" onClick={() => void save()} disabled={!dirty || saving}><Save className="size-4" />{saving ? "Saving…" : "Save board"}</Button>
     </div>
     {error && <div className="flex items-center justify-between gap-3 border-b px-4 py-2 text-sm text-destructive" role="alert"><span>{error}</span><Button size="sm" variant="outline" onClick={() => void load()}>Reload board</Button></div>}
@@ -162,7 +165,7 @@ export function MeetingBoard({ meetingId }: { meetingId: string }) {
       <div className="h-[36rem] min-w-0 bg-background/40">
         <ReactFlow<FlowNode, Edge> nodes={nodes} edges={edges} nodeTypes={nodeTypes} onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange} onConnect={onConnect} onNodeClick={(_, node) => setSelectedId(node.id)}
-          onPaneClick={() => setSelectedId(null)} fitView minZoom={0.3} maxZoom={1.8} nodesConnectable>
+          onNodeDragStop={() => setDirty(true)} onPaneClick={() => setSelectedId(null)} fitView minZoom={0.3} maxZoom={1.8} nodesConnectable>
           <Background gap={24} color="var(--border)" />
           <Controls className="!border-border !bg-card" />
         </ReactFlow>
@@ -173,7 +176,7 @@ export function MeetingBoard({ meetingId }: { meetingId: string }) {
           <div><label htmlFor="board-kind" className="mb-1 block text-xs font-medium">Type</label><select id="board-kind" className="w-full rounded-lg border bg-background px-3 py-2 text-sm" value={selected.kind} onChange={(event) => updateNode({ kind: event.target.value as BoardNodeKind })}>{Object.entries(KINDS).map(([value, detail]) => <option key={value} value={value}>{detail.label}</option>)}</select></div>
           <div><label htmlFor="board-title" className="mb-1 block text-xs font-medium">Title</label><Input id="board-title" value={selected.title} maxLength={160} onChange={(event) => updateNode({ title: event.target.value })} /></div>
           <div><label htmlFor="board-text" className="mb-1 block text-xs font-medium">Details</label><Textarea id="board-text" value={selected.text} maxLength={4000} rows={5} onChange={(event) => updateNode({ text: event.target.value })} /></div>
-          {selected.source_start_ms != null && <Link className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline" href={`?tab=transcript&t=${selected.source_start_ms}`}><ArrowUpRight className="size-3.5" />Open source moment</Link>}
+          {selected.source_start_ms != null && <Link className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline" href={meetingId ? `?tab=transcript&t=${selected.source_start_ms}` : "#live-captions"}><ArrowUpRight className="size-3.5" />Open source moment</Link>}
           <p className="text-xs text-muted-foreground">{selected.origin === "ai" ? "AI draft. Your changes will be kept during future updates." : "Edited by your team."}</p>
         </div> : <p className="text-sm leading-6 text-muted-foreground">Select a point to edit it. Drag from a point’s right handle to connect it to another.</p>}
       </aside>

@@ -208,6 +208,24 @@ class MeetingBoardRevision(Base):
     created_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), server_default=func.now())
 
 
+class LiveCaption(Base):
+    """A finalized caption chunk sent by the bot while a call is happening."""
+
+    __tablename__ = "meeting_live_captions"
+    __table_args__ = (UniqueConstraint("capture_request_id", "seq", name="uq_live_caption_seq"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()"))
+    capture_request_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("capture_requests.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    seq: Mapped[int] = mapped_column(Integer, nullable=False)
+    speaker: Mapped[str] = mapped_column(String, nullable=False)
+    text: Mapped[str] = mapped_column(Text, nullable=False)
+    start_seconds: Mapped[float] = mapped_column(Float, nullable=False)
+    end_seconds: Mapped[float] = mapped_column(Float, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), server_default=func.now())
+
+
 class Project(Base):
     """A cross-meeting entity that tasks/decisions/risks can be tagged with,
     so 'show me everything tied to Project X' works across the whole

@@ -469,6 +469,9 @@ class MeetingSession:
         self.avatar_camera = config.MEET_AVATAR_CAMERA and config.AVATAR_IDLE.exists() and config.AVATAR_SPEAKING.exists()
         self.chat = meet_chat.ChatWatcher()
         self.chat_ready = False
+        self._caption_sent_keys: set[tuple[str, float]] = set()
+        self._caption_seq = 0
+        self._last_caption_flush = 0.0
         # Set only for "add the notetaker to this link" visits; calendar
         # visits have nobody waiting on a status.
         self.capture_request_id: str | None = job.get("capture_request_id")
@@ -762,6 +765,11 @@ class MeetingSession:
         typed = [("", q) for q in await self.chat.new_questions(page)]
         for asked, question in (typed + spoken)[:3]:
             log.info("%s question: %s", "Spoken" if asked else "Chat", question[:120])
+            if self.capture_request_id and re.search(r"\b(?:make|create|start|open|show|banao)\b.*\b(?:whiteboard|board)\b", question, re.I):
+                await self.flush_live_captions(force=True)
+                url = await asyncio.to_thread(uploader.live_whiteboard, self.capture_request_id)
+                await self.post_reply(page, f"I started a meeting board: {url}" if url else "I couldn't open the board right now. Try again in a moment.", "board")
+                continue
             task = meet_chat.task_text(question)
             if task and self.capture_request_id:
                 reply = await asyncio.to_thread(uploader.live_task, task, self.capture_request_id)
@@ -777,6 +785,30 @@ class MeetingSession:
             if reply and asked:
                 reply = f'"{question}" ({asked}):\n{reply}'
             await self.post_reply(page, reply, "answer")
+
+    async def flush_live_captions(self, *, force: bool = False) -> None:
+        if not self.capture_request_id or self.captions.audio_started_at is None:
+            return
+        now = time.monotonic()
+        if not force and now - self._last_caption_flush < 15:
+            return
+        self._last_caption_flush = now
+        elapsed = now - self.captions.audio_started_at
+        # Wait for a block to settle. Captions can revise their latest words;
+        # the final ingest still carries the entire corrected caption log.
+        candidates = []
+        for item in self.captions.export():
+            key = (item["speaker"], item["start"])
+            if key not in self._caption_sent_keys and item["end"] <= elapsed - (0 if force else 8):
+                candidates.append((key, item))
+            if len(candidates) >= 50:
+                break
+        if not candidates:
+            return
+        batch = [{"seq": self._caption_seq + index + 1, **item} for index, (_, item) in enumerate(candidates)]
+        if await asyncio.to_thread(uploader.live_captions, self.capture_request_id, batch):
+            self._caption_seq += len(batch)
+            self._caption_sent_keys.update(key for key, _ in candidates)
 
     async def stay(self, page: Page) -> str:
         """Blocks until the bot should leave; returns why."""
@@ -851,6 +883,7 @@ class MeetingSession:
                 limit = config.ALONE_TIMEOUT_SECONDS if others_seen else config.WAIT_FOR_OTHERS_SECONDS
                 if time.monotonic() - alone_since > limit:
                     return "everyone else left" if others_seen else "nobody joined"
+            await self.flush_live_captions()
             await self.answer_chat(page)
             await asyncio.sleep(5)
 

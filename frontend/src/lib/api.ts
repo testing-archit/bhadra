@@ -1510,8 +1510,15 @@ export interface MeetingBoardRecord {
   updated_at: string | null;
 }
 
+export interface LiveBoardCaption { seq: number; speaker: string; text: string; start: number; end: number }
+
 export const api = {
   getMeetingBoard: (meetingId: string) => apiFetch<MeetingBoardRecord>(`/api/boards/meetings/${meetingId}`),
+  getCaptureBoard: (captureId: string) => apiFetch<MeetingBoardRecord>(`/api/boards/captures/${captureId}`),
+  getCaptureCaptions: (captureId: string) => apiFetch<LiveBoardCaption[]>(`/api/boards/captures/${captureId}/captions`),
+  pauseMeetingBoard: (boardId: string, paused: boolean) => apiFetch<MeetingBoardRecord>(`/api/boards/${boardId}/pause`, {
+    method: "POST", body: JSON.stringify({ paused }),
+  }),
   saveMeetingBoard: (board: MeetingBoardRecord) => apiFetch<MeetingBoardRecord>(`/api/boards/${board.id}`, {
     method: "PUT",
     body: JSON.stringify({ expected_version: board.version, title: board.title, nodes: board.nodes, edges: board.edges }),

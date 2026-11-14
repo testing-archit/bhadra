@@ -188,11 +188,11 @@ export function UpcomingMeetings() {
                       {event.unsupported_platform ? (
                         <span>{event.unsupported_platform === "Microsoft Teams" ? "Microsoft Teams — paste the link in Send notetaker to record it" : `${event.unsupported_platform} — the notetaker joins Google Meet and Teams`}</span>
                       ) : live ? (
-                        <span className="flex items-center gap-1 text-foreground">
+                        <Link href={`/meetings/live/${event.capture!.id}`} className="flex items-center gap-1 text-foreground hover:underline">
                           <span className={cn("size-1.5 rounded-full", event.capture?.status === "capturing" ? "bg-destructive" : "bg-warning")} />
                           {event.capture?.status_label}
                           {new Date(event.end_at).getTime() < Date.now() && <span className="text-muted-foreground"> · running over</span>}
-                        </span>
+                        </Link>
                       ) : event.capture?.status === "completed" && event.capture.meeting_id ? (
                         <Link href={`/meetings/${event.capture.meeting_id}`} className="text-primary hover:underline">Notes ready</Link>
                       ) : event.will_record ? (
