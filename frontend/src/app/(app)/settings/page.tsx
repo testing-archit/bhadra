@@ -11,6 +11,7 @@ import { ArchiveRestore, Building2, CheckCircle2, ExternalLink, Monitor, Moon, R
 import { useTheme, type ThemePreference } from "@/lib/theme";
 import { PageHeader } from "@/components/page-header";
 import { CalendarSettings } from "@/components/calendar-settings";
+import { ConnectClaude } from "@/components/connect-claude";
 import { JiraSettingsCard } from "@/components/jira-task-button";
 import { EmailSettings, PasswordSettings } from "@/components/email-settings";
 import { initialsFor } from "@/components/shell/sidebar";
@@ -182,6 +183,8 @@ export default function SettingsPage() {
       </Card>
 
       <CalendarSettings />
+
+      <ConnectClaude />
 
       <EmailSettings />
 

@@ -1462,6 +1462,9 @@ export interface MeetingPrep {
 export type TranscriptExportFormat = "txt" | "md" | "json" | "srt" | "vtt";
 
 export const api = {
+  /** A 90-day token for connecting Claude or another MCP client. */
+  createConnectorToken: () =>
+    apiFetch<{ token: string; url: string; expires_at: string }>("/api/auth/connector-token", { method: "POST" }),
   /** Text read aloud by Gnani Timbre, as MP3. */
   speak: (text: string, language?: string) => apiPostBlob("/api/tts", { text, language }),
   /** A short spoken clip (a question) transcribed by Gnani Prisma. */
