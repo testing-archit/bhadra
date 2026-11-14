@@ -23,11 +23,9 @@ on:
         type: boolean
         default: false
 
-# One deploy at a time: a second push waits for the first instead of racing it
-# for the VM.
-concurrency:
-  group: deploy-vm
-  cancel-in-progress: false
+# Tests and image builds of a new push run while the previous push is still
+# deploying; only the deploy job itself is one-at-a-time (see its
+# concurrency below).
 
 env:
   # Pinned by digest. Runs on the VM only during a deploy, bound to
@@ -81,9 +79,48 @@ jobs:
           npm ci --no-audit --no-fund
           npx tsc --noEmit
 
-  deploy:
-    needs: test
+  # Builds every image into GitHub's layer cache at the same time as the
+  # tests, so the deploy job below only replays cached layers and ships them.
+  # Unchanged services rebuild from cache in seconds.
+  prebuild:
     runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - name: Build images into the cache
+        uses: docker/bake-action@018cb6412ab401ebaa809aa5f85966b74628600f # v7.4.0
+        env:
+          POSTGRES_PASSWORD: build-only
+          COMPOSE_PROJECT_NAME: charcha
+          BUILDX_NO_DEFAULT_ATTESTATIONS: "1"
+          APP_URL: ${{ vars.CHARCHA_APP_URL }}
+          GOOGLE_CLIENT_ID: ${{ vars.CHARCHA_GOOGLE_CLIENT_ID }}
+          CHROME_WEB_STORE_URL: ${{ vars.CHARCHA_CHROME_WEB_STORE_URL }}
+        with:
+          source: .
+          files: docker-compose.prod.yml
+          targets: backend,frontend,notetaker
+          push: false
+          pull: true
+          no-cache: ${{ inputs.no_cache == true }}
+          set: |
+            *.output=type=cacheonly
+            backend.cache-from=type=gha,scope=backend
+            backend.cache-to=type=gha,scope=backend,mode=max
+            frontend.cache-from=type=gha,scope=frontend
+            frontend.cache-to=type=gha,scope=frontend,mode=max
+            notetaker.cache-from=type=gha,scope=notetaker
+            notetaker.cache-to=type=gha,scope=notetaker,mode=max
+
+  deploy:
+    needs: [test, prebuild]
+    runs-on: ubuntu-latest
+    # One deploy at a time: a second push waits for the first instead of
+    # racing it for the VM.
+    concurrency:
+      group: deploy-vm
+      cancel-in-progress: false
     env:
       # The VM login CI uses (a dedicated key in CHARCHA_VM_SSH_KEY). The app
       # lives in ~/charcha under this user.
