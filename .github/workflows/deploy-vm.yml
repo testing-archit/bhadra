@@ -1,0 +1,286 @@
+name: Deploy to VM (Charcha GCP)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "backend/**"
+      - "frontend/**"
+      - "src/**"
+      - "manifest.json"
+      - "package.json"
+      - "package-lock.json"
+      - "vite.config.js"
+      - ".github/workflows/release-extension.yml"
+      - "docker-compose.prod.yml"
+      - "nginx/**"
+      - ".github/workflows/deploy-vm.yml"
+      - "tools/deploy.sh"
+  workflow_dispatch:
+    inputs:
+      no_cache:
+        description: "Rebuild every image from scratch (ignores the build cache)"
+        type: boolean
+        default: false
+
+# One deploy at a time: a second push waits for the first instead of racing it
+# for the VM.
+concurrency:
+  group: deploy-vm
+  cancel-in-progress: false
+
+env:
+  # Pinned by digest. Runs on the VM only during a deploy, bound to
+  # 127.0.0.1 and reached through this job's SSH connection: no open port,
+  # no credentials. It lets the VM pull only the image layers that changed.
+  DEPLOY_REGISTRY_IMAGE: registry:3.1.2@sha256:ddf754342cfc8acc51a56d5d0ab6af06826461864460636d8bd5c546dab2a7b8
+
+jobs:
+  # Nothing reaches the VM unless this passes.
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: charcha
+          POSTGRES_PASSWORD: charcha
+          POSTGRES_DB: charcha
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U charcha -d charcha"
+          --health-interval 5s --health-timeout 5s --health-retries 20
+    env:
+      DATABASE_URL: postgresql+asyncpg://charcha:charcha@localhost:5432/charcha
+      DATABASE_SSL: "false"
+      APP_ENV: development
+      ADMIN_EMAILS: ci-admin@example.com
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install ffmpeg
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/requirements*.txt
+      - name: Backend tests
+        working-directory: backend
+        run: |
+          pip install -q -r requirements-dev.txt
+          python scripts/init_db.py
+          python -m pytest tests -q --no-header -p no:warnings
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Extension checks
+        run: npm test
+      - name: Frontend type check
+        working-directory: frontend
+        run: |
+          npm ci --no-audit --no-fund
+          npx tsc --noEmit
+
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Configure SSH
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.CHARCHA_VM_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          for attempt in 1 2 3 4 5; do
+            ssh-keyscan -T 10 -H "${{ secrets.CHARCHA_VM_HOST }}" >> ~/.ssh/known_hosts && break
+            if [ "$attempt" = 5 ]; then exit 1; fi
+            sleep 3
+          done
+
+      - name: Check out
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Decide which images changed
+        id: plan
+        run: |
+          set -euo pipefail
+          VM="tech_intern@${{ secrets.CHARCHA_VM_HOST }}"
+          deployed=$(ssh -o BatchMode=yes -o ConnectTimeout=15 -i ~/.ssh/id_ed25519 "$VM" 'git -C ~/charcha rev-parse HEAD')
+          missing=$(ssh -o BatchMode=yes -i ~/.ssh/id_ed25519 "$VM" 'for s in backend frontend notetaker; do docker image inspect charcha-$s:latest >/dev/null 2>&1 || echo $s; done')
+          if git cat-file -e "$deployed^{commit}" 2>/dev/null; then
+            changed=$(git diff --name-only "$deployed" "$GITHUB_SHA")
+          else
+            changed="backend/ frontend/ backend/bot/"
+          fi
+          build=""
+          # backend/.dockerignore leaves bot/ out of the backend image.
+          printf "%s\n" "$changed" | grep -E "^backend/" | grep -Evq "^backend/bot/" && build="$build backend"
+          printf "%s\n" "$changed" | grep -Eq "^frontend/" && build="$build frontend"
+          printf "%s\n" "$changed" | grep -Eq "^backend/bot/" && build="$build notetaker"
+          for s in $missing; do case " $build " in *" $s "*) ;; *) build="$build $s";; esac; done
+          # A compose change can alter how any app container runs (env,
+          # limits), so every app service is restarted, each when idle.
+          restart="$build"
+          if printf "%s\n" "$changed" | grep -Eq "^docker-compose.prod.yml$"; then restart="backend frontend notetaker"; fi
+          echo "build=$(echo $build)" >> "$GITHUB_OUTPUT"
+          echo "targets=$(echo $build | tr ' ' ',')" >> "$GITHUB_OUTPUT"
+          {
+            echo "bake_set<<EOF"
+            for t in $build; do
+              echo "$t.tags=localhost:5000/charcha-$t:latest"
+              echo "$t.cache-from=type=gha,scope=$t"
+              echo "$t.cache-to=type=gha,scope=$t,mode=max"
+            done
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+          echo "restart=$(echo $restart | tr ' ' '\n' | sort -u | tr '\n' ' ')" >> "$GITHUB_OUTPUT"
+          echo "Deployed: $deployed → $GITHUB_SHA | build:$build | restart:$restart"
+
+      # Images are built here on GitHub, never on the e2-medium: a Next.js and
+      # Python build there stole the CPU and RAM live meetings need. Layers
+      # are cached between runs and only the changed ones travel to the VM
+      # (a code change moves MBs, not the 8 GB of Chrome, apt and pip).
+      - name: Set up Docker Buildx
+        if: steps.plan.outputs.build != ''
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+        with:
+          # host network: the builder pushes to the SSH tunnel on 127.0.0.1.
+          driver-opts: network=host
+          buildkitd-config-inline: |
+            [registry."localhost:5000"]
+              http = true
+
+      - name: Open the deploy registry on the VM
+        if: steps.plan.outputs.build != ''
+        run: |
+          set -euo pipefail
+          VM="tech_intern@${{ secrets.CHARCHA_VM_HOST }}"
+          ssh -o BatchMode=yes -o ConnectTimeout=15 -i ~/.ssh/id_ed25519 "$VM" \
+            "docker rm -f charcha-deploy-registry >/dev/null 2>&1 || true
+             docker run -d --name charcha-deploy-registry -p 127.0.0.1:5000:5000 \
+               -v charcha_deploy_registry:/var/lib/registry $DEPLOY_REGISTRY_IMAGE >/dev/null"
+          ssh -f -N -o BatchMode=yes -o ExitOnForwardFailure=yes -o ServerAliveInterval=30 -i ~/.ssh/id_ed25519 \
+            -L 127.0.0.1:5000:127.0.0.1:5000 "$VM"
+          for i in $(seq 1 30); do curl -fsS http://127.0.0.1:5000/v2/ >/dev/null && exit 0; sleep 1; done
+          echo "The deploy registry on the VM did not come up"; exit 1
+
+      - name: Build images and send the changed layers
+        if: steps.plan.outputs.build != ''
+        uses: docker/bake-action@018cb6412ab401ebaa809aa5f85966b74628600f # v7.4.0
+        env:
+          POSTGRES_PASSWORD: build-only
+          COMPOSE_PROJECT_NAME: charcha
+          # One plain manifest per image (no attestation index), so the
+          # registry's garbage collection can't strip part of an image.
+          BUILDX_NO_DEFAULT_ATTESTATIONS: "1"
+        with:
+          source: .
+          files: docker-compose.prod.yml
+          targets: ${{ steps.plan.outputs.targets }}
+          push: true
+          # Re-check base images, so cached layers still pick up their
+          # security updates.
+          pull: true
+          no-cache: ${{ inputs.no_cache == true }}
+          set: ${{ steps.plan.outputs.bake_set }}
+
+      - name: Load the new images on the VM
+        if: steps.plan.outputs.build != ''
+        run: |
+          ssh -o BatchMode=yes -o ConnectTimeout=15 -o ServerAliveInterval=30 -i ~/.ssh/id_ed25519 \
+            tech_intern@${{ secrets.CHARCHA_VM_HOST }} BUILD="'${{ steps.plan.outputs.build }}'" bash -s <<'REMOTE'
+            set -euo pipefail
+            for s in $BUILD; do
+              docker pull -q "localhost:5000/charcha-$s:latest" >/dev/null
+              docker tag "localhost:5000/charcha-$s:latest" "charcha-$s:latest"
+              docker image rm "localhost:5000/charcha-$s:latest" >/dev/null
+              echo "charcha-$s:latest $(docker image inspect -f '{{.Id}}' charcha-$s:latest)"
+            done
+          REMOTE
+
+      - name: Close the deploy registry
+        if: always() && steps.plan.outputs.build != ''
+        run: |
+          pkill -f "ssh -f -N .*127.0.0.1:5000:127.0.0.1:5000" || true
+          # Stop it, then drop layers no image uses any more so its disk use
+          # stays at about one copy of the current images.
+          ssh -o BatchMode=yes -o ConnectTimeout=15 -i ~/.ssh/id_ed25519 tech_intern@${{ secrets.CHARCHA_VM_HOST }} \
+            "docker rm -f charcha-deploy-registry >/dev/null 2>&1 || true
+             docker run --rm -v charcha_deploy_registry:/var/lib/registry $DEPLOY_REGISTRY_IMAGE \
+               garbage-collect --delete-untagged /etc/distribution/config.yml >/dev/null" \
+            || echo "::warning::Deploy registry clean-up failed; it is retried on the next deploy"
+
+      # The VM has no access to this repo (the org turns deploy keys off), so
+      # the code is sent to it: only what it lacks, as a git bundle.
+      - name: Send the code to the VM
+        run: |
+          set -euo pipefail
+          VM="tech_intern@${{ secrets.CHARCHA_VM_HOST }}"
+          deployed=$(ssh -o BatchMode=yes -o ConnectTimeout=15 -i ~/.ssh/id_ed25519 "$VM" 'git -C ~/charcha rev-parse HEAD')
+          if [ "$deployed" = "$GITHUB_SHA" ]; then
+            echo "The VM already has $GITHUB_SHA"
+            exit 0
+          fi
+          git branch -f deploy-ship "$GITHUB_SHA"
+          if git merge-base --is-ancestor "$deployed" "$GITHUB_SHA" 2>/dev/null; then
+            git bundle create deploy.bundle deploy-ship "^$deployed"
+          else
+            git bundle create deploy.bundle deploy-ship
+          fi
+          scp -q -o BatchMode=yes -o ConnectTimeout=15 -i ~/.ssh/id_ed25519 deploy.bundle "$VM:charcha-deploy.bundle"
+
+      - name: Restart on the VM (each service only when idle)
+        run: |
+          ssh -o BatchMode=yes -o ConnectTimeout=15 -o ServerAliveInterval=30 -i ~/.ssh/id_ed25519 tech_intern@${{ secrets.CHARCHA_VM_HOST }} \
+            RESTART="'${{ steps.plan.outputs.restart }}'" bash -s <<'REMOTE'
+            set -euo pipefail
+            cd ~/charcha
+            if [ -f ~/charcha-deploy.bundle ]; then
+              git fetch -q ~/charcha-deploy.bundle refs/heads/deploy-ship
+              git checkout -q main
+              git reset -q --hard FETCH_HEAD
+              rm -f ~/charcha-deploy.bundle
+            fi
+
+            test -s .env || { echo "~/charcha/.env is missing"; exit 1; }
+            test -s backend/.env || { echo "~/charcha/backend/.env is missing"; exit 1; }
+
+            docker compose -f docker-compose.prod.yml config --quiet
+            docker compose -f docker-compose.prod.yml pull -q postgres nginx certbot
+            # Infrastructure (recreated only if its config changed).
+            docker compose -f docker-compose.prod.yml up -d --no-build postgres nginx certbot
+            # Qdrant is rollback-only now (Pinecone serves search); its data
+            # stays in the qdrant_data volume.
+            docker rm -f charcha-qdrant-1 >/dev/null 2>&1 || true
+
+            status=0
+            if [ -n "$(echo $RESTART)" ]; then
+              SKIP_PULL=1 SKIP_BUILD=1 MAX_WAIT_MINUTES=60 tools/deploy.sh $RESTART || status=$?
+            else
+              echo "No application changes to restart"
+            fi
+            docker compose -f docker-compose.prod.yml exec -T nginx nginx -t
+            docker compose -f docker-compose.prod.yml exec -T nginx nginx -s reload
+
+            for i in $(seq 1 30); do
+              if docker compose -f docker-compose.prod.yml exec -T nginx wget -qO- http://backend:8080/health >/dev/null \
+                && docker compose -f docker-compose.prod.yml exec -T nginx wget -qO- http://frontend:3000/ >/dev/null \
+                && docker compose -f docker-compose.prod.yml exec -T nginx wget --no-check-certificate -qO- https://localhost/health >/dev/null; then
+                docker compose -f docker-compose.prod.yml ps
+                docker image prune -f >/dev/null
+                if [ "$status" = 2 ]; then
+                  echo "::warning::Some services were still busy (a meeting or processing) and were not restarted; the next deploy or tools/deploy.sh picks them up."
+                fi
+                echo "Charcha frontend and backend are healthy"
+                exit 0
+              fi
+              sleep 5
+            done
+
+            echo "Charcha failed health checks"
+            docker compose -f docker-compose.prod.yml ps
+            docker compose -f docker-compose.prod.yml logs --tail=100 backend frontend nginx
+            exit 1
+          REMOTE

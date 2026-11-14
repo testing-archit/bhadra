@@ -1,0 +1,62 @@
+services:
+
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: charcha
+      POSTGRES_USER: charcha
+      POSTGRES_PASSWORD: charchapass
+    ports: ["5433:5432"]
+    volumes: [postgres_data:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U charcha"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  qdrant:
+    image: qdrant/qdrant:latest
+    ports: ["6333:6333"]
+    volumes: [qdrant_data:/qdrant/storage]
+
+  backend:
+    build: ./backend
+    # Optional: layers real secrets (GEMINI_API_KEY, DEEPGRAM_API_KEY) on top
+    # of the defaults below when the file happens to exist. `required: false`
+    # means a fresh checkout with no .env at all still boots the stack —
+    # everything except actual AI/transcription calls works out of the box.
+    env_file:
+      - path: ./backend/.env
+        required: false
+    environment:
+      DATABASE_URL: postgresql+asyncpg://charcha:charchapass@postgres:5432/charcha
+      DATABASE_SSL: "false"
+      QDRANT_URL: http://qdrant:6333
+      ALLOWED_ORIGINS: http://localhost:3000,http://localhost:3001
+    ports: ["8080:8080"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      qdrant:
+        condition: service_started
+    volumes:
+      - ./backend:/app
+      - recordings_data:/app/recordings
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        # Read by the browser, not the frontend container — must be reachable
+        # from the host, so this is backend's published host port, not the
+        # docker-network service name.
+        NEXT_PUBLIC_BACKEND_URL: http://localhost:8080
+        NEXT_PUBLIC_GOOGLE_CLIENT_ID: "35439757502-jbnn987k96up437lg3eqegdvkfs33ruq.apps.googleusercontent.com"
+    ports: ["3000:3000"]
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
+  qdrant_data:
+  recordings_data:

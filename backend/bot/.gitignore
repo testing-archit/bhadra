@@ -1,0 +1,6 @@
+.venv/
+.env
+auth.json
+data/
+transcript_*.json
+debug_*.png

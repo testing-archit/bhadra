@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Charcha</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <section id="login-screen" class="login" hidden>
+        <div class="mark mark--large" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M5 17.5V8.8L12 4l7 4.8v8.7L12 21l-7-3.5Z"/><path d="M8.5 15V10.8L12 8.5l3.5 2.3V15L12 17l-3.5-2Z"/></svg>
+        </div>
+        <h1>Your meetings, remembered</h1>
+        <p class="lede">Send the Charcha notetaker into any Google Meet, then find every decision and follow-up later.</p>
+        <button id="google-login-btn" class="btn btn--primary btn--block" type="button">
+          <svg viewBox="0 0 24 24" aria-hidden="true" class="google"><path fill="#fff" d="M21.6 12.23c0-.71-.06-1.23-.2-1.77H12v3.4h5.52a4.72 4.72 0 0 1-2.05 3.01l2.98 2.31c1.84-1.7 3.15-4.07 3.15-6.95Z"/><path fill="#fff" opacity=".85" d="M12 22c2.68 0 4.93-.88 6.57-2.4l-3.16-2.44c-.85.57-1.98.97-3.41.97-2.58 0-4.77-1.75-5.56-4.16l-3.2 2.48A9.93 9.93 0 0 0 12 22Z"/><path fill="#fff" opacity=".7" d="M6.44 13.97A6.14 6.14 0 0 1 6.1 12c0-.68.12-1.34.33-1.97L3.18 7.56A10 10 0 0 0 2 12c0 1.61.38 3.14 1.06 4.49l3.38-2.52Z"/><path fill="#fff" opacity=".55" d="M12 5.87c1.86 0 3.11.8 3.82 1.46l2.82-2.75A9.58 9.58 0 0 0 12 2a9.93 9.93 0 0 0-8.79 5.51l3.22 2.52C7.23 7.62 9.42 5.87 12 5.87Z"/></svg>
+          Continue with Google
+        </button>
+        <div class="divider"><span>or with your Charcha password</span></div>
+        <form id="email-login-form" class="stack">
+          <label class="field"><span>Email</span><input id="login-email" type="email" autocomplete="email" placeholder="you@company.com" required /></label>
+          <label class="field"><span>Password</span><input id="login-password" type="password" autocomplete="current-password" minlength="8" required /></label>
+          <button id="email-login-btn" type="submit" class="btn btn--ink btn--block">Sign in</button>
+          <button id="forgot-password-btn" class="link-btn link-btn--quiet" type="button">Forgot your password, or signed up with Google? Set one</button>
+        </form>
+        <p id="login-status" class="status-line" role="alert"></p>
+        <button id="create-account-btn" class="link-btn" type="button">New to Charcha? Create an account</button>
+      </section>
+
+      <section id="app-screen" class="app" hidden>
+        <header class="topbar">
+          <div class="brand">
+            <span class="mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M5 17.5V8.8L12 4l7 4.8v8.7L12 21l-7-3.5Z"/><path d="M8.5 15V10.8L12 8.5l3.5 2.3V15L12 17l-3.5-2Z"/></svg></span>
+            <strong>Charcha</strong>
+          </div>
+          <div class="topbar__actions">
+            <button id="open-workspace-btn" class="icon-btn" type="button" title="Open Charcha" aria-label="Open Charcha in a new tab">
+              <svg viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg>
+            </button>
+            <button id="settings-btn" class="icon-btn" type="button" title="Settings" aria-label="Settings">
+              <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z"/></svg>
+            </button>
+          </div>
+        </header>
+
+        <nav class="tabs" role="tablist" aria-label="Charcha">
+          <button class="tab" role="tab" data-tab="now" aria-selected="true">Now</button>
+          <button class="tab" role="tab" data-tab="tasks" aria-selected="false">Tasks <span id="task-count" class="count" hidden></span></button>
+          <button class="tab" role="tab" data-tab="ask" aria-selected="false">Ask</button>
+          <button class="tab" role="tab" data-tab="meetings" aria-selected="false">Meetings</button>
+        </nav>
+
+        <section class="panel" data-panel="now" role="tabpanel">
+          <article id="this-meeting" class="card card--feature" hidden>
+            <p class="card__label">This Google Meet</p>
+            <div class="status-row"><span id="this-meeting-dot" class="dot"></span><strong id="this-meeting-title">—</strong></div>
+            <p id="this-meeting-detail" class="muted"></p>
+            <div id="this-meeting-actions" class="row"></div>
+          </article>
+
+          <article class="card">
+            <p class="card__label">Send the notetaker</p>
+            <form id="send-form" class="stack">
+              <input id="send-url" type="url" inputmode="url" placeholder="Paste a Google Meet or Teams link" aria-label="Meeting link" required />
+              <label class="check">
+                <input id="send-consent" type="checkbox" required />
+                <span>Everyone in the call will know a notetaker is recording.</span>
+              </label>
+              <button id="send-btn" type="submit" class="btn btn--primary">Send notetaker</button>
+            </form>
+            <p id="send-status" class="status-line" role="status"></p>
+          </article>
+
+          <div id="live-block" hidden>
+            <h2 class="section-title">In progress</h2>
+            <div id="live-list" class="list"></div>
+          </div>
+        </section>
+
+        <section class="panel" data-panel="tasks" role="tabpanel" hidden>
+          <div id="tasks-list" class="list"><div class="skeleton"></div><div class="skeleton"></div></div>
+          <button id="all-tasks-btn" class="link-btn" type="button">See all tasks in Charcha</button>
+        </section>
+
+        <section class="panel" data-panel="ask" role="tabpanel" hidden>
+          <form id="ask-form" class="ask">
+            <textarea id="ask-input" rows="3" placeholder="What did we decide about pricing?" aria-label="Question for Charcha" required></textarea>
+            <button id="ask-btn" type="submit" class="btn btn--primary">Ask</button>
+          </form>
+          <div id="ask-suggestions" class="chips">
+            <button type="button" class="chip">What's still open from this week?</button>
+            <button type="button" class="chip">Which decisions changed recently?</button>
+            <button type="button" class="chip">What do I owe people?</button>
+          </div>
+          <article id="ask-answer" class="card answer" hidden>
+            <div id="ask-answer-body" class="answer__body"></div>
+            <div id="ask-sources" class="sources"></div>
+            <button id="ask-continue-btn" class="link-btn" type="button">Continue in Charcha</button>
+          </article>
+        </section>
+
+        <section class="panel" data-panel="meetings" role="tabpanel" hidden>
+          <label class="search">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+            <input id="meeting-search" type="search" placeholder="Search titles and transcripts" autocomplete="off" aria-label="Search meetings" />
+          </label>
+          <div id="meetings-list" class="list"><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div></div>
+        </section>
+
+        <section id="settings-sheet" class="sheet" hidden aria-label="Settings">
+          <div class="sheet__head">
+            <h2>Settings</h2>
+            <button id="settings-close-btn" class="icon-btn" type="button" aria-label="Close settings"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+          </div>
+          <label class="toggle">
+            <span><strong>Invite automatically</strong><small>Send the notetaker whenever you join a Google Meet. Only turn this on if your calls know Charcha records them.</small></span>
+            <input id="auto-invite" type="checkbox" role="switch" />
+          </label>
+          <label class="toggle">
+            <span><strong>Notify me when notes are ready</strong><small>A desktop notification links straight to the meeting.</small></span>
+            <input id="notify-ready" type="checkbox" role="switch" />
+          </label>
+          <label class="toggle">
+            <span><strong>Copy notes to Google Sheets</strong><small>Adds tasks and the summary to the spreadsheet set in <button id="sheets-settings-btn" class="inline-link" type="button">Charcha settings</button>.</small></span>
+            <input id="sheets-export" type="checkbox" role="switch" />
+          </label>
+          <div class="account">
+            <span class="avatar" id="account-initials">M</span>
+            <span class="account__text"><strong id="account-name"></strong><small id="account-email"></small></span>
+            <button id="logout-btn" class="btn btn--quiet" type="button">Log out</button>
+          </div>
+          <p class="fine">Tip: type <kbd>mem</kbd> and a space in the address bar to ask Charcha from anywhere, or right-click selected text.</p>
+        </section>
+
+        <div id="toast" class="toast" role="status" hidden></div>
+      </section>
+    </main>
+    <script type="module" src="popup.js"></script>
+  </body>
+</html>

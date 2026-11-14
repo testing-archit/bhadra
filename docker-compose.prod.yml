@@ -1,0 +1,119 @@
+services:
+
+  postgres:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: charcha
+      POSTGRES_USER: charcha
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in the root .env file}
+    volumes: [postgres_data:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U charcha"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # Only for a rollback to VECTOR_STORE=qdrant: production uses Pinecone, so
+  # this doesn't start unless asked for (`--profile qdrant`). Its data stays
+  # in the qdrant_data volume.
+  qdrant:
+    image: qdrant/qdrant:latest
+    restart: unless-stopped
+    profiles: [qdrant]
+    volumes: [qdrant_data:/qdrant/storage]
+
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    env_file:
+      - path: ./backend/.env
+        required: false
+    environment:
+      DATABASE_URL: postgresql+asyncpg://charcha:${POSTGRES_PASSWORD}@postgres:5432/charcha
+      DATABASE_SSL: "false"
+      QDRANT_URL: http://qdrant:6333
+      ALLOWED_ORIGINS: https://charcha.example.com,http://34.131.207.226
+      RECORDINGS_DIR: /app/recordings
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - embedding_cache:/app/.fastembed_cache
+      - recordings_data:/app/recordings
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        # Empty means same-origin requests. Nginx routes /api/* to the backend,
+        # so one frontend image works on both the temporary IP and final domain.
+        NEXT_PUBLIC_BACKEND_URL: ""
+        NEXT_PUBLIC_GOOGLE_CLIENT_ID: "1045852584689-8kjdn2euq8fft6rkjg0mu6a6ssq01uoe.apps.googleusercontent.com"
+        NEXT_PUBLIC_APP_URL: "https://charcha.example.com"
+        NEXT_PUBLIC_CHROME_WEB_STORE_URL: "${CHROME_WEB_STORE_URL:-}"
+    restart: unless-stopped
+    depends_on:
+      - backend
+
+  # Calendar-invited meeting bot: invite notetaker@example.com to a
+  # Google Calendar event and it joins the Meet. See backend/bot/README.md.
+  notetaker:
+    build: ./backend/bot
+    restart: unless-stopped
+    env_file:
+      - path: ./backend/bot/.env
+        required: false
+    environment:
+      BACKEND_URL: http://backend:8080
+      # Stable name for Admin → Notetaker (the default, the container id,
+      # changes on every deploy).
+      NOTETAKER_INSTANCE_NAME: charcha-vm
+      # Meetings recorded at once. Each is one Chrome: ~0.5 GB RAM and up to
+      # half a vCPU (measured on this e2-medium, 2026-10-09). The e2-medium
+      # sustains ~1 vCPU, so 3 is the safe ceiling; raise it with the VM size.
+      MAX_CONCURRENT_MEETINGS: ${MAX_CONCURRENT_MEETINGS:-3}
+    # Under CPU contention a live recording beats web requests: a starved
+    # Chrome drops audio, a slow page just loads a moment later.
+    cpu_shares: 2048
+    # Chromium needs more shared memory than Docker's 64 MB default, and each
+    # concurrent meeting is a full browser (~0.5 GB RAM).
+    shm_size: 1gb
+    volumes:
+      - notetaker_data:/data
+    depends_on:
+      - backend
+
+  nginx:
+    image: nginx:1.29-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      # The directory, not the file: git replaces default.conf on every
+      # deploy, and a single-file bind mount keeps showing nginx the old one.
+      - ./nginx:/etc/nginx/conf.d:ro
+      - certbot_conf:/etc/letsencrypt:ro
+      - certbot_www:/var/www/certbot:ro
+    depends_on:
+      - backend
+      - frontend
+
+  certbot:
+    image: certbot/certbot:latest
+    restart: unless-stopped
+    volumes:
+      - certbot_conf:/etc/letsencrypt
+      - certbot_www:/var/www/certbot
+    entrypoint: >
+      /bin/sh -c "trap exit TERM; while :; do certbot renew --webroot -w /var/www/certbot --quiet; sleep 12h & wait $${!}; done"
+
+volumes:
+  postgres_data:
+  qdrant_data:
+  embedding_cache:
+  recordings_data:
+  notetaker_data:
+  certbot_conf:
+  certbot_www:

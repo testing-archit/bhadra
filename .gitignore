@@ -1,0 +1,17 @@
+.env
+.env.local
+backend/.venv/
+backend/.fastembed_cache/
+backend/recordings/
+backend/__pycache__/
+**/__pycache__/
+*.pyc
+frontend/node_modules/
+frontend/.next/
+node_modules/
+dist/
+.DS_Store
+*client_secret*.json
+*.pem
+.bug-hunter/
+.claude/

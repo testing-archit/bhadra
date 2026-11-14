@@ -1,0 +1,16 @@
+{
+  "name": "gmeet-extension",
+  "type": "module",
+  "version": "2.1.3",
+  "private": true,
+  "scripts": {
+    "dev": "vite build --watch",
+    "build": "vite build",
+    "build:production": "VITE_DEPLOY_TARGET=production vite build",
+    "test": "node tools/validate-extension.mjs && node tools/test-sheets.mjs"
+  },
+  "devDependencies": {
+    "vite": "^6.0.0",
+    "@crxjs/vite-plugin": "^2.0.0"
+  }
+}
