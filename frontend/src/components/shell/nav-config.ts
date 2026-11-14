@@ -1,5 +1,6 @@
 import {
   AudioLines,
+  FileAudio,
   BookOpenCheck,
   SpellCheck,
   FolderKanban,
@@ -32,6 +33,7 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       { href: "/dashboard", label: "Home", icon: House, exact: true },
       { href: "/meetings", label: "Meetings", icon: Video },
+      { href: "/recap", label: "Call & voice recap", icon: FileAudio },
       { href: "/tasks", label: "Tasks", icon: ListChecks },
       { href: "/decisions", label: "Decisions", icon: Scale },
       { href: "/projects", label: "Projects", icon: FolderKanban },

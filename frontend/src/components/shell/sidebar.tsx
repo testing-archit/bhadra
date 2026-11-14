@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import {
   Bot,
   ChevronsUpDown,
+  FileAudio,
   FileText,
   ListPlus,
   LogOut,
@@ -83,6 +84,9 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
             </MenuItem>
             <MenuItem onClick={() => go("/record")}>
               <Mic /> Record in person
+            </MenuItem>
+            <MenuItem onClick={() => go("/recap")}>
+              <FileAudio /> Recap a call or voice note
             </MenuItem>
             <MenuSeparator />
             <MenuItem onClick={() => go("/meetings/prep")}>

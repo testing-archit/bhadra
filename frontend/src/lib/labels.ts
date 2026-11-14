@@ -6,6 +6,8 @@ export const SOURCE_LABELS: Record<string, string> = {
   record: "In-person recording",
   upload: "Uploaded file",
   paste: "Pasted transcript",
+  call: "Phone call recap",
+  voice_note: "WhatsApp voice note",
 };
 
 export const STATUS_LABELS: Record<string, string> = {

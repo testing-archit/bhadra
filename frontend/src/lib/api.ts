@@ -104,6 +104,18 @@ async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> 
 
 export const LEARNED_CORRECTIONS_EVENT = "charcha:learned-corrections";
 
+export interface RecapResult {
+  title: string;
+  summary: string;
+  action_items: { owner: string; task: string; due: string }[];
+  amounts: string[];
+  spoken_recap: string;
+  transcript: string;
+  language?: string | null;
+  audio: string | null;
+  meeting_id: string | null;
+}
+
 /** POSTs JSON and returns the binary response (audio). */
 async function apiPostBlob(path: string, body: unknown): Promise<Blob> {
   const token = getToken();
@@ -1473,6 +1485,13 @@ export const api = {
     return apiFetch<{ transcript: string; reply: string | null; audio: string | null; language?: string | null }>(
       "/api/live/turn", { method: "POST", body: form },
     );
+  },
+  /** Recap of a phone call or WhatsApp voice note, in the language it was spoken in. */
+  recapAudio: (file: File, kind: "voice_note" | "call") => {
+    const form = new FormData();
+    form.append("audio", file, file.name);
+    form.append("kind", kind);
+    return apiFetch<RecapResult>("/api/recap", { method: "POST", body: form });
   },
   /** Text read aloud by Gnani Timbre, as MP3. */
   speak: (text: string, language?: string) => apiPostBlob("/api/tts", { text, language }),
