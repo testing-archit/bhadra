@@ -3,6 +3,35 @@
 
 ---
 
+## 🎯 Current target (read first, 15 Nov 2026)
+
+We are entering **Gnani AI's "Great Indian AI Internship Challenge"** (https://www.gnani.ai/internship). The Scaler hackathon below is maybe-later.
+- **Deadline:** 15 Nov 2026, 18:00 IST.
+- **Requirement:** a working app built on Gnani models. Charcha uses **Prisma v3** for speech-to-text and **Timbre v2.5** for text-to-speech.
+- **Submission:**
+  - A public demo video on LinkedIn or X that tags Gnani AI, with `#GreatIndianAIInternshipChallenge #GnaniAI`.
+  - The form at https://forms.cloud.microsoft/r/dfFShbp7W7.
+- **Judging:** shortlisting is driven by post engagement, then interviews.
+- **Data:** synthetic only.
+
+**Live app:** https://34-58-54-115.sslip.io. HTTPS uses Let's Encrypt through certbot; the server-local `nginx/ssl.conf` is git-ignored. Plain-HTTP requests to the IP redirect to HTTPS.
+
+**Docs every session should know:**
+- `docs/claude-meetings.md`: Claude Meetings research and Charcha's parity status, per capability.
+- `docs/testing-guide.md`: what to test, with questions and expected answers.
+- `DESIGN.md`: the design system.
+
+Keep these updated, and commit doc changes with the code: the whole team works through Claude Code.
+
+**Notetaker:**
+- It signs in to Google as `gnanihackathon@gmail.com` (`/data/auth.json` in the notetaker container).
+- To redo the sign-in, run `backend/bot/generate_auth.py` on a laptop, then `docker compose cp` the file to `notetaker:/data/auth.json`. Never commit it.
+- Without it, Meet refuses the bot ("You can't join this video call").
+
+**Live call features:** say or type "Charcha, …" in Meet. The bot answers from the call's captions and speaks the answer through a virtual microphone (Timbre). "Charcha recap" and "Charcha, add task: …" also work.
+
+**Demo data:** `backend/scripts/seed_demo.py <owner email> <teammate email>` (10 Hinglish meetings). It adds whatever is missing; `--reset` rebuilds everything.
+
 ## 🏁 Hackathon context (read first)
 
 **Team:** Bhadra. **Product:** Charcha (चर्चा, "discussion"; the same word in Hindi, Marathi, Bengali and Gujarati).
