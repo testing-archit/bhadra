@@ -43,7 +43,7 @@ async def _ask_route(client):
     assert response.status_code == 200
     assert response.json()["answer"] == "- Vedant: read-back by Friday"
     prompt = generate.call_args.args[1]
-    assert "Friday tak read-back" in prompt and "Question from the chat: recap" in prompt
+    assert "Friday tak read-back" in prompt and "Question: recap" in prompt and "speakers heard: Archit, Vedant" in prompt
 
 
 def test_task_parsing_falls_back_to_the_typed_text_without_ai():
