@@ -146,3 +146,38 @@ async def test_memory_chat_conversation_is_private_and_deletable(
         f"/api/chat/conversations/{conversation_id}", headers=auth_headers(member_user)
     )
     assert missing.status_code == 404
+
+
+_NO_USAGE = {"input_tokens": 0, "cache_tokens_read": 0, "cache_tokens_written": 0, "output_tokens": 0}
+
+
+async def test_company_question_falls_back_to_recent_meetings_when_vector_search_is_down(client, member_user, make_meeting):
+    meeting = await make_meeting(member_user, "Kirana pilot review", None, "Archit: WhatsApp pe hisaab bhejenge, SMS nahi.")
+    with patch("app.services.memory_retriever.answer_query", side_effect=ConnectionError("vector store down")), patch(
+        "app.services.memory_retriever.answer_query_for_meetings"
+    ) as grounded:
+        grounded.return_value = {"answer": "WhatsApp, not SMS [M1].", "sources": [{"meeting_id": str(meeting.id)}], "usage": _NO_USAGE}
+        response = await client.post("/api/chat", json={"query": "Statements kaise bhejenge?"}, headers=auth_headers(member_user))
+    assert response.status_code == 200
+    assert response.json()["answer"] == "WhatsApp, not SMS [M1]."
+    query, meetings, _history = grounded.call_args.args
+    assert query == "Statements kaise bhejenge?"
+    assert [m["id"] for m in meetings] == [str(meeting.id)]
+
+
+async def test_company_question_falls_back_when_nothing_was_indexed(client, member_user, make_meeting):
+    await make_meeting(member_user, "Weekly product sync", None)
+    with patch("app.services.memory_retriever.answer_query") as vector, patch(
+        "app.services.memory_retriever.answer_query_for_meetings"
+    ) as grounded:
+        vector.return_value = {"answer": "Not established.", "sources": [], "usage": _NO_USAGE}
+        grounded.return_value = {"answer": "From the sync.", "sources": [], "usage": _NO_USAGE}
+        response = await client.post("/api/chat", json={"query": "What changed?"}, headers=auth_headers(member_user))
+    assert response.status_code == 200
+    assert response.json()["answer"] == "From the sync."
+
+
+async def test_company_question_without_meetings_or_vector_store_says_unavailable(client, member_user):
+    with patch("app.services.memory_retriever.answer_query", side_effect=ConnectionError("down")):
+        response = await client.post("/api/chat", json={"query": "Anything?"}, headers=auth_headers(member_user))
+    assert response.status_code == 503

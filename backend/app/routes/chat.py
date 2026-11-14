@@ -1,4 +1,5 @@
 import asyncio
+import logging
 import datetime
 import uuid
 from typing import Literal
@@ -15,6 +16,7 @@ from app.dependencies import get_current_user, meeting_visibility_clause, user_c
 from app.rate_limit import limiter
 from app.services import memory_retriever, transcript_service
 
+logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/chat", tags=["chat"])
 MAX_SCOPE_MEETINGS = 10
 
@@ -64,6 +66,51 @@ async def _log_chat_trace(db: AsyncSession, user: User, label: str, usage: dict)
         )
     )
     await db.commit()
+
+
+async def _meeting_payload(db: AsyncSession, meeting: Meeting) -> dict:
+    """What grounded answers read for one meeting: notes, items and lines."""
+    segments = await transcript_service.ensure_segments(db, meeting)
+    return {
+        "id": str(meeting.id),
+        "title": meeting.title,
+        "date": meeting.date.isoformat(),
+        "summary": meeting.summary,
+        "transcript": meeting.transcript,
+        "segments": [
+            {
+                "id": str(segment.id),
+                "seq": segment.seq,
+                "start_ms": segment.start_ms,
+                "speaker": transcript_service.display_label(segment),
+                "text": segment.text,
+            }
+            for segment in segments
+        ],
+        "decisions": [
+            {"decision": d.decision, "reason": d.reason}
+            for d in meeting.decisions
+            if d.deleted_at is None
+        ],
+        "tasks": [
+            {"description": t.description, "owner": t.owner}
+            for t in meeting.tasks
+            if t.deleted_at is None
+        ],
+    }
+
+
+async def _recent_readable_meetings(db: AsyncSession, user: User) -> list[Meeting]:
+    """The newest meetings this person can read, for answering company-wide
+    questions straight from the records when vector search can't."""
+    result = await db.execute(
+        select(Meeting)
+        .options(selectinload(Meeting.tasks), selectinload(Meeting.decisions))
+        .where(Meeting.id.in_(visible_meeting_ids(user)), Meeting.confidential.is_(False))
+        .order_by(Meeting.date.desc())
+        .limit(MAX_SCOPE_MEETINGS)
+    )
+    return list(result.scalars().all())
 
 
 @router.post("")
@@ -122,38 +169,7 @@ async def chat(
         if not meetings:
             raise HTTPException(status_code=404, detail="These meetings are no longer available to you")
 
-        meeting_data = []
-        for meeting in meetings:
-            segments = await transcript_service.ensure_segments(db, meeting)
-            meeting_data.append(
-                {
-                    "id": str(meeting.id),
-                    "title": meeting.title,
-                    "date": meeting.date.isoformat(),
-                    "summary": meeting.summary,
-                    "transcript": meeting.transcript,
-                    "segments": [
-                        {
-                            "id": str(segment.id),
-                            "seq": segment.seq,
-                            "start_ms": segment.start_ms,
-                            "speaker": transcript_service.display_label(segment),
-                            "text": segment.text,
-                        }
-                        for segment in segments
-                    ],
-                    "decisions": [
-                        {"decision": d.decision, "reason": d.reason}
-                        for d in meeting.decisions
-                        if d.deleted_at is None
-                    ],
-                    "tasks": [
-                        {"description": t.description, "owner": t.owner}
-                        for t in meeting.tasks
-                        if t.deleted_at is None
-                    ],
-                }
-            )
+        meeting_data = [await _meeting_payload(db, meeting) for meeting in meetings]
         if len(meeting_data) == 1:
             answer = await asyncio.to_thread(
                 memory_retriever.answer_query_for_meeting, query, meeting_data[0], history
@@ -175,8 +191,27 @@ async def chat(
             meeting_ids = None
         else:
             meeting_ids = [str(mid) for mid in (await db.execute(visible_meeting_ids(user))).scalars().all()]
-        answer = await asyncio.to_thread(memory_retriever.answer_query, query, meeting_ids, 8, history)
+        try:
+            answer = await asyncio.to_thread(memory_retriever.answer_query, query, meeting_ids, 8, history)
+        except Exception:
+            logger.warning("Vector search unavailable; answering from recent meetings", exc_info=True)
+            answer = None
         label = "Chat — company memory"
+        # Without a reachable vector store, or for meetings that were never
+        # indexed, answer from the newest readable meetings' own records.
+        if answer is None or not answer.get("sources"):
+            recent = await _recent_readable_meetings(db, user)
+            if recent:
+                if answer is not None:
+                    answer.pop("usage", None)
+                answer = await asyncio.to_thread(
+                    memory_retriever.answer_query_for_meetings,
+                    query,
+                    [await _meeting_payload(db, meeting) for meeting in recent],
+                    history,
+                )
+            elif answer is None:
+                raise HTTPException(status_code=503, detail="Company memory is unavailable right now. Try again shortly.")
 
     db.add(MemoryMessage(conversation_id=conversation.id, role="user", content=query))
     db.add(
