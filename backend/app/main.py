@@ -12,6 +12,7 @@ from slowapi.middleware import SlowAPIMiddleware
 from app.config import settings
 from app.rate_limit import limiter
 from app.routes import admin, auth, bot, calendar, capture, chat, decisions, digest, email, jira, meeting_workspace, meetings, notifications, policy_chat, projects, recordings, recycle_bin, tasks, transcribe, tts, vocabulary
+from app import mcp_server
 from app.services import calendar_service, email_service, jira_service, processing_service, usage_ledger
 
 logger = logging.getLogger(__name__)
@@ -34,7 +35,9 @@ async def lifespan(_: FastAPI):
     email_task = asyncio.create_task(email_service.run_forever())
     # Copies status changes made in Jira back onto linked tasks.
     jira_task = asyncio.create_task(jira_service.run_forever())
-    yield
+    # The MCP connector's session manager lives as long as the app.
+    async with mcp_server.server.session_manager.run():
+        yield
     for task in (calendar_task, email_task, jira_task):
         task.cancel()
         with contextlib.suppress(asyncio.CancelledError):
@@ -75,6 +78,8 @@ app.include_router(bot.router)
 app.include_router(email.router)
 app.include_router(vocabulary.router)
 app.include_router(tts.router)
+# Charcha as an MCP server for Claude and other assistants (connector token).
+app.mount(mcp_server.MCP_PATH, mcp_server.http_app())
 
 
 @app.get("/health")

@@ -224,6 +224,18 @@ class GoogleSheetsSettings(BaseModel):
         return value
 
 
+@router.post("/connector-token")
+@limiter.limit("10/hour")
+async def connector_token(request: Request, user: User = Depends(get_current_user)) -> dict:
+    """A 90-day token for connecting Claude (or another MCP client) to this
+    person's Charcha. It only works on the MCP endpoint, never the regular
+    API, and a password change revokes it."""
+    from app import mcp_server
+
+    token, expires = mcp_server.create_connector_token(user)
+    return {"token": token, "url": mcp_server.connector_url(), "expires_at": expires.isoformat()}
+
+
 @router.get("/me", response_model=MeResponse)
 async def get_me(user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)) -> MeResponse:
     from app.database.models import Team
