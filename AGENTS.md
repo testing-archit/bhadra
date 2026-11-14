@@ -4,6 +4,18 @@
 
 ---
 
+## SHARED REPOSITORY WORKFLOW
+
+Another engineer also pushes to this repository. Before every push, fetch the
+destination branch and inspect the incoming commits and changed files. Bring
+those commits into the local branch before pushing: use a fast-forward pull when
+possible; if histories diverge, integrate them deliberately and resolve any
+conflicts without discarding either person's work. Preserve uncommitted changes
+while doing this. Run the relevant checks after integration, review the final
+diff and status, then push. Never force-push over a collaborator's commits.
+
+---
+
 ## ⚠️ ARCHITECTURE ADDENDUM (supersedes conflicting sections below)
 
 The sections below this point describe the *original* design (self-hosted Postgres+pgvector,
