@@ -5,14 +5,10 @@ const GEMINI_USD_PER_MTOK = {
   cacheRead: 0.03,
 };
 
-// Deepgram pricing, confirmed against deepgram.com/pricing (2026-07) for
-// what transcriber.py actually requests: Nova-3 with language=multi
-// (Hindi+English code-switching) plus diarize_model=latest. Keyterm
-// prompting, smart_format, and utterances are included at no extra cost.
-const DEEPGRAM_USD_PER_MIN = {
-  nova3Multilingual: 0.0092,
-  diarization: 0.002,
-};
+// Prisma programme credits do not have a universal published price card.
+// Server-side ledger values are authoritative. This only supports the legacy
+// admin estimate when an older endpoint returns aggregate usage.
+const GNANI_USD_PER_MIN = 0;
 
 export const FALLBACK_USD_TO_INR = 94;
 
@@ -21,17 +17,17 @@ export const FALLBACK_USD_TO_INR = 94;
 export type { AIUsage } from "@/lib/api";
 import type { AIUsage } from "@/lib/api";
 
-export function deepgramCostUsd(durationMinutes: number, transcriptionRequests: number): number {
+export function gnaniCostUsd(durationMinutes: number, transcriptionRequests: number): number {
   if (transcriptionRequests <= 0) return 0;
-  return durationMinutes * (DEEPGRAM_USD_PER_MIN.nova3Multilingual + DEEPGRAM_USD_PER_MIN.diarization);
+  return durationMinutes * GNANI_USD_PER_MIN;
 }
 
 // Total cost across every API actually called for a meeting: Gemini
-// (extraction + any contradiction checks) plus Deepgram (transcription).
+// (extraction + any contradiction checks) plus Prisma (transcription).
 export function usageCostInr(usage: AIUsage, usdToInr = FALLBACK_USD_TO_INR): number {
   const geminiUsd =
     (usage.input_tokens / 1_000_000) * GEMINI_USD_PER_MTOK.input +
     (usage.output_tokens / 1_000_000) * GEMINI_USD_PER_MTOK.output +
     (usage.cache_tokens_read / 1_000_000) * GEMINI_USD_PER_MTOK.cacheRead;
-  return (geminiUsd + deepgramCostUsd(usage.duration_minutes, usage.transcription_requests)) * usdToInr;
+  return (geminiUsd + gnaniCostUsd(usage.duration_minutes, usage.transcription_requests)) * usdToInr;
 }

@@ -15,7 +15,7 @@ PROBE_TIMEOUT_SECONDS = 60
 NORMALIZE_TIMEOUT_SECONDS = 1800
 
 # ffprobe `format_name` values we accept, mapped to what the file is. These
-# are the containers Deepgram decodes for MP3, WAV, M4A, MP4 and WebM.
+# are the containers Prisma decodes for MP3, WAV, M4A, MP4 and WebM.
 ACCEPTED_FORMATS = {
     "mp3": "mp3",
     "wav": "wav",

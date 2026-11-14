@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Bot, CheckCircle2, Loader2, Users } from "lucide-react";
+import { ArrowRight, Bot, CheckCircle2, Clipboard, Link2, Loader2, ShieldCheck, SlidersHorizontal, Users } from "lucide-react";
 import { api, ApiError, type AssistantStatus, type CaptureRequestItem } from "@/lib/api";
 import { newIdempotencyKey } from "@/lib/media-time";
 import { Button } from "@/components/ui/button";
@@ -22,6 +22,7 @@ export function SendNotetakerDialog() {
   const [meetingUrl, setMeetingUrl] = useState("");
   const [title, setTitle] = useState("");
   const [template, setTemplate] = useState("auto");
+  const [showOptions, setShowOptions] = useState(false);
   const [consent, setConsent] = useState(false);
   const [key, setKey] = useState(newIdempotencyKey);
   const [busy, setBusy] = useState(false);
@@ -32,6 +33,7 @@ export function SendNotetakerDialog() {
     if (!notetakerOpen) return;
     setMeetingUrl(notetakerPrefill);
     setTitle("");
+    setShowOptions(false);
     setConsent(false);
     setError(null);
     setResult(null);
@@ -41,6 +43,15 @@ export function SendNotetakerDialog() {
 
   const linkLooksValid = MEET_LINK.test(meetingUrl.trim()) || TEAMS_LINK.test(meetingUrl.trim());
   const capture = status?.capture;
+
+  async function pasteFromClipboard() {
+    try {
+      const text = await navigator.clipboard.readText();
+      if (text.trim()) setMeetingUrl(text.trim());
+    } catch {
+      setError("Clipboard access was blocked. Paste the meeting link in the field instead.");
+    }
+  }
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
@@ -88,14 +99,16 @@ export function SendNotetakerDialog() {
             </DialogFooter>
           </div>
         ) : (
-        <form onSubmit={submit} className="grid gap-4">
+        <form onSubmit={submit} className="grid gap-5">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Bot className="h-4 w-4 text-primary" /> Send the notetaker
+            <span className="mb-1 grid size-10 place-items-center rounded-xl bg-primary text-primary-foreground shadow-sm">
+              <Bot className="size-5" />
+            </span>
+            <DialogTitle className="text-xl tracking-tight">
+              Get the meeting, not the busywork.
             </DialogTitle>
             <DialogDescription>
-              {capture?.bot_name ?? "The Charcha notetaker"} asks to join your Google Meet or Teams call. Admit it from the call, and the
-              transcript, notes and tasks appear in Charcha when the meeting ends.
+              Paste a Google Meet or Teams link. {capture?.bot_name ?? "Charcha’s notetaker"} will ask to join; admit it once and your notes, decisions and tasks will be ready after the call.
             </DialogDescription>
           </DialogHeader>
 
@@ -110,53 +123,62 @@ export function SendNotetakerDialog() {
             </p>
           )}
 
-          <div className="grid gap-1.5">
-            <Label htmlFor="notetaker-url">Meeting link</Label>
-            <Input
-              id="notetaker-url"
-              value={meetingUrl}
-              onChange={(event) => setMeetingUrl(event.target.value)}
-              placeholder="Google Meet or Microsoft Teams link"
-              inputMode="url"
-              autoFocus
-              aria-invalid={meetingUrl.trim().length > 0 && !linkLooksValid}
-            />
+          <div className="rounded-xl border bg-muted/30 p-3">
+            <Label htmlFor="notetaker-url" className="mb-2 flex items-center gap-2 text-sm font-medium"><Link2 className="size-4 text-primary" /> Meeting link</Label>
+            <div className="flex gap-2">
+              <Input
+                id="notetaker-url"
+                value={meetingUrl}
+                onChange={(event) => setMeetingUrl(event.target.value)}
+                placeholder="Paste a Meet or Teams link"
+                inputMode="url"
+                autoFocus
+                aria-invalid={meetingUrl.trim().length > 0 && !linkLooksValid}
+                className="bg-background"
+              />
+              <Button type="button" variant="outline" size="icon" onClick={() => void pasteFromClipboard()} aria-label="Paste meeting link from clipboard" title="Paste from clipboard">
+                <Clipboard className="size-4" />
+              </Button>
+            </div>
             {meetingUrl.trim() && !linkLooksValid && (
               <p className="text-xs text-destructive">Paste a Google Meet or Microsoft Teams meeting link.</p>
             )}
           </div>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <div className="grid gap-1.5">
-              <Label htmlFor="notetaker-title">Title</Label>
-              <Input id="notetaker-title" value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Optional" />
-            </div>
-            <div className="grid gap-1.5">
-              <Label htmlFor="notetaker-template">Notes style</Label>
-              <select
-                id="notetaker-template"
-                value={template}
-                onChange={(event) => setTemplate(event.target.value)}
-                className="h-8 rounded-lg border bg-background px-2.5 text-sm"
-              >
-                {(status?.templates ?? [{ id: "auto", label: "Detect automatically" }]).map((item) => (
-                  <option key={item.id} value={item.id}>{item.label}</option>
-                ))}
-              </select>
-            </div>
+          <div className="rounded-lg border border-primary/15 bg-primary/5 px-3 py-2.5 text-xs text-muted-foreground">
+            <span className="font-medium text-foreground">What happens next:</span> it joins, listens, and turns the conversation into a searchable record for the people in the meeting.
           </div>
           <label className="flex items-start gap-2.5 rounded-lg border bg-muted/40 p-3 text-sm">
             <Checkbox checked={consent} onCheckedChange={(value) => setConsent(value === true)} className="mt-0.5" />
             <span>
-              Everyone in the call will know a notetaker is recording.
-              <span className="mt-0.5 block text-xs text-muted-foreground">Anyone can say &ldquo;notetaker please leave&rdquo;, and you can stop it from Charcha at any time.</span>
+              <span className="flex items-center gap-1.5 font-medium"><ShieldCheck className="size-3.5 text-primary" /> Everyone knows it&apos;s recording</span>
+              <span className="mt-0.5 block text-xs text-muted-foreground">Anyone can ask it to leave, and you can stop it from Charcha at any time.</span>
             </span>
           </label>
+          <div>
+            <button type="button" onClick={() => setShowOptions((open) => !open)} className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground">
+              <SlidersHorizontal className="size-3.5" /> {showOptions ? "Hide options" : "Add a title or choose notes style"}
+            </button>
+            {showOptions && (
+              <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div className="grid gap-1.5">
+                  <Label htmlFor="notetaker-title">Title</Label>
+                  <Input id="notetaker-title" value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Optional" />
+                </div>
+                <div className="grid gap-1.5">
+                  <Label htmlFor="notetaker-template">Notes style</Label>
+                  <select id="notetaker-template" value={template} onChange={(event) => setTemplate(event.target.value)} className="h-8 rounded-lg border bg-background px-2.5 text-sm">
+                    {(status?.templates ?? [{ id: "auto", label: "Detect automatically" }]).map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}
+                  </select>
+                </div>
+              </div>
+            )}
+          </div>
           {error && <p className="text-sm text-destructive">{error}</p>}
           <DialogFooter>
             <Button type="button" variant="outline" onClick={closeNotetaker} disabled={busy}>Cancel</Button>
             <Button type="submit" disabled={!linkLooksValid || !consent || busy || capture?.configured === false}>
               {busy ? <Loader2 className="animate-spin" /> : <Bot />}
-              Send notetaker
+              Send notetaker <ArrowRight className="size-4" />
             </Button>
           </DialogFooter>
         </form>

@@ -11,7 +11,7 @@ the notetaker's calendar:
 Audio: each session gets a private PulseAudio null sink; Chromium is pointed
 at it via PULSE_SINK and ffmpeg records the sink's monitor. Captions: the
 call's own live captions are scraped for speaker *names* — the backend lines them up
-with Deepgram's diarization (app/services/speaker_mapping.py).
+with Prisma's timestamped transcription (app/services/speaker_mapping.py).
 """
 
 import argparse

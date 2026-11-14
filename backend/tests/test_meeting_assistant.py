@@ -1,5 +1,5 @@
 """Meeting Assistant workspace, end to end through the API against a real
-database. Gemini, Deepgram and Qdrant are mocked; nothing calls out."""
+database. Gemini, Gnani Prisma and Qdrant are mocked; nothing calls out."""
 
 import shutil
 import subprocess
@@ -394,7 +394,7 @@ async def test_upload_processes_in_the_background_and_is_idempotent(client, memb
     _make_wav(wav)
     headers = auth_headers(member_user)
     key = uuid_mod.uuid4().hex
-    with patch.object(settings, "fixture_mode", True), patch.object(settings, "deepgram_api_key", ""), patch(
+    with patch.object(settings, "fixture_mode", True), patch.object(settings, "gnani_api_key", ""), patch(
         "app.services.ai_extractor.extract_from_transcript", return_value=_extraction(title=f"{TEST_PREFIX}Standup")
     ):
         response = await client.post(

@@ -24,7 +24,7 @@ scheduler.py (polls every 30s via Calendar API)┘── RSVPs "yes", then 60s b
            Charcha, or the event runs 60 min over
          • "Send notetaker" requests are picked up within ~3 s (CAPTURE_POLL_SECONDS)
    └─► POST /api/bot/ingest (audio + captions + calendar invitees)
-         • Deepgram diarizes the audio; caption timings put real names on the speakers
+         • Gnani Prisma transcribes the audio; caption timings put real names on the speakers
          • normal Charcha pipeline: summary, tasks, decisions, attendee access, playback
 ```
 

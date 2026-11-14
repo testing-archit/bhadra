@@ -5,7 +5,7 @@ import {
   api, AdminAccount, AdminAuditEvent, AdminOverview, AdminTeam, ApiError,
   DecisionChurn, DepartmentUsage, Trace, UsageSummary,
 } from "@/lib/api";
-import { deepgramCostUsd } from "@/lib/pricing";
+import { gnaniCostUsd } from "@/lib/pricing";
 import { AdminMeetings } from "@/components/admin-meetings";
 import { AdminAiCosts } from "@/components/admin-ai-costs";
 import { AdminJira } from "@/components/admin-jira";
@@ -30,7 +30,7 @@ const ROLE_LABELS: Record<string, string> = {
 };
 
 function estimateCostInr(usage: { ai_input_tokens: number; ai_output_tokens: number; duration_minutes: number; transcription_requests: number }, usdToInr: number) {
-  const usd = (usage.ai_input_tokens / 1_000_000) * 0.3 + (usage.ai_output_tokens / 1_000_000) * 2.5 + deepgramCostUsd(usage.duration_minutes, usage.transcription_requests);
+  const usd = (usage.ai_input_tokens / 1_000_000) * 0.3 + (usage.ai_output_tokens / 1_000_000) * 2.5 + gnaniCostUsd(usage.duration_minutes, usage.transcription_requests);
   return (usd * usdToInr).toFixed(2);
 }
 

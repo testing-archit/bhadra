@@ -1,6 +1,6 @@
 """Every paid AI call, priced at the moment it happens.
 
-Each Gemini generation and Deepgram transcription records one
+Each Gemini generation and Gnani Prisma transcription records one
 `AiUsageEvent`: tokens (or audio seconds), the USD cost from the price table
 below, the live USD→INR rate fetched at that moment, the INR cost, and who /
 which meeting / which feature it was for. The admin panel reads these rows
@@ -64,11 +64,11 @@ def default_token_prices(on: datetime.date | None = None) -> dict[str, dict[str,
     return table
 
 
-# USD per audio minute: Nova-3 multilingual, pre-recorded, pay as you go, as
-# requested by transcriber.py. Diarization is included for pre-recorded audio
-# (the US$0.002 add-on is streaming only) — deepgram.com/pricing, checked
-# 2026-10-09. Override with AI_PRICING_JSON, e.g. {"deepgram": 0.0043} on Growth.
-DEFAULT_AUDIO_PRICES: dict[str, float] = {"deepgram": 0.0052}
+# Prisma programme credits do not publish a universal list price. Record the
+# usage now and let an operator set the contracted rate with
+# AI_PRICING_JSON, e.g. {"gnani": 0.01}. Until then cost is honestly shown as
+# ₹0 rather than inferred from another provider's price card.
+DEFAULT_AUDIO_PRICES: dict[str, float] = {"gnani": 0.0}
 
 
 @dataclass

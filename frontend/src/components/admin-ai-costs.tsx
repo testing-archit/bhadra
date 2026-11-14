@@ -16,7 +16,7 @@ const FEATURE_LABELS: Record<string, string> = {
   meeting_prep: "Meeting prep",
   series_review: "Recurring-meeting review",
   meeting_type: "Meeting type detection",
-  transcription: "Transcription (Deepgram)",
+  transcription: "Transcription (Gnani Prisma)",
   other: "Other",
 };
 
@@ -25,7 +25,7 @@ const inr = (value: number) =>
 const usd = (value: number) => `$${value < 1 ? value.toFixed(4) : value.toFixed(2)}`;
 const compact = (value: number) => new Intl.NumberFormat("en-IN", { notation: "compact", maximumFractionDigits: 1 }).format(value);
 
-/** AI spend from the usage ledger: every Gemini and Deepgram call, priced in
+/** AI spend from the usage ledger: every Gemini and Gnani Prisma call, priced in
  * USD and converted at the exchange rate in force when it happened. */
 export function AdminAiCosts() {
   const [days, setDays] = useState(30);

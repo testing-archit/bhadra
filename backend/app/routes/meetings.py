@@ -303,7 +303,7 @@ async def _process_meeting_audio(
             assembly_succeeded = True
 
         await processing_service.set_stage(meeting_id, "audio", "succeeded")
-        # Deepgram diarization can take a while on a multi-hour meeting and
+        # Provider transcription can take a while on a multi-hour meeting and
         # touches no database rows itself — run it after the session above
         # closes rather than holding a Postgres connection open for it. The
         # caption-named transcript stays as is; people can switch to the
@@ -1327,7 +1327,7 @@ async def ingest_meeting(
             if not transcript.strip():
                 raise HTTPException(status_code=422, detail="The recording did not contain recognizable speech")
 
-        # Corrections the team taught Charcha (a Deepgram transcript already
+        # Corrections the team taught Charcha (a provider transcript already
         # has them; pasted text and Meet captions don't), and how the
         # meeting's people and terms are spelled, for the notes model.
         vocabulary = await vocabulary_service.active_vocabulary()

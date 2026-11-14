@@ -1,6 +1,6 @@
 """People's names in Latin script.
 
-Deepgram writes a name said in a Hindi sentence in Devanagari ("सार्थक"), and
+An STT provider can write a name said in a Hindi sentence in Devanagari ("सार्थक"), and
 the extractor sometimes copies it into a task owner or a stand-up person. That
 breaks owner matching and shows Hindi in an English product. `latin_name`
 transliterates it and, when the result sounds like exactly one known person,

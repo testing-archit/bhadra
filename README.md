@@ -7,7 +7,7 @@ Charcha captures Google Meet conversations and turns them into a searchable comp
 - Automatic Google Meet detection, caption capture, and audio fallback
 - Real pause, resume, and skip controls for sensitive or irrelevant discussion
 - Offline IndexedDB queue with automatic retry
-- Deepgram Nova-3 transcription with Hindi, English, and Hinglish support
+- Gnani Prisma v3.0 transcription with Indian-language and code-mixed support
 - AI extraction of summaries, tasks, decisions, risks, owners, deadlines, and projects
 - Attendee-scoped meeting access (only the people in a meeting can read it) and admin analytics
 - Searchable meeting memory with cited answers and related meetings
@@ -31,7 +31,7 @@ Charcha captures Google Meet conversations and turns them into a searchable comp
 | Web workspace | `frontend/` | Next.js 16, React 19, TypeScript, Tailwind CSS |
 | API | `backend/` | FastAPI, SQLAlchemy async, PostgreSQL |
 | Semantic memory | `backend/app/services/qdrant_service.py` | Qdrant, FastEmbed |
-| AI processing | `backend/app/services/` | Deepgram, Gemini |
+| AI processing | `backend/app/services/` | Gnani Prisma, Gemini |
 
 Meetings are recorded by the notetaker bot (`backend/bot/`), which joins a Google Meet when invited from a calendar event, from the web app, or from the Chrome extension. The extension itself never captures audio: it sends and stops the notetaker, shows its status inside Meet and on the toolbar badge, notifies when notes are ready, lists your open tasks, answers questions from company memory, and copies finished notes to Google Sheets. The backend persists the extracted record in PostgreSQL and indexes searchable content in Qdrant. The web workspace reads the same API, so extension and web data stay in sync.
 
@@ -43,7 +43,7 @@ Meetings are recorded by the notetaker bot (`backend/bot/`), which joins a Googl
    cp backend/.env.example backend/.env
    ```
 
-2. Add `GEMINI_API_KEY` and `DEEPGRAM_API_KEY`. Google OAuth credentials are optional when using email/password login.
+2. Add `GEMINI_API_KEY` and `GNANI_API_KEY`. Google OAuth credentials are optional when using email/password login.
 
 3. Start the application:
 
@@ -105,7 +105,7 @@ The complete backend template is in `backend/.env.example`. Important values:
 - `DATABASE_URL`: async PostgreSQL connection URL
 - `QDRANT_URL`: Qdrant service URL
 - `GEMINI_API_KEY`: extraction, memory answers, policy answers, and contradiction checks
-- `DEEPGRAM_API_KEY`: audio transcription
+- `GNANI_API_KEY`: Gnani Prisma v3.0 audio transcription
 - `JWT_SECRET`: application session signing secret; replace the development value in production
 - `TEAM_ROSTER`: comma-separated names used as transcription keyterms
 - `ADMIN_EMAILS`: comma-separated accounts with organization-wide access
@@ -146,7 +146,7 @@ Never commit `.env`, Google client-secret files, extension private keys, or gene
 
 ## Long meeting storage
 
-The web recorder rotates the microphone into independently playable five-minute WebM segments. Each segment is written to browser IndexedDB before it is uploaded and transcribed, so the page never keeps a multi-hour recording in memory. Interrupted sessions appear under **Recover a session**. On finalization, FFmpeg joins the segments into one stored audio file, Deepgram performs a global word-level diarization pass, and the transcript is processed by Gemini.
+The web recorder rotates the microphone into independently playable five-minute WebM segments. Each segment is written to browser IndexedDB before it is uploaded and transcribed, so the page never keeps a multi-hour recording in memory. Interrupted sessions appear under **Recover a session**. On finalization, FFmpeg joins the segments into one stored audio file, Gnani Prisma creates the final code-mixed transcript, and Gemini turns it into notes, decisions and tasks.
 
 Production deployments must persist `RECORDINGS_DIR`. The included Docker Compose configuration mounts the `recordings_data` volume at `/app/recordings`.
 

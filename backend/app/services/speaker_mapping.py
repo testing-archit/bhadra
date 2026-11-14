@@ -1,9 +1,9 @@
 """Turn the notetaker bot's two views of a meeting into one named transcript.
 
-The bot captures the call twice: the raw audio, which Deepgram diarizes into
+The bot captures the call twice: the raw audio, which the transcription provider splits into
 anonymous speakers ("Speaker 1", "Speaker 2"), and Google Meet's live
 captions, which carry each speaker's real display name but mediocre text.
-Lining the two up by time gives Deepgram-quality text with Meet's names —
+Lining the two up by time gives provider-quality text with Meet's names —
 which is why the bot records captions at all.
 """
 
@@ -18,7 +18,7 @@ CAPTION_LAG_SECONDS = 1.5
 # rather than borrowing a name that is only partly right.
 MIN_NAME_SHARE = 0.5
 MIN_OVERLAP_SECONDS = 2.0
-# Deepgram sometimes splits one voice into a main speaker plus a small
+# A transcription provider can split one voice into a main speaker plus a small
 # fragment, which rightly share a name. Two voices that each talked a lot are
 # two people, though: when Meet only captioned one of them (someone's captions
 # went missing), the other used to inherit the same name and the whole call
@@ -65,7 +65,7 @@ _LATIN_WORD = re.compile(r"[a-z]{3,}")
 
 
 def _words(text: str) -> set[str]:
-    # Latin script only: Deepgram writes Hindi in Devanagari while Meet's
+    # Latin script only: Prisma can write Hindi in Devanagari while Meet's
     # captions romanise it, so only English and romanised words can match.
     return set(_LATIN_WORD.findall((text or "").lower()))
 
@@ -83,7 +83,7 @@ def _majority(scores: dict[str, float], minimum: float) -> str | None:
 def name_speakers(
     turns: list[dict], captions: list[dict], exclude_names: set[str] | None = None
 ) -> dict[str, str]:
-    """Map Deepgram speaker ids (as strings, the speaker_names.json format) to
+    """Map provider speaker ids (as strings, the speaker_names.json format) to
     caption display names: by the words a speaker's turns share with nearby
     captions, else by how long they overlap in time."""
     excluded = {name.strip().lower() for name in exclude_names or set()}

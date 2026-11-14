@@ -1,3 +1,4 @@
+import json
 import re
 from collections import Counter
 from typing import Any
@@ -7,8 +8,10 @@ import httpx
 from app.config import settings
 from app.services import usage_ledger, vocabulary_service
 
-DEEPGRAM_URL = "https://api.deepgram.com/v1/listen"
-_LANGUAGE_MAP = {"en": "en", "hi": "hi", "hinglish": "multi", "auto": "multi"}
+# Prisma v3.0 accepts recorded media through the Gnani REST endpoint. The
+# product's language selector maps to BCP-47 where a person chooses a single
+# language; Hinglish and Auto deliberately use Prisma's Auto-LID instead.
+_LANGUAGE_MAP = {"en": "en-IN", "hi": "hi-IN", "hinglish": "auto", "auto": "auto"}
 _LOW_SPEAKER_CONFIDENCE = 0.62
 
 
@@ -115,7 +118,7 @@ def _fixture_transcription() -> dict[str, Any]:
     says what it is so it can never be mistaken for a real transcript."""
     turns = [
         {"speaker": 0, "start": 0.0, "end": 4.2, "text": "[Development fixture] This is not a real transcription.", "confidence": None, "speaker_confidence": 0.0, "word_count": 8},
-        {"speaker": 1, "start": 4.6, "end": 9.8, "text": "[Development fixture] Configure DEEPGRAM_API_KEY to transcribe real audio.", "confidence": None, "speaker_confidence": 0.0, "word_count": 8},
+        {"speaker": 1, "start": 4.6, "end": 9.8, "text": "[Development fixture] Configure GNANI_API_KEY to transcribe real audio.", "confidence": None, "speaker_confidence": 0.0, "word_count": 8},
     ]
     return {
         "transcript": format_transcript(turns),
@@ -123,6 +126,59 @@ def _fixture_transcription() -> dict[str, Any]:
         "diagnostics": _diagnostics(turns, None),
         "metadata": {"request_id": None, "duration": 9.8, "diarizer": "development-fixture"},
     }
+
+
+def _number(value: Any, default: float = 0.0) -> float:
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def _turns_from_prisma(payload: dict[str, Any]) -> list[dict[str, Any]]:
+    """Normalise Prisma REST responses without tying the meeting pipeline to
+    one response revision. The documented minimum response is `transcript`;
+    when timestamped segments are present, keep them for playback/evidence.
+    """
+    raw_segments = payload.get("segments") or payload.get("utterances") or []
+    if isinstance(payload.get("results"), dict):
+        raw_segments = raw_segments or payload["results"].get("segments") or []
+    turns: list[dict[str, Any]] = []
+    if isinstance(raw_segments, list):
+        for index, segment in enumerate(raw_segments):
+            if not isinstance(segment, dict):
+                continue
+            text = str(segment.get("text") or segment.get("transcript") or "").strip()
+            if not text:
+                continue
+            start = _number(segment.get("start", segment.get("start_time", 0)))
+            end = _number(segment.get("end", segment.get("end_time", start)))
+            speaker_value = segment.get("speaker", segment.get("speaker_id", index))
+            try:
+                speaker = int(str(speaker_value).replace("speaker_", ""))
+            except ValueError:
+                speaker = index
+            turns.append(
+                {
+                    "speaker": speaker,
+                    "start": round(start, 3),
+                    "end": round(max(start, end), 3),
+                    "text": text,
+                    "confidence": _number(segment.get("confidence")),
+                    "speaker_confidence": _number(segment.get("speaker_confidence", segment.get("confidence", 0.0))),
+                    "word_count": len(text.split()),
+                }
+            )
+    if turns:
+        return turns
+    transcript = str(payload.get("transcript") or (payload.get("results") or {}).get("transcript") or "").strip()
+    if not transcript:
+        return []
+    duration = _number((payload.get("metadata") or {}).get("duration", payload.get("duration", 0)))
+    return [{
+        "speaker": 0, "start": 0.0, "end": duration, "text": transcript,
+        "confidence": None, "speaker_confidence": 0.0, "word_count": len(transcript.split()),
+    }]
 
 
 def format_transcript(turns: list[dict[str, Any]], speaker_names: dict[str, str] | None = None) -> str:
@@ -139,84 +195,63 @@ async def transcribe_audio_detailed(
     mime_type: str = "audio/webm",
     meeting_language: str = "hinglish",
     expected_speakers: int | None = None,
-    # Meetings run up to 2-3 hours; Deepgram's own processing time scales with
-    # audio length, so a short timeout here risks aborting full-recording
-    # diarization on exactly the longest (and most valuable) meetings.
+    # Meetings run up to 2-3 hours; batch transcription scales with audio
+    # length, so a short timeout risks aborting the longest meetings.
     timeout_seconds: float = 1800.0,
     # Names of the people in this meeting (invitees, Meet speakers), listened
     # for ahead of everyone else at the company.
     people: list[str] | None = None,
 ) -> dict[str, Any]:
-    if not settings.deepgram_api_key:
+    if not settings.gnani_api_key:
         if settings.fixture_mode_active:
             return _fixture_transcription()
-        raise TranscriptionNotConfigured("Transcription is not set up: DEEPGRAM_API_KEY is missing")
-    params: list[tuple[str, str]] = [
-        ("model", "nova-3"),
-        ("language", _LANGUAGE_MAP.get(meeting_language, "multi")),
-        ("smart_format", "true"),
-        ("punctuate", "true"),
-        # `diarize_model` both turns diarization on and picks the diarizer.
-        # Deepgram now rejects it combined with `diarize=true` (400
-        # INVALID_QUERY_PARAMETER), and `diarize=true` on its own labels
-        # every word as speaker 0 — checked against two-voice audio in
-        # October 2026. Send exactly one: this one.
-        ("diarize_model", "v2"),
-        ("utterances", "true"),
-        ("utt_split", "0.8"),
-    ]
-    # The meeting's people, then the names and terms the team taught Charcha
-    # (Vocabulary) are listened for, and known mishearings fixed below.
+        raise TranscriptionNotConfigured("Transcription is not set up: GNANI_API_KEY is missing")
+    # Prisma's REST API accepts multipart audio. `format` keeps compatibility
+    # with the currently documented REST field; `mode` selects the v3 output
+    # style. We intentionally do not set Content-Type: httpx supplies the
+    # multipart boundary.
     vocabulary = await vocabulary_service.active_vocabulary()
-    for term in vocabulary_service.keyterms(settings.team_roster_list, vocabulary, people or ()):
-        params.append(("keyterm", term))
+    terms = vocabulary_service.keyterms(settings.team_roster_list, vocabulary, people or ())[:200]
+    data = {
+        "model": settings.gnani_stt_model,
+        "mode": settings.gnani_stt_mode,
+        "format": "transcribe",
+        "language_code": _LANGUAGE_MAP.get(meeting_language, "auto"),
+        "preferred_language": _LANGUAGE_MAP.get(meeting_language, "auto"),
+    }
+    if terms:
+        data["key_terms"] = json.dumps(terms, ensure_ascii=False)
 
     timeout = httpx.Timeout(timeout_seconds, connect=20.0)
     async with httpx.AsyncClient(timeout=timeout) as client:
         response = await client.post(
-            DEEPGRAM_URL,
-            params=params,
-            headers={
-                "Authorization": f"Token {settings.deepgram_api_key}",
-                "Content-Type": mime_type,
-            },
-            content=audio_bytes,
+            settings.gnani_stt_url,
+            headers={"X-API-Key-ID": settings.gnani_api_key},
+            files={"audio_file": ("meeting.webm", audio_bytes, mime_type)},
+            data=data,
         )
 
     if not response.is_success:
-        raise RuntimeError(f"Deepgram error {response.status_code}: {response.text}")
+        raise RuntimeError(f"Gnani Prisma error {response.status_code}: {response.text}")
 
     payload = response.json()
-    results = payload.get("results") or {}
-    alternatives = ((results.get("channels") or [{}])[0].get("alternatives") or [{}])
-    words = alternatives[0].get("words") or []
-    turns = _build_turns(words)
-    if not turns:
-        turns = [
-            {
-                "speaker": int(item.get("speaker", 0)),
-                "start": round(float(item.get("start", 0.0)), 3),
-                "end": round(float(item.get("end", 0.0)), 3),
-                "text": item.get("transcript", ""),
-                "confidence": round(float(item.get("confidence", 0.0)), 3),
-                "speaker_confidence": 0.0,
-                "word_count": len(item.get("transcript", "").split()),
-            }
-            for item in results.get("utterances") or []
-            if item.get("transcript")
-        ]
+    if payload.get("success") is False:
+        raise RuntimeError(f"Gnani Prisma rejected the audio: {payload.get('message') or payload.get('error') or 'unknown error'}")
+    turns = _turns_from_prisma(payload)
 
     await vocabulary_service.record_applied(vocabulary_service.apply_to_turns(turns, vocabulary.rules))
     diagnostics = _diagnostics(turns, expected_speakers)
-    usage_ledger.record_audio("transcription", "deepgram", "nova-3", float((payload.get("metadata") or {}).get("duration") or 0))
+    metadata = payload.get("metadata") or {}
+    duration = _number(metadata.get("duration", payload.get("duration", 0)))
+    usage_ledger.record_audio("transcription", "gnani", settings.gnani_stt_model, duration)
     return {
         "transcript": format_transcript(turns),
         "turns": turns,
         "diagnostics": diagnostics,
         "metadata": {
-            "request_id": (payload.get("metadata") or {}).get("request_id"),
-            "duration": (payload.get("metadata") or {}).get("duration"),
-            "diarizer": "v2",
+            "request_id": payload.get("request_id") or metadata.get("request_id"),
+            "duration": duration,
+            "diarizer": "prisma-v3.0",
         },
     }
 

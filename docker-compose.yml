@@ -21,7 +21,7 @@ services:
 
   backend:
     build: ./backend
-    # Optional: layers real secrets (GEMINI_API_KEY, DEEPGRAM_API_KEY) on top
+    # Optional: layers real secrets (GEMINI_API_KEY, GNANI_API_KEY) on top
     # of the defaults below when the file happens to exist. `required: false`
     # means a fresh checkout with no .env at all still boots the stack —
     # everything except actual AI/transcription calls works out of the box.

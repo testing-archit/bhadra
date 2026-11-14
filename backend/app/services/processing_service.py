@@ -119,7 +119,7 @@ async def fail_interrupted_stages() -> int:
     """Run at startup: anything still "running" belonged to a process that
     died mid-stage. Mark it failed so it shows a Retry button instead of a
     spinner that never ends."""
-    # Thresholds sit above the longest legitimate stage (a 30-minute Deepgram
+    # Thresholds sit above the longest legitimate stage (a 30-minute Prisma
     # timeout) so a sibling worker's in-flight stage is never failed by
     # another worker restarting.
     now = _now()

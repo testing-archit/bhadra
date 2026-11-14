@@ -134,9 +134,9 @@ async def assistant_status(user: User = Depends(get_current_user), db: AsyncSess
     fixture = settings.fixture_mode_active
     return {
         "transcription": {
-            "configured": bool(settings.deepgram_api_key) or fixture,
-            "provider": "Deepgram Nova-3" if settings.deepgram_api_key else ("Development fixture" if fixture else None),
-            "missing": None if settings.deepgram_api_key or fixture else "DEEPGRAM_API_KEY",
+            "configured": bool(settings.gnani_api_key) or fixture,
+            "provider": f"Gnani Prisma {settings.gnani_stt_model.removeprefix('prisma-')}" if settings.gnani_api_key else ("Development fixture" if fixture else None),
+            "missing": None if settings.gnani_api_key or fixture else "GNANI_API_KEY",
         },
         "ai": {
             "configured": bool(settings.gemini_api_key) or fixture,

@@ -88,18 +88,32 @@ export default function HomePage() {
           <Link href="/memory" className={buttonVariants({ variant: "outline" })}>
             <Sparkles /> Ask memory
           </Link>
-          <Button variant="outline" onClick={() => openNotetaker()}>
-            <Bot /> Send notetaker
+          <Button onClick={() => openNotetaker()}>
+            <Bot /> Capture a meeting
           </Button>
           <Link
             href="/record"
             className="inline-flex h-9 items-center gap-2 rounded-full bg-marigold pr-4 pl-1 text-sm font-semibold text-marigold-foreground outline-none transition-colors hover:bg-marigold/90 focus-visible:ring-3 focus-visible:ring-marigold/50"
           >
             <span className="grid size-7 place-items-center rounded-full bg-marigold-foreground/10"><Mic className="size-4" /></span>
-            Record a charcha
+            Record in person
           </Link>
         </div>
       </div>
+
+      {live.length === 0 && (
+        <section className="relative overflow-hidden rounded-2xl border bg-card px-5 py-5 sm:px-6">
+          <div className="absolute inset-y-0 left-0 w-1 bg-primary" />
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm font-medium text-primary">Your next meeting is one link away</p>
+              <h2 className="mt-1 text-xl font-semibold tracking-tight">Charcha captures what matters, then makes it useful.</h2>
+              <p className="mt-1 max-w-2xl text-sm text-muted-foreground">Invite the notetaker to any Meet or Teams call. Notes, owners and decisions arrive in one place for everyone who was there.</p>
+            </div>
+            <Button onClick={() => openNotetaker()} className="shrink-0"><Bot /> Capture meeting</Button>
+          </div>
+        </section>
+      )}
 
       {live.length > 0 && (
         <section className="flex flex-col gap-3 rounded-2xl border border-primary/25 bg-primary/5 p-4 sm:flex-row sm:items-center">

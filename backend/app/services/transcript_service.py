@@ -224,7 +224,7 @@ def parse_transcript_text(text: str) -> list[dict]:
 
 
 def segments_from_turns(turns: list[dict], names: dict[str, str] | None = None) -> list[dict]:
-    """Deepgram diarization turns (seconds, speaker numbers) → segment dicts."""
+    """Provider transcription turns (seconds, speaker numbers) → segment dicts."""
     names = names or {}
     segments = []
     for turn in turns:

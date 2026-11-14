@@ -38,7 +38,7 @@ class VocabularyCreate(BaseModel):
     # The right spelling ("Sky Lattice").
     term: str = Field(min_length=1, max_length=MAX_TERM_CHARS)
     # What transcription writes instead ("Sky Tech", "Skytech"). Empty: a
-    # keyword Deepgram is told to listen for.
+    # keyword Prisma is told to listen for.
     heard_as: list[str] = Field(default_factory=list, max_length=10)
     # Also fix meetings that already have the wrong spelling.
     fix_past: bool = True

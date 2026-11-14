@@ -1,24 +1,19 @@
 # Backend
 
-## Transcription (Deepgram Nova-3)
+## Transcription (Gnani Prisma v3.0)
 
-`app/services/transcriber.py` calls Deepgram's Nova-3 model
-(`language=multi`, auto-detects Hindi/English code-switching) instead of
-Groq Whisper. On real Hinglish meeting audio it correctly recognized names
-and technical terms (GoDaddy, GCP) with zero configuration, where Whisper
-needed a prompt-glossary hack and still missed things. Two features Whisper
-doesn't have, both wired up:
+`app/services/transcriber.py` calls Gnani Prisma v3.0 using Auto-LID and
+the `codemix` output mode. It is purpose-built for Indian-language meetings,
+including Hindi/English code-switching, and keeps Indian-language words in
+their native script while preserving English terms.
 
 - **Keyterm prompting** — `TEAM_ROSTER` (backend/.env, comma-separated
-  names) is passed as `keyterm` params, a purpose-built and more accurate
-  replacement for the old Whisper prompt-glossary trick.
-- **Speaker diarization** (`diarize_model=v2`) — word-level speaker labels,
-  timestamps, recognition confidence, and speaker confidence are converted
-  into turns. Isolated low-confidence label flips are smoothed while real
-  multi-word speaker changes are preserved.
-- **Global final pass** — chunks are transcribed durably during long meetings,
-  then the assembled recording is diarized again as one file. This prevents
-  speaker IDs from resetting at every five-minute chunk boundary.
+  names) and learned vocabulary are passed as Prisma key terms (up to 200).
+- **Timestamp preservation** — when Prisma returns timestamped segments, they
+  are kept for playback and evidence. Meet captions still identify people by
+  name when the recording source provides them.
+- **Global final pass** — chunks are stored durably during long meetings, then
+  the assembled recording is transcribed once for a coherent final transcript.
 - **Human review** — the meeting page exposes confidence diagnostics,
   timestamped playback, full-audio reanalysis, and editable speaker names.
 
@@ -26,13 +21,13 @@ Set the roster in `backend/.env` (never committed) locally and on the
 deploy VM:
 
 ```
-DEEPGRAM_API_KEY=<your key>
+GNANI_API_KEY=<your programme key>
 TEAM_ROSTER=Archit, Avni, Vaibhav, Ravi, Astha, Prakhal, Ayan, Adarsh
 ```
 
 The extension popup's language dropdown (`en`/`hi`/`hinglish`/`auto`) still
-works — mapped onto Deepgram's `language` param (`hinglish`/`auto` both map
-to `multi`).
+works — `hinglish` and `auto` use Prisma Auto-LID, while English and Hindi
+send `en-IN` and `hi-IN` respectively.
 
 The durable chunk pass and final global pass can each consume transcription
 minutes. The chunk output is retained as a recovery fallback if the final

@@ -32,16 +32,16 @@ def test_published_flash_prices_double_in_2027():
 def test_prices_match_the_longest_model_prefix_and_can_be_overridden():
     assert usage_ledger.token_prices("gemini-2.5-flash-lite-001")[1] == "gemini-2.5-flash-lite"
     assert usage_ledger.token_prices("some-future-model")[1] == "gemini"
-    with patch.object(usage_ledger.settings, "ai_pricing_json", '{"gemini-3.5-flash": {"input": 1, "cached": 0.5, "output": 2}, "deepgram": 0.02}'):
+    with patch.object(usage_ledger.settings, "ai_pricing_json", '{"gemini-3.5-flash": {"input": 1, "cached": 0.5, "output": 2}, "gnani": 0.02}'):
         assert usage_ledger.token_cost_usd("gemini-3.5-flash", 1_000_000, 0, 1_000_000) == 3.0
-        assert usage_ledger.audio_price_per_minute("deepgram") == 0.02
+        assert usage_ledger.audio_price_per_minute("gnani") == 0.02
 
 
 async def test_calls_are_recorded_with_the_rate_at_that_moment(member_user):
     with patch("app.services.exchange_rate_service.usd_to_inr", new=AsyncMock(return_value=RATE)):
         usage_ledger.attribute(user_id=member_user.id)
         usage_ledger.record_tokens("pytest_feature", "gemini-3.5-flash", {"input_tokens": 1000, "output_tokens": 500, "cache_tokens_read": 0})
-        usage_ledger.record_audio("pytest_feature", "deepgram", "nova-3", 120)
+        usage_ledger.record_audio("pytest_feature", "gnani", "prisma-v3.0", 120)
         for _ in range(50):
             await asyncio.sleep(0.05)
             async with async_session() as db:
@@ -51,10 +51,10 @@ async def test_calls_are_recorded_with_the_rate_at_that_moment(member_user):
     try:
         assert len(rows) == 2
         tokens = next(r for r in rows if r.provider == "gemini")
-        audio = next(r for r in rows if r.provider == "deepgram")
+        audio = next(r for r in rows if r.provider == "gnani")
         assert tokens.user_id == member_user.id and tokens.usd_to_inr == 90.0 and tokens.rate_source == "pytest-fx"
         assert abs(tokens.inr_cost - tokens.usd_cost * 90) < 1e-9
-        assert abs(audio.usd_cost - 2 * 0.0052) < 1e-9
+        assert audio.usd_cost == 0
     finally:
         async with async_session() as db:
             await db.execute(delete(AiUsageEvent).where(AiUsageEvent.feature == "pytest_feature"))
@@ -88,7 +88,7 @@ async def test_calls_made_before_the_meeting_existed_are_linked_to_it(member_use
     with patch("app.services.exchange_rate_service.usd_to_inr", new=AsyncMock(return_value=RATE)):
         usage_ledger.current.set(usage_ledger.Attribution())
         usage_ledger.attribute(user_id=member_user.id)
-        usage_ledger.record_audio("pytest_link", "deepgram", "nova-3", 60)
+        usage_ledger.record_audio("pytest_link", "gnani", "prisma-v3.0", 60)
         await asyncio.sleep(0.3)  # written before the meeting exists
         usage_ledger.record_tokens("pytest_link", "gemini-3.5-flash", {"input_tokens": 10, "output_tokens": 5})
         usage_ledger.attribute(meeting_id=meeting.id)

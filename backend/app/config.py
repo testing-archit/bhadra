@@ -21,7 +21,7 @@ class Settings(BaseSettings):
     recordings_dir: str = "recordings"
 
     # Empty-string defaults so the app can boot (and serve everything that
-    # doesn't call out to Gemini/Deepgram — auth, tasks, decisions, projects,
+    # doesn't call out to Gemini/Prisma — auth, tasks, decisions, projects,
     # digest) with zero configuration. Only ingest/chat/policy-chat routes
     # actually need these to be real; they fail at request time, not at
     # startup, if left blank.
@@ -30,7 +30,13 @@ class Settings(BaseSettings):
     # Small, frequent jobs (meeting-type detection, conflict checks).
     gemini_fast_model: str = "gemini-3.5-flash-lite"
     groq_api_key: str = ""
-    deepgram_api_key: str = ""
+    # Gnani Prisma v3.0 handles Indian-language and code-mixed meeting audio.
+    # Keep the URL configurable: the programme console may issue a dedicated
+    # regional endpoint without requiring a code change.
+    gnani_api_key: str = ""
+    gnani_stt_url: str = "https://api.vachana.ai/stt/v3"
+    gnani_stt_model: str = "prisma-v3.0"
+    gnani_stt_mode: str = "codemix"
     # How long one USD→INR quote is reused when pricing AI calls. Each AI
     # call stores the rate it was priced at; the free sources publish daily
     # reference rates, so asking more often than hourly gains nothing.
@@ -67,8 +73,8 @@ class Settings(BaseSettings):
     # style. Never treated as a meeting owner or attendee.
     notetaker_email: str = "notetaker@example.com"
 
-    # Comma-separated team member first names. Fed into Deepgram keyword
-    # boosting to improve recognition of names
+    # Comma-separated team member first names. Fed into Prisma keyterm
+    # prompting to improve recognition of names
     # instead of mangling them into phonetically-similar English words
     # (e.g. "Vaibhav" -> "wherever") — this is what actually fixes
     # Hinglish transcription accuracy, not a different STT provider.
@@ -95,7 +101,7 @@ class Settings(BaseSettings):
 
     # "production" refuses development fixture mode outright.
     app_env: str = "development"
-    # Development-only stand-ins for Deepgram and Gemini so the Meeting
+    # Development-only stand-ins for Prisma and Gemini so the Meeting
     # Assistant can be previewed and tested without paid keys. Every fixture
     # output is labelled as such; it never simulates a bot joining a call.
     fixture_mode: bool = False

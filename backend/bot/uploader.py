@@ -20,7 +20,7 @@ import config
 
 log = logging.getLogger("uploader")
 MAX_ATTEMPTS = 3
-# Deepgram on a multi-hour recording plus extraction can take many minutes.
+# Prisma on a multi-hour recording plus extraction can take many minutes.
 UPLOAD_TIMEOUT = httpx.Timeout(1800.0, connect=20.0)
 
 

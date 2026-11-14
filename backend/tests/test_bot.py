@@ -203,7 +203,7 @@ async def test_bot_ingest_files_meeting_under_organizer_with_named_transcript(
 async def test_bot_ingest_keeps_audio_and_timed_captions_when_transcription_fails(
     client, member_user, mock_extraction, mock_qdrant_upsert
 ):
-    """A Deepgram failure must not lose the recording: the audio is stored for
+    """A Prisma failure must not lose the recording: the audio is stored for
     playback and a later retry, caption lines keep their timings for
     click-to-seek, and the transcription stage says it failed."""
     metadata = {
@@ -220,7 +220,7 @@ async def test_bot_ingest_keeps_audio_and_timed_captions_when_transcription_fail
     }
     with (
         patch.object(settings, "bot_api_secret", BOT_SECRET),
-        patch("app.services.transcriber.transcribe_audio_detailed", new=AsyncMock(side_effect=RuntimeError("Deepgram error 400"))),
+        patch("app.services.transcriber.transcribe_audio_detailed", new=AsyncMock(side_effect=RuntimeError("Prisma error 400"))),
     ):
         response = await client.post(
             "/api/bot/ingest",

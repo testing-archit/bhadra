@@ -17,7 +17,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 /** The names and terms transcription gets wrong, shared by the company.
  * Corrections fix every new transcript and the notes written from it;
  * keywords, teammates' names (the meeting's people first) and the right
- * spelling of every correction are sent to Deepgram so they're heard right.
+ * spelling of every correction are sent to Prisma so they're heard right.
  * Fixing a misheard name in any meeting adds it here automatically, and
  * Charcha suggests ones it noticed itself. */
 export default function VocabularyPage() {

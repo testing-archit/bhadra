@@ -360,7 +360,7 @@ class Trace(Base):
     duration_minutes: Mapped[int | None] = mapped_column(Integer)
     # Column name kept as "whisper_requests" to match the existing prod DB
     # column (avoids a migration) — the attribute name is provider-neutral
-    # since transcription now goes through Deepgram, not Whisper.
+    # since transcription now goes through Prisma, not Whisper.
     transcription_requests: Mapped[int | None] = mapped_column("whisper_requests", Integer)
     # Physical column names are retained for compatibility with the existing
     # database; application and API terminology is provider-neutral.
@@ -604,7 +604,7 @@ class TranscriptEdit(Base):
 class TermCorrection(Base):
     """Company vocabulary for transcription (see vocabulary_service):
     a rule "heard as `wrong`, actually `right`" ("Sky Tech" → "Sky Lattice"),
-    or with no `wrong` a keyword Deepgram should listen for. Rules come from
+    or with no `wrong` a keyword Prisma should listen for. Rules come from
     people's edits (`learned`) or are added on the Vocabulary page (`manual`)."""
 
     __tablename__ = "term_corrections"
@@ -942,7 +942,7 @@ class AiUsageEvent(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()"))
     occurred_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), nullable=False, index=True)
-    provider: Mapped[str] = mapped_column(String, nullable=False)  # gemini | deepgram
+    provider: Mapped[str] = mapped_column(String, nullable=False)  # gemini | gnani
     feature: Mapped[str] = mapped_column(String, nullable=False, index=True)
     model: Mapped[str] = mapped_column(String, nullable=False)
     input_tokens: Mapped[int] = mapped_column(Integer, nullable=False, server_default="0")

@@ -6,7 +6,7 @@ the edit swaps a misheard name or term for the right one ("Ras" → "Raj"):
 1. the swap is applied across that meeting — transcript, summary, AI notes,
    follow-up draft and every other item — so nothing still says "Ras";
 2. it is remembered company-wide (`term_corrections`): every new transcript
-   gets it applied, and the right term is sent to Deepgram as a keyterm so
+   gets it applied, and the right term is sent to Prisma as a keyterm so
    it is heard correctly in the first place.
 
 An edit only counts as a correction when it is small and looks like a
@@ -68,7 +68,7 @@ MAX_PHRASE_WORDS = 3
 MAX_CHANGES_PER_EDIT = 3
 # How alike the two spellings must be ("ras"/"raj" is 0.67).
 MIN_SIMILARITY = 0.5
-# Deepgram keyterms sent per request, learned terms included.
+# Prisma keyterms sent per request, learned terms included.
 MAX_KEYTERMS = 50
 LOAD_TIMEOUT_SECONDS = 3.0
 
@@ -445,7 +445,7 @@ async def active_vocabulary() -> Vocabulary:
 
 
 def keyterms(roster: list[str], vocabulary: Vocabulary, people: list[str] | tuple[str, ...] = ()) -> list[str]:
-    """Terms Deepgram should listen for, most useful first, since only
+    """Terms Prisma should listen for, most useful first, since only
     MAX_KEYTERMS fit: the people in this meeting, the configured roster,
     keywords, the right spelling of every correction, everyone else at the
     company, then keywords picked up automatically."""
@@ -464,7 +464,7 @@ def keyterms(roster: list[str], vocabulary: Vocabulary, people: list[str] | tupl
 
 
 def apply_to_turns(turns: list[dict], rules: list[Rule]) -> Counter:
-    """Fix learned mishearings in Deepgram turns, in place."""
+    """Fix learned mishearings in provider turns, in place."""
     applied: Counter = Counter()
     for turn in turns:
         text, counts = apply_text(turn.get("text") or "", rules)

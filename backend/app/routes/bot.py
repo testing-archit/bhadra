@@ -32,7 +32,7 @@ router = APIRouter(prefix="/api/bot", tags=["bot"])
 logger = logging.getLogger(__name__)
 
 # Below this the recording is a few seconds of silence (the bot was let in
-# and immediately removed) — not worth a Deepgram call.
+# and immediately removed) — not worth a Prisma call.
 MIN_AUDIO_BYTES = 16 * 1024
 # How long before its scheduled start a queued visit may be handed out.
 CLAIM_EARLY = datetime.timedelta(minutes=5)
@@ -157,9 +157,9 @@ async def bot_ingest(
             transcript = transcriber.format_transcript(detailed["turns"], speaker_names)
         except Exception as error:
             # Captions are a worse transcript, but a meeting saved from them
-            # beats a meeting lost to a Deepgram outage. The audio is still
+            # beats a meeting lost to a Prisma outage. The audio is still
             # stored below, so transcription can be retried from it.
-            logger.exception("Deepgram failed for bot meeting %s; using captions", meta.event_id)
+            logger.exception("Prisma failed for bot meeting %s; using captions", meta.event_id)
             detailed = None
             transcription_error = error
     if not transcript.strip():
@@ -246,7 +246,7 @@ async def bot_ingest(
 
     if len(audio_bytes) >= MIN_AUDIO_BYTES and not result.get("deduplicated"):
         # Always keep the audio — playback, click-to-seek and a later
-        # transcription retry all depend on it, Deepgram outage or not.
+        # transcription retry all depend on it, Prisma outage or not.
         await _store_recording(db, owner_id, result, meta, audio_bytes, mime_type, detailed, speaker_names, captions, bot_names)
         if detailed is None and transcription_error is not None:
             await processing_service.set_stage(

@@ -3,14 +3,14 @@ from unittest.mock import patch
 import pytest
 
 from app.config import settings
-from app.services.transcriber import _build_turns, _diagnostics, format_transcript
+from app.services.transcriber import _build_turns, _diagnostics, _turns_from_prisma, format_transcript
 
 
 @pytest.fixture(autouse=True)
-def deepgram_key():
+def gnani_key():
     # The request-shape tests below mock the HTTP call; they only need the
     # "is transcription configured" guard to pass, not a real key.
-    with patch.object(settings, "deepgram_api_key", "test-key"):
+    with patch.object(settings, "gnani_api_key", "test-key"):
         yield
 
 
@@ -61,10 +61,12 @@ def test_diagnostics_flag_speaker_count_mismatch_and_names_format():
     assert format_transcript(turns, {"0": "Archit"}) == "Archit: Hello."
 
 
-async def test_diarization_is_actually_requested():
-    """Diarization must be requested with `diarize_model` alone. Deepgram
-    rejects it alongside `diarize=true` (every transcription then fails), and
-    `diarize=true` by itself collapses everyone into one speaker."""
+def test_prisma_timestamped_segments_are_preserved():
+    turns = _turns_from_prisma({"segments": [{"speaker": "speaker_2", "start_time": 1.2, "end_time": 3.8, "text": "Namaste team."}]})
+    assert turns == [{"speaker": 2, "start": 1.2, "end": 3.8, "text": "Namaste team.", "confidence": 0.0, "speaker_confidence": 0.0, "word_count": 2}]
+
+
+async def test_prisma_request_uses_v3_mode_auto_language_and_keyterms():
     import httpx
     from unittest.mock import AsyncMock, patch
 
@@ -73,22 +75,27 @@ async def test_diarization_is_actually_requested():
     captured = {}
 
     async def fake_post(self, url, **kwargs):
-        captured["params"] = kwargs.get("params")
+        captured["data"] = kwargs.get("data")
+        captured["headers"] = kwargs.get("headers")
+        captured["files"] = kwargs.get("files")
         return httpx.Response(
             200,
-            json={"results": {"channels": [{"alternatives": [{"words": []}]}]}, "metadata": {}},
+            json={"success": True, "transcript": "Hello from Prisma.", "metadata": {"duration": 2}},
             request=httpx.Request("POST", url),
         )
 
     with patch.object(httpx.AsyncClient, "post", fake_post):
-        await transcriber.transcribe_audio_detailed(b"audio", "audio/webm", "en")
+        await transcriber.transcribe_audio_detailed(b"audio", "audio/webm", "en", people=["Archit"])
 
-    assert ("diarize_model", "v2") in captured["params"]
-    assert not any(key == "diarize" for key, _ in captured["params"])
-    assert ("language", "en") in captured["params"]
+    assert captured["headers"] == {"X-API-Key-ID": "test-key"}
+    assert captured["data"]["model"] == "prisma-v3.0"
+    assert captured["data"]["mode"] == "codemix"
+    assert captured["data"]["language_code"] == "en-IN"
+    assert captured["data"]["key_terms"] == '["Archit"]'
+    assert "audio_file" in captured["files"]
 
 
-async def test_hinglish_maps_to_deepgrams_multilingual_model():
+async def test_hinglish_uses_prismas_auto_lid():
     import httpx
     from unittest.mock import patch
 
@@ -97,14 +104,14 @@ async def test_hinglish_maps_to_deepgrams_multilingual_model():
     captured = {}
 
     async def fake_post(self, url, **kwargs):
-        captured["params"] = kwargs.get("params")
+        captured["data"] = kwargs.get("data")
         return httpx.Response(
             200,
-            json={"results": {"channels": [{"alternatives": [{"words": []}]}]}, "metadata": {}},
+            json={"success": True, "transcript": "Namaste team.", "metadata": {}},
             request=httpx.Request("POST", url),
         )
 
     with patch.object(httpx.AsyncClient, "post", fake_post):
         await transcriber.transcribe_audio_detailed(b"audio", "audio/webm", "hinglish")
 
-    assert ("language", "multi") in captured["params"]
+    assert captured["data"]["language_code"] == "auto"
