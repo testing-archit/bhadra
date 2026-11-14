@@ -27,6 +27,17 @@ def _point_id(ref: str) -> str:
 _client: QdrantClient | None = None
 
 
+def _off() -> bool:
+    """VECTOR_STORE=none: no vector database on this server. Indexing is a
+    no-op and searches raise, so callers use their fallbacks (memory answers
+    from recent meetings, the policy assistant from keyword matching)."""
+    return settings.vector_store == "none"
+
+
+class VectorSearchOff(RuntimeError):
+    pass
+
+
 def _on_pinecone() -> bool:
     """VECTOR_STORE=pinecone: the same collections live as namespaces of a
     Pinecone index (see pinecone_store). The public API below is unchanged."""
@@ -46,6 +57,8 @@ def get_client() -> QdrantClient:
 
 
 def ensure_collections() -> None:
+    if _off():
+        return
     if _on_pinecone():
         return
     client = get_client()
@@ -70,6 +83,8 @@ def _chunk_text(text: str) -> list[str]:
 
 
 def _upsert_points(collection: str, points: list[qm.PointStruct]) -> None:
+    if _off():
+        return
     if not points:
         return
     if _on_pinecone():
@@ -94,6 +109,8 @@ def upsert_meeting(
     department: str | None = None,
     risks: list[dict] | None = None,
 ) -> None:
+    if _off():
+        return
     dept = department or "unassigned"
     records: list[tuple[str, str, dict]] = []  # (ref_id, chunk_text, extra_payload)
 
@@ -155,6 +172,8 @@ def upsert_meeting(
 
 
 def update_meeting_title(meeting_id: str, title: str) -> None:
+    if _off():
+        return
     if _on_pinecone():
         pinecone_store.set_meeting_metadata(COMPANY_MEMORY_COLLECTION, meeting_id, {"meeting_title": title})
         return
@@ -170,6 +189,8 @@ def update_meeting_title(meeting_id: str, title: str) -> None:
 
 def delete_meeting(meeting_id: str) -> None:
     """Remove every vector chunk derived from a meeting."""
+    if _off():
+        return
     if _on_pinecone():
         pinecone_store.delete_meeting(COMPANY_MEMORY_COLLECTION, meeting_id)
         return
@@ -195,6 +216,8 @@ def replace_meeting(
     risks: list[dict] | None = None,
 ) -> None:
     """Rebuild a meeting index after an extracted fact is edited/deleted."""
+    if _off():
+        return
     delete_meeting(meeting_id)
     upsert_meeting(
         meeting_id,
@@ -227,6 +250,8 @@ def search(
     ids (attendee-scoped chat). `None` means unrestricted by meeting id —
     distinct from an empty list, which callers should treat as "search
     nothing" and short-circuit before ever calling this."""
+    if _off():
+        raise VectorSearchOff("Vector search is off on this server")
     if _on_pinecone():
         return pinecone_store.query(
             COMPANY_MEMORY_COLLECTION,
@@ -251,6 +276,8 @@ def search(
 def upsert_policy_chunks(chunks: list[dict]) -> None:
     """chunks: [{id, document, section, text}]. Re-running ingestion after an
     edit just overwrites the same deterministic ids in place."""
+    if _off():
+        return
     if not chunks:
         return
     vectors = embed_passages([c["text"] for c in chunks])
@@ -266,6 +293,8 @@ def upsert_policy_chunks(chunks: list[dict]) -> None:
 
 
 def search_policies(query_text: str, top_k: int = 6) -> list[dict]:
+    if _off():
+        raise VectorSearchOff("Vector search is off on this server")
     if _on_pinecone():
         return pinecone_store.query(POLICY_COLLECTION, embed_query(query_text), top_k)
     ensure_collections()
@@ -294,6 +323,8 @@ def find_related_meetings(
     "related past discussions" panel on a meeting's detail page. Searches
     summary chunks only (one per meeting) so results dedupe naturally rather
     than one meeting crowding the list with several transcript chunks."""
+    if _off():
+        return []
     if not query_text:
         return []
     hits = search(query_text, top_k=top_k + 3, department=department, content_type="summary")
