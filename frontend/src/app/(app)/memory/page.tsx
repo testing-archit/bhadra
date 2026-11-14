@@ -207,9 +207,11 @@ export default function MemoryPage() {
     const url = new URL(window.location.href);
     const handed = url.searchParams.get("q")?.trim();
     if (!handed) return;
+    const spoken = url.searchParams.get("voice") === "1";
     url.searchParams.delete("q");
+    url.searchParams.delete("voice");
     window.history.replaceState(null, "", url);
-    void ask(handed);
+    void ask(handed, spoken);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

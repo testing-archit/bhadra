@@ -193,7 +193,7 @@
   }
   /* The headline sweep: white into violet, gulabi and genda. */
   .text-glow {
-    background: linear-gradient(100deg, var(--foreground) 0%, oklch(0.74 0.15 285) 45%, oklch(0.74 0.16 350) 72%, oklch(0.8 0.15 75) 100%);
+    background-image: linear-gradient(100deg, var(--foreground) 0%, oklch(0.74 0.15 285) 45%, oklch(0.74 0.16 350) 72%, oklch(0.8 0.15 75) 100%);
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;

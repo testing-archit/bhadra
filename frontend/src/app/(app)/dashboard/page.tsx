@@ -11,8 +11,6 @@ import {
   ListChecks,
   RefreshCw,
   Scale,
-  Mic,
-  Sparkles,
   Video,
 } from "lucide-react";
 import { api, ApiError, type Digest, type MeetingSummary, type TaskListItem } from "@/lib/api";
@@ -20,18 +18,13 @@ import { useAuth } from "@/lib/auth-context";
 import { isTaskOverdue } from "@/lib/deadline";
 import { compareByUrgency, formatDue, isMine } from "@/lib/tasks";
 import { cn } from "@/lib/utils";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
 import { isCaptureLive, useShell } from "@/components/shell/shell-context";
 import { UpcomingMeetings } from "@/components/upcoming-meetings";
+import { PromptHero } from "@/components/prompt-hero";
 
-function greeting() {
-  const hour = new Date().getHours();
-  if (hour < 12) return "Good morning";
-  if (hour < 17) return "Good afternoon";
-  return "Good evening";
-}
 
 function weekRange(digest: Digest) {
   const start = new Date(digest.week_start);
@@ -75,31 +68,7 @@ export default function HomePage() {
 
   return (
     <div className="flex flex-col gap-8">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <p className="text-sm text-muted-foreground">
-            {new Date().toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })}
-          </p>
-          <h1 className="mt-1 text-4xl leading-tight font-bold">
-            {greeting()}{firstName ? `, ${firstName}` : ""}
-          </h1>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Link href="/memory" className={buttonVariants({ variant: "outline" })}>
-            <Sparkles /> Ask memory
-          </Link>
-          <Button onClick={() => openNotetaker()}>
-            <Bot /> Capture a meeting
-          </Button>
-          <Link
-            href="/record"
-            className="inline-flex h-9 items-center gap-2 rounded-full bg-marigold pr-4 pl-1 text-sm font-semibold text-marigold-foreground outline-none transition-colors hover:bg-marigold/90 focus-visible:ring-3 focus-visible:ring-marigold/50"
-          >
-            <span className="grid size-7 place-items-center rounded-full bg-marigold-foreground/10"><Mic className="size-4" /></span>
-            Record in person
-          </Link>
-        </div>
-      </div>
+      <PromptHero firstName={firstName} onCapture={() => openNotetaker()} />
 
       {live.length === 0 && (
         <section className="relative overflow-hidden rounded-2xl border bg-card px-5 py-5 sm:px-6">
