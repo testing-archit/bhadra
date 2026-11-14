@@ -4,24 +4,20 @@ import { type KeyboardEvent, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   AlertTriangle,
-  CalendarClock,
   CalendarPlus,
   Check,
-  CheckCircle2,
-  Clock,
   Copy,
   CopyCheck,
   Download,
   FolderKanban,
   Hourglass,
-  Kanban,
-  List,
   ListChecks,
   Pencil,
   Plus,
   RotateCcw,
   Search,
   Send,
+  SlidersHorizontal,
   Sparkles,
   Trash2,
   X,
@@ -44,7 +40,6 @@ import {
   snoozedDueDate,
   STALE_DAYS,
   tasksToCsv,
-  upNext,
   urgency,
 } from "@/lib/tasks";
 import { cn } from "@/lib/utils";
@@ -58,18 +53,19 @@ import { TaskEditDialog, type EditableTask } from "@/components/task-edit-dialog
 import { DeleteConfirmationDialog } from "@/components/delete-confirmation-dialog";
 import { VerificationBadge } from "@/components/verification-badge";
 import { JiraTaskButton, useJiraStatus } from "@/components/jira-task-button";
+import { TaskFocusDeck, type FocusTaskUpdate } from "@/components/task-focus-deck";
 
 const STATUSES = ["pending", "in_progress", "done"] as const;
-type View = "list" | "board";
+type View = "focus" | "list" | "board";
 /** Whose tasks: yours (the default), ones you're waiting on, nobody's, or everything you can see. */
 type Scope = "mine" | "waiting" | "unassigned" | "all";
 type EditFields = { description: string; owner: string; deadline: string; due_date: string; priority: string; status: string };
 type PendingDelete = { ids: string[]; label: string };
 
-const VIEW_KEY = "charcha.tasks.view";
+const VIEW_KEY = "wilco.tasks.layout.v2";
 const DISMISSED_KEY = "charcha.tasks.notDuplicates";
 const DONE_SHOWN = 8;
-const selectClass = "h-8 rounded-lg border bg-background px-2.5 text-sm text-foreground";
+const selectClass = "h-8 [@media(pointer:coarse)]:min-h-11 rounded-lg border bg-background px-2.5 text-sm text-foreground";
 
 const SCOPES: { value: Scope; label: string; hint: string }[] = [
   { value: "mine", label: "My tasks", hint: "Assigned to you" },
@@ -128,7 +124,8 @@ export default function TasksPage() {
   const [tasks, setTasks] = useState<TaskListItem[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
-  const [view, setView] = useState<View>("board");
+  const [view, setView] = useState<View>("focus");
+  const [showFilters, setShowFilters] = useState(false);
   const [scope, setScope] = useState<Scope>("mine");
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("open");
@@ -149,10 +146,10 @@ export default function TasksPage() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const urlView = params.get("view");
-    // The board is the default; a chosen layout is remembered per browser.
+    // Focus is the new default; explicit layout choices and links still work.
     const savedView = readStorage(VIEW_KEY);
-    if (urlView === "list" || urlView === "board") setView(urlView);
-    else if (savedView === "list") setView("list");
+    if (urlView === "focus" || urlView === "list" || urlView === "board") setView(urlView);
+    else if (savedView === "focus" || savedView === "list" || savedView === "board") setView(savedView);
     const urlScope = params.get("scope");
     if (urlScope && SCOPES.some((item) => item.value === urlScope)) setScope(urlScope as Scope);
     else if (params.get("owner") === "all") setScope("all");
@@ -193,7 +190,8 @@ export default function TasksPage() {
   function changeView(next: View) {
     setView(next);
     writeStorage(VIEW_KEY, next);
-    setUrlParam("view", next === "board" ? null : next);
+    setSelectedIds(new Set());
+    setUrlParam("view", next === "focus" ? null : next);
   }
 
   function changeScope(next: Scope) {
@@ -256,7 +254,8 @@ export default function TasksPage() {
     const q = query.trim().toLowerCase();
     return inScope
       .filter((task) => {
-        // The board shows every status as a column, so the status filter only applies to the list.
+        if (view === "focus" && task.status === "done") return false;
+        // The board shows every status; the focus deck only shows open work.
         if (view === "list") {
           if (statusFilter === "open" && task.status === "done") return false;
           if (statusFilter !== "open" && statusFilter !== "" && task.status !== statusFilter) return false;
@@ -284,6 +283,16 @@ export default function TasksPage() {
     } catch {
       patchTasks({ id: task.id, status: task.status });
       setError("The status could not be saved. Try again.");
+    }
+  }
+
+  async function updateFocusTask(task: TaskListItem, fields: FocusTaskUpdate) {
+    // Commit after success so a rejected action keeps the current card in place.
+    const updated = await api.updateTask(task.id, fields);
+    patchTasks({ ...updated, ...(fields.owner !== undefined ? { mine: undefined, delegated: undefined } : {}) });
+    if (fields.owner !== undefined) {
+      // Ownership affects both Mine and Waiting; refresh the server-computed relationship.
+      await api.listTasks().then(setTasks).catch(() => undefined);
     }
   }
 
@@ -452,12 +461,8 @@ export default function TasksPage() {
     <div className="flex flex-col gap-5">
       <PageHeader
         title="Tasks"
-        description="Your follow-ups from every meeting — what to do next, what you're waiting on, and what's gone quiet."
         actions={
           <>
-            <Button variant="outline" onClick={exportCsv} disabled={!filtered?.length}>
-              <Download /> Export CSV
-            </Button>
             <Button onClick={() => setAddingTask(true)}>
               <Plus /> Add task
             </Button>
@@ -466,131 +471,83 @@ export default function TasksPage() {
       />
 
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex max-w-full gap-1 overflow-x-auto rounded-lg bg-muted p-0.5" role="tablist" aria-label="Whose tasks">
-          {SCOPES.map((item) => (
-            <button
-              key={item.value}
-              type="button"
-              role="tab"
-              title={item.hint}
-              aria-selected={scope === item.value}
-              onClick={() => changeScope(item.value)}
-              className={cn(
-                "flex h-7 shrink-0 items-center gap-1.5 rounded-md px-3 text-sm whitespace-nowrap text-muted-foreground transition-colors hover:text-foreground",
-                scope === item.value && "bg-background font-medium text-foreground shadow-sm",
-              )}
-            >
-              {item.label}
-              <span className="text-xs tabular-nums">{tasks ? counts[item.value] : ""}</span>
-            </button>
-          ))}
-        </div>
-        <div className="flex gap-1 rounded-lg bg-muted p-0.5" role="tablist" aria-label="Layout">
-          {([
-            ["board", "Board", Kanban],
-            ["list", "List", List],
-          ] as const).map(([value, label, Icon]) => (
-            <button
-              key={value}
-              type="button"
-              role="tab"
-              aria-selected={view === value}
-              onClick={() => changeView(value)}
-              className={cn(
-                "flex h-7 items-center gap-1.5 rounded-md px-3 text-sm text-muted-foreground transition-colors hover:text-foreground",
-                view === value && "bg-background font-medium text-foreground shadow-sm",
-              )}
-            >
-              <Icon className="size-3.5" /> {label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {inScope && scope === "mine" && (
-        <FocusPanel
-          tasks={inScope}
-          dueFilter={dueFilter}
-          onDueFilter={(bucket) => setDueFilter((current) => (current === bucket ? "" : bucket))}
-          onOpen={setEditingTask}
-          onDone={(task) => void setStatus(task, "done")}
-        />
-      )}
-
-      {inScope && scope === "waiting" && (
-        <WaitingPanel
-          tasks={inScope}
-          ownerFilter={ownerFilter}
-          onOwner={(owner) => setOwnerFilter((current) => (current === owner ? "" : owner))}
-          onRemind={(owner, list) => void copyReminder(owner, list)}
-        />
-      )}
-
-      {inScope && (scope === "mine" || scope === "all") && (
-        <NudgesPanel
-          tasks={inScope}
-          notDuplicates={notDuplicates}
-          onOpen={setEditingTask}
-          onDone={(task) => void setStatus(task, "done")}
-          onSnooze={(task) => void snooze(task)}
-          onDelete={(task) => askDelete([task])}
-          onNotDuplicate={dismissDuplicate}
-        />
-      )}
-
-      <div className="flex flex-wrap items-center gap-2">
-        <div className="relative min-w-48 flex-1">
-          <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search tasks, owners, meetings" className="h-8 pl-9" aria-label="Search tasks" />
-        </div>
-        <select value={dueFilter} onChange={(event) => setDueFilter(event.target.value as DueBucket | "")} aria-label="Due" className={selectClass}>
-          <option value="">Any due date</option>
-          {DUE_BUCKETS.map((bucket) => <option key={bucket.value} value={bucket.value}>{bucket.label}</option>)}
-        </select>
-        {view === "list" && (
-          <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} aria-label="Status" className={selectClass}>
-            <option value="open">Not done</option>
-            <option value="">Any status</option>
-            {STATUSES.map((status) => <option key={status} value={status}>{STATUS_LABELS[status]}</option>)}
+        <label className="flex min-w-0 items-center gap-2">
+          <span className="sr-only">Whose tasks</span>
+          <select aria-label="Whose tasks" value={scope} onChange={(event) => changeScope(event.target.value as Scope)} className={cn(selectClass, "max-w-full")}>
+            {SCOPES.map((item) => <option key={item.value} value={item.value}>{item.label}{tasks ? ` (${counts[item.value]})` : ""}</option>)}
           </select>
-        )}
-        {scope !== "mine" && scope !== "unassigned" && options.owners.length > 0 && (
-          <select value={ownerFilter} onChange={(event) => setOwnerFilter(event.target.value)} aria-label="Owner" className={selectClass}>
-            <option value="">Any owner</option>
-            {options.owners.map((owner) => <option key={owner} value={owner}>{owner}</option>)}
-          </select>
-        )}
-        <select value={priorityFilter} onChange={(event) => setPriorityFilter(event.target.value)} aria-label="Priority" className={selectClass}>
-          <option value="">Any priority</option>
-          {["High", "Medium", "Low"].map((priority) => <option key={priority} value={priority}>{priority}</option>)}
-        </select>
-        {options.projects.length > 0 && (
-          <select value={projectFilter} onChange={(event) => setProjectFilter(event.target.value)} aria-label="Project" className={cn(selectClass, "max-w-44")}>
-            <option value="">Any project</option>
-            {options.projects.map((project) => <option key={project} value={project}>{project}</option>)}
-          </select>
-        )}
-        {options.meetings.length > 1 && (
-          <select value={meetingFilter} onChange={(event) => setMeetingFilter(event.target.value)} aria-label="Meeting" className={cn(selectClass, "max-w-52")}>
-            <option value="">Any meeting</option>
-            {options.meetings.map((meeting) => <option key={meeting} value={meeting}>{meeting}</option>)}
-          </select>
-        )}
-        {filtersActive && (
-          <Button variant="ghost" size="sm" onClick={clearFilters}>
-            <X /> Clear filters
+        </label>
+        <div className="flex items-center gap-2">
+          <label className="flex items-center gap-2">
+            <span className="sr-only">Layout</span>
+            <select aria-label="Layout" value={view} onChange={(event) => changeView(event.target.value as View)} className={selectClass}>
+              <option value="focus">Focus</option>
+              <option value="list">List</option>
+              <option value="board">Board</option>
+            </select>
+          </label>
+          <Button variant="outline" aria-expanded={showFilters} aria-controls="task-filters" onClick={() => setShowFilters(!showFilters)}>
+            <SlidersHorizontal data-icon="inline-start" /> Filters{filtersActive ? " · on" : ""}
           </Button>
-        )}
+        </div>
       </div>
 
+      <div id="task-filters" hidden={!showFilters}>
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="relative min-w-48 flex-1">
+            <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+            <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search tasks, owners, meetings" className="h-8 pl-9" aria-label="Search tasks" />
+          </div>
+          <select value={dueFilter} onChange={(event) => setDueFilter(event.target.value as DueBucket | "")} aria-label="Due" className={selectClass}>
+            <option value="">Any due date</option>
+            {DUE_BUCKETS.map((bucket) => <option key={bucket.value} value={bucket.value}>{bucket.label}</option>)}
+          </select>
+          {view === "list" && (
+            <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} aria-label="Status" className={selectClass}>
+              <option value="open">Not done</option>
+              <option value="">Any status</option>
+              {STATUSES.map((status) => <option key={status} value={status}>{STATUS_LABELS[status]}</option>)}
+            </select>
+          )}
+          {scope !== "mine" && scope !== "unassigned" && options.owners.length > 0 && (
+            <select value={ownerFilter} onChange={(event) => setOwnerFilter(event.target.value)} aria-label="Owner" className={selectClass}>
+              <option value="">Any owner</option>
+              {options.owners.map((owner) => <option key={owner} value={owner}>{owner}</option>)}
+            </select>
+          )}
+          <select value={priorityFilter} onChange={(event) => setPriorityFilter(event.target.value)} aria-label="Priority" className={selectClass}>
+            <option value="">Any priority</option>
+            {["High", "Medium", "Low"].map((priority) => <option key={priority} value={priority}>{priority}</option>)}
+          </select>
+          {options.projects.length > 0 && (
+            <select value={projectFilter} onChange={(event) => setProjectFilter(event.target.value)} aria-label="Project" className={cn(selectClass, "max-w-44")}>
+              <option value="">Any project</option>
+              {options.projects.map((project) => <option key={project} value={project}>{project}</option>)}
+            </select>
+          )}
+          {options.meetings.length > 1 && (
+            <select value={meetingFilter} onChange={(event) => setMeetingFilter(event.target.value)} aria-label="Meeting" className={cn(selectClass, "max-w-52")}>
+              <option value="">Any meeting</option>
+              {options.meetings.map((meeting) => <option key={meeting} value={meeting}>{meeting}</option>)}
+            </select>
+          )}
+          {filtersActive && (
+            <Button variant="ghost" size="sm" onClick={clearFilters}>
+              <X /> Clear filters
+            </Button>
+          )}
+        </div>
+
+        <Button className="mt-3" variant="ghost" onClick={exportCsv} disabled={!filtered?.length}><Download data-icon="inline-start" /> Export CSV</Button>
+      </div>
       {notice && (
-        <p className="flex items-center justify-between gap-3 rounded-lg border bg-muted/40 px-3 py-2 text-sm">
+        <p role="status" className="flex items-center justify-between gap-3 rounded-lg border bg-muted/40 px-3 py-2 text-sm">
           {notice}
           <button type="button" onClick={() => setNotice(null)} aria-label="Dismiss"><X className="size-4" /></button>
         </p>
       )}
       {error && (
-        <p className="flex items-center justify-between gap-3 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+        <p role="alert" className="flex items-center justify-between gap-3 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
           {error}
           <button type="button" onClick={() => setError(null)} aria-label="Dismiss"><X className="size-4" /></button>
         </p>
@@ -598,7 +555,7 @@ export default function TasksPage() {
 
       {!filtered && !error && <Skeleton className="h-80 w-full rounded-xl" />}
 
-      {filtered && filtered.length === 0 && (
+      {view !== "focus" && filtered && filtered.length === 0 && (
         <EmptyState
           icon={ListChecks}
           title={filtersActive ? "No tasks match" : inScope?.length ? "All done here" : scope === "mine" ? "Nothing assigned to you" : "No tasks here"}
@@ -610,6 +567,20 @@ export default function TasksPage() {
                 : scopeInfo.hint + "."
           }
           action={filtersActive ? <Button variant="outline" onClick={clearFilters}><X /> Clear filters</Button> : <Button onClick={() => setAddingTask(true)}><Plus /> Add task</Button>}
+        />
+      )}
+
+      {view === "focus" && filtered && (
+        <TaskFocusDeck
+          key={scope}
+          tasks={filtered}
+          owners={Array.from(new Set([user?.name || user?.email || "", ...options.allOwners].filter(Boolean)))}
+          ownerLabel={ownerLabel}
+          onUpdate={updateFocusTask}
+          onEdit={setEditingTask}
+          onAdd={() => setAddingTask(true)}
+          filtered={filtersActive}
+          onClearFilters={clearFilters}
         />
       )}
 
@@ -713,6 +684,16 @@ export default function TasksPage() {
         />
       )}
 
+      {view !== "focus" && inScope && inScope.length > 0 && (
+        <details>
+          <summary className="w-fit rounded-sm text-sm text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring">Follow-up tools</summary>
+          <div className="mt-4 flex flex-col gap-4">
+            {scope === "waiting" && <WaitingPanel tasks={inScope} ownerFilter={ownerFilter} onOwner={(owner) => setOwnerFilter((current) => current === owner ? "" : owner)} onRemind={(owner, list) => void copyReminder(owner, list)} />}
+            {(scope === "mine" || scope === "all") && <NudgesPanel tasks={inScope} notDuplicates={notDuplicates} onOpen={setEditingTask} onDone={(task) => void setStatus(task, "done")} onSnooze={(task) => void snooze(task)} onDelete={(task) => askDelete([task])} onNotDuplicate={dismissDuplicate} />}
+          </div>
+        </details>
+      )}
+
       {editingTask && (
         <TaskEditDialog
           task={editingTask as EditableTask}
@@ -735,93 +716,6 @@ export default function TasksPage() {
         busy={deleting}
         onConfirm={confirmDelete}
       />
-    </div>
-  );
-}
-
-/** Your day at a glance: counts you can filter by, and the three tasks
- * most worth doing next, with the reason for each. */
-function FocusPanel({
-  tasks,
-  dueFilter,
-  onDueFilter,
-  onOpen,
-  onDone,
-}: {
-  tasks: TaskListItem[];
-  dueFilter: DueBucket | "";
-  onDueFilter: (bucket: DueBucket) => void;
-  onOpen: (task: TaskListItem) => void;
-  onDone: (task: TaskListItem) => void;
-}) {
-  const open = tasks.filter((task) => task.status !== "done");
-  const doneThisWeek = tasks.filter((task) => task.status === "done" && daysSince(task.updated_at) < 7).length;
-  const next = upNext(open);
-  const tiles: { bucket: DueBucket | null; label: string; value: number; icon: typeof Clock; tone?: string }[] = [
-    { bucket: "overdue", label: "Overdue", value: open.filter((task) => dueBucket(task) === "overdue").length, icon: AlertTriangle, tone: "text-destructive" },
-    { bucket: "today", label: "Due today", value: open.filter((task) => dueBucket(task) === "today").length, icon: Clock },
-    { bucket: "week", label: "Next 7 days", value: open.filter((task) => dueBucket(task) === "week").length, icon: CalendarClock },
-    { bucket: null, label: "Done this week", value: doneThisWeek, icon: CheckCircle2, tone: "text-success" },
-  ];
-  if (!tasks.length) return null;
-
-  return (
-    <div className="grid grid-cols-1 gap-3 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
-      <div className="grid grid-cols-2 gap-2">
-        {tiles.map((tile) => {
-          const Icon = tile.icon;
-          const active = tile.bucket !== null && dueFilter === tile.bucket;
-          const body = (
-            <>
-              <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                <Icon className={cn("size-3.5", tile.value > 0 && tile.tone)} /> {tile.label}
-              </span>
-              <span className={cn("font-dots text-[2.6rem] leading-none", tile.value > 0 && tile.tone)}>{tile.value}</span>
-            </>
-          );
-          return tile.bucket ? (
-            <button
-              key={tile.label}
-              type="button"
-              onClick={() => onDueFilter(tile.bucket!)}
-              aria-pressed={active}
-              className={cn("flex flex-col items-start gap-2 rounded-xl border bg-card p-3.5 text-left transition-colors hover:bg-muted/40", active && "border-foreground/40 ring-2 ring-ring/30")}
-            >
-              {body}
-            </button>
-          ) : (
-            <div key={tile.label} className="flex flex-col items-start gap-2 rounded-xl border bg-card p-3.5">{body}</div>
-          );
-        })}
-      </div>
-      <div className="flex flex-col gap-2 rounded-xl border bg-card p-3">
-        <h2 className="flex items-center gap-1.5 text-sm font-medium">
-          <Sparkles className="size-4 text-primary" /> Up next
-        </h2>
-        {next.length === 0 ? (
-          <p className="py-4 text-sm text-muted-foreground">Nothing open. Nice.</p>
-        ) : (
-          next.map(({ task, reasons }) => (
-            <div key={task.id} className="flex items-center gap-2 rounded-lg px-1 py-1 hover:bg-muted/40">
-              <button
-                type="button"
-                onClick={() => onDone(task)}
-                className="flex size-5 shrink-0 items-center justify-center rounded-full border text-transparent transition-colors hover:border-success hover:text-success"
-                aria-label={`Mark “${task.description}” done`}
-                title="Mark done"
-              >
-                <Check className="size-3" />
-              </button>
-              <button type="button" onClick={() => onOpen(task)} className="min-w-0 flex-1 text-left">
-                <span className="block truncate text-sm">{task.description}</span>
-                <span className="block truncate text-xs text-muted-foreground">
-                  {reasons.join(" · ")} · {task.meeting_title}
-                </span>
-              </button>
-            </div>
-          ))
-        )}
-      </div>
     </div>
   );
 }
@@ -1007,6 +901,8 @@ function TaskRow({
             {task.parent_task_id && <span className="mr-1 text-muted-foreground">↳</span>}
             {task.description}
           </button>
+          <details className="mt-1 text-xs text-muted-foreground">
+            <summary className="w-fit rounded-sm focus-visible:ring-2 focus-visible:ring-ring">Details</summary>
           <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
             {task.priority && <span className={cn("rounded px-1.5 py-px font-medium", priorityTone(task.priority))}>{task.priority}</span>}
             {task.project && (
@@ -1025,6 +921,7 @@ function TaskRow({
             <VerificationBadge verifiedAt={task.verified_at} />
             <JiraTaskButton taskId={task.id} issueKey={task.jira_issue_key} issueStatus={task.jira_status} issueError={task.jira_error} jira={jira} onSent={onJiraSent} />
           </div>
+          </details>
         </div>
       </div>
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 pl-7 text-sm md:flex-nowrap md:pl-0">

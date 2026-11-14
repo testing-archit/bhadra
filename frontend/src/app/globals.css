@@ -1197,3 +1197,26 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/* Tasks: one actionable item, with optional context and intentional browsing. */
+.task-focus-surface {
+  --card-spacing: clamp(1.25rem, 4vw, 2rem);
+}
+.task-focus-arrive {
+  animation: task-focus-arrive 160ms ease-out;
+}
+@keyframes task-focus-arrive {
+  from { opacity: .75; transform: translateX(.6rem); }
+  to { opacity: 1; transform: translateX(0); }
+}
+@media (pointer: coarse) {
+  [aria-label="Task focus deck"] [data-slot="button"],
+  [aria-controls="task-filters"],
+  select[aria-label="Layout"] {
+    min-height: 44px;
+  }
+  [aria-label="Task focus deck"] nav [data-slot="button"] { min-width: 44px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .task-focus-arrive { animation: none; }
+}

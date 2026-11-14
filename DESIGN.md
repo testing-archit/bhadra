@@ -45,3 +45,9 @@ One task, decision, or uncertain speaker is reviewed at a time. Inline edits and
 Use short interaction feedback, visible focus, labelled controls, and reduced-motion support. Hover changes are small and purposeful. The violet capture gradient is confined to its action tile; working surfaces stay white. Avoid background animation and simulated recording indicators. Keep recording consent, errors, confidentiality, and sharing rules explicit.
 
 See `docs/coordination.md` before editing shared files and `docs/ui-reference.md` for previews and verification.
+
+## Tasks
+
+Focus is the default task layout. Show one full task title, its due date, owner, and Done / Snooze / Reassign actions. Swiping or using the previous/next buttons only browses. A successful change advances the queue and offers Undo, including after the last task. Failed saves keep the current task visible. Snooze explicitly changes the due date and places the task at the back of the current browsing session.
+
+Meeting context opens on demand; never offer a meeting link for a task marked `meeting_hidden`. Scope and layout are compact selectors. Filters are initially collapsed. List and Board remain available, with additional task details and follow-up tools disclosed only when opened. The old browser preference for Board does not override the new default; explicit layout selections and links are still honoured.

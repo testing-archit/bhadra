@@ -59,3 +59,9 @@ The user rejected the dark hero and supplied a light/violet mobile meeting-app i
 ## Production release request
 
 The user authorised deployment of the light/violet UI. Preflight found production and `origin/main` at `10385b4`, with a clean VM checkout and healthy services. The release changes only frontend application files; backend, notetaker, compose, and deployment workflow changes in the shared checkout are excluded. A frontend image rollback tag, `charcha-frontend:pre-violet-ui-20261115`, preserves the previous release. The UI accepts both the existing and renamed Jira project-response fields so the backend can remain on its current contract. Deployment and live verification are tracked by the repository's Test and deploy workflow.
+
+## Task focus deck, 15 November 2026
+
+The user selected Focus deck and Done / Snooze / Reassign from the design options. Codex is updating only Tasks and a dedicated task-focus component in `/private/tmp/bhadra-reference-ui`. The isolated branch fast-forwarded to `a62644a`, retaining the collaborator's meeting whiteboards and bot chat fix. Keep the shared checkout and its unfinished backend/extension changes intact. This pass removes repeated task summaries, puts filters behind a control, and preserves list/board and existing task APIs.
+
+Task focus deck implementation is ready for review: Tasks page, `task-focus-deck.tsx`, and scoped CSS only. The existing List/Board, exports, bulk tools, and task editor are preserved behind compact controls. Frontend build/typecheck and the local browser walkthrough passed; task mutations were mocked. Screenshots and validation limits are recorded in `docs/task-focus.md`. ESLint is blocked by the existing TypeScript 7 / typescript-eslint incompatibility. Shared frontend copies contain this Tasks change; other shared working-tree changes remain uncommitted.
