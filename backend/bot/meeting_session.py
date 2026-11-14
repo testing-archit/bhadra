@@ -759,8 +759,13 @@ class MeetingSession:
     async def answer_chat(self, page: Page) -> None:
         """Answers new "Charcha, ..." messages in the call's chat from what
         was said so far. Never raises: chat must not cost the recording."""
-        if not self.chat_ready or not config.ANSWER_IN_CHAT:
+        if not config.ANSWER_IN_CHAT:
             return
+        if not self.chat_ready:
+            self.chat_ready = await meet_chat.open_panel(page)
+            if not self.chat_ready:
+                return
+            log.info("Meet chat available after retry")
         spoken = [(f"asked aloud by {who}" if who else "asked aloud", q) for who, q in self.spoken_questions()]
         typed = [("", q) for q in await self.chat.new_questions(page)]
         for asked, question in (typed + spoken)[:3]:

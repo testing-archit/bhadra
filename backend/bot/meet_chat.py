@@ -27,12 +27,23 @@ SEND_BUTTON = 'button[aria-label*="Send a message" i], button[aria-label="Send" 
 
 async def open_panel(page: Page) -> bool:
     """Opens the chat panel if it isn't already; True when the input is there."""
-    if await page.locator(CHAT_INPUT).count():
+    if await page.locator(CHAT_INPUT).first.is_visible():
         return True
     button = page.locator(CHAT_BUTTON).first
     try:
         if await button.count():
-            await button.click(timeout=3000)
+            try:
+                await button.click(timeout=3000)
+            except Exception:
+                # Meet sometimes leaves an announcement dialog over the toolbar
+                # after admission. Dismiss it and retry the actual chat button.
+                await page.keyboard.press("Escape")
+                try:
+                    await button.click(timeout=3000)
+                except Exception:
+                    # A persistent Meet overlay may still intercept pointer
+                    # events, while the toolbar button itself is usable.
+                    await button.evaluate("element => element.click()")
         else:
             # Meet's own shortcut for the chat panel.
             await page.keyboard.press("Control+Alt+KeyC")
@@ -156,9 +167,13 @@ class ChatWatcher:
         counts = Counter(lines)
         if self._seen is None:
             self._seen = counts
-            return []
-        fresh = counts - self._seen
-        self._seen = counts
+            # Chat may first become reachable after someone has already sent
+            # the command. Pick up the newest addressed message on that first
+            # read instead of requiring the person to send it again.
+            fresh = Counter(lines[-10:])
+        else:
+            fresh = counts - self._seen
+            self._seen = counts
         questions = []
         for line, times in fresh.items():
             if line in self._own:

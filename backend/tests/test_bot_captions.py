@@ -31,6 +31,33 @@ def _feed(log, updates):
     return log.export()
 
 
+def test_chat_watcher_picks_up_command_sent_before_panel_opened():
+    class Page:
+        async def evaluate(self, _script):
+            return ["Yesterday's note", "Charcha, make a whiteboard"]
+
+    watcher = meeting_session.meet_chat.ChatWatcher()
+    assert asyncio.run(watcher.new_questions(Page())) == ["make a whiteboard"]
+    assert asyncio.run(watcher.new_questions(Page())) == []
+
+
+def test_chat_recovers_when_join_notice_could_not_open_panel(monkeypatch):
+    class Chat:
+        async def new_questions(self, _page):
+            return []
+
+    session = object.__new__(meeting_session.MeetingSession)
+    session.chat_ready = False
+    session.chat = Chat()
+    session.captions = meeting_session.CaptionLog()
+    async def open_later(_page):
+        return True
+    monkeypatch.setattr(meeting_session.meet_chat, "open_panel", open_later)
+    monkeypatch.setattr(meeting_session.config, "ANSWER_IN_CHAT", True)
+    asyncio.run(session.answer_chat(object()))
+    assert session.chat_ready is True
+
+
 def test_words_scrolled_off_a_long_block_are_kept_with_their_own_times():
     # Production, 2026-10-12: Meet shows only a block's last lines, so a 60 s
     # block was stored as "Good morning." and the speaker matcher had nothing.
