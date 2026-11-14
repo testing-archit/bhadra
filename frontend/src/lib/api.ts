@@ -1465,6 +1465,15 @@ export const api = {
   /** A 90-day token for connecting Claude or another MCP client. */
   createConnectorToken: () =>
     apiFetch<{ token: string; url: string; expires_at: string }>("/api/auth/connector-token", { method: "POST" }),
+  /** One spoken turn of Charcha Live: Prisma hears, Gemini answers, Timbre speaks. */
+  liveTurn: (audio: Blob, history: { role: string; content: string }[]) => {
+    const form = new FormData();
+    form.append("audio", audio, audio.type.includes("mp4") ? "turn.m4a" : "turn.webm");
+    form.append("history", JSON.stringify(history));
+    return apiFetch<{ transcript: string; reply: string | null; audio: string | null; language?: string | null }>(
+      "/api/live/turn", { method: "POST", body: form },
+    );
+  },
   /** Text read aloud by Gnani Timbre, as MP3. */
   speak: (text: string, language?: string) => apiPostBlob("/api/tts", { text, language }),
   /** A short spoken clip (a question) transcribed by Gnani Prisma. */

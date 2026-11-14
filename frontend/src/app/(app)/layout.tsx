@@ -11,7 +11,7 @@ import { SendNotetakerDialog } from "@/components/shell/send-notetaker-dialog";
 
 /** Chat pages own the full height below the top bar; everything else is a
  * centred, scrolling document. */
-const FULL_BLEED = ["/policy", "/memory"];
+const FULL_BLEED = ["/policy", "/memory", "/live"];
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();

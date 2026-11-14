@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowUp, Bot, Sparkles, UsersRound } from "lucide-react";
+import { ArrowUp, AudioLines, Bot, Sparkles, UsersRound } from "lucide-react";
 import { VoiceAskButton } from "@/components/voice-ask-button";
 import { cn } from "@/lib/utils";
 
@@ -94,6 +94,12 @@ export function PromptHero({ firstName, onCapture }: { firstName?: string; onCap
       {error && <p className="mt-3 text-sm text-destructive">{error}</p>}
 
       <div className="mt-4 flex max-w-2xl flex-wrap justify-center gap-2">
+        <Link
+          href="/live"
+          className="inline-flex items-center gap-1.5 rounded-full bg-marigold px-3 py-1.5 text-xs font-semibold text-marigold-foreground transition-colors hover:bg-marigold/90"
+        >
+          <AudioLines className="size-3" /> Talk with Charcha Live
+        </Link>
         {EXAMPLES.map((example) => (
           <button
             key={example}

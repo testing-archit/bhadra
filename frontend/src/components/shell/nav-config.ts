@@ -1,4 +1,5 @@
 import {
+  AudioLines,
   BookOpenCheck,
   SpellCheck,
   FolderKanban,
@@ -39,6 +40,7 @@ export const NAV_GROUPS: NavGroup[] = [
   {
     label: "Ask",
     items: [
+      { href: "/live", label: "Charcha Live", icon: AudioLines },
       { href: "/memory", label: "Company memory", icon: Sparkles },
       { href: "/policy", label: "Policies", icon: BookOpenCheck },
     ],
