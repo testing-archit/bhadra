@@ -1,4 +1,4 @@
-name: Deploy to VM (Charcha GCP)
+name: Test and deploy
 
 on:
   push:
@@ -84,6 +84,10 @@ jobs:
   deploy:
     needs: test
     runs-on: ubuntu-latest
+    env:
+      # The VM login CI uses (a dedicated key in CHARCHA_VM_SSH_KEY). The app
+      # lives in ~/charcha under this user.
+      VM: ${{ secrets.CHARCHA_VM_USER }}@${{ secrets.CHARCHA_VM_HOST }}
     steps:
       - name: Configure SSH
         run: |
@@ -106,7 +110,6 @@ jobs:
         id: plan
         run: |
           set -euo pipefail
-          VM="tech_intern@${{ secrets.CHARCHA_VM_HOST }}"
           deployed=$(ssh -o BatchMode=yes -o ConnectTimeout=15 -i ~/.ssh/id_ed25519 "$VM" 'git -C ~/charcha rev-parse HEAD')
           missing=$(ssh -o BatchMode=yes -i ~/.ssh/id_ed25519 "$VM" 'for s in backend frontend notetaker; do docker image inspect charcha-$s:latest >/dev/null 2>&1 || echo $s; done')
           if git cat-file -e "$deployed^{commit}" 2>/dev/null; then
@@ -156,7 +159,6 @@ jobs:
         if: steps.plan.outputs.build != ''
         run: |
           set -euo pipefail
-          VM="tech_intern@${{ secrets.CHARCHA_VM_HOST }}"
           ssh -o BatchMode=yes -o ConnectTimeout=15 -i ~/.ssh/id_ed25519 "$VM" \
             "docker rm -f charcha-deploy-registry >/dev/null 2>&1 || true
              docker run -d --name charcha-deploy-registry -p 127.0.0.1:5000:5000 \
@@ -172,6 +174,10 @@ jobs:
         env:
           POSTGRES_PASSWORD: build-only
           COMPOSE_PROJECT_NAME: charcha
+          # Baked into the web app at build time (repo Settings → Variables).
+          APP_URL: ${{ vars.CHARCHA_APP_URL }}
+          GOOGLE_CLIENT_ID: ${{ vars.CHARCHA_GOOGLE_CLIENT_ID }}
+          CHROME_WEB_STORE_URL: ${{ vars.CHARCHA_CHROME_WEB_STORE_URL }}
           # One plain manifest per image (no attestation index), so the
           # registry's garbage collection can't strip part of an image.
           BUILDX_NO_DEFAULT_ATTESTATIONS: "1"
@@ -190,7 +196,7 @@ jobs:
         if: steps.plan.outputs.build != ''
         run: |
           ssh -o BatchMode=yes -o ConnectTimeout=15 -o ServerAliveInterval=30 -i ~/.ssh/id_ed25519 \
-            tech_intern@${{ secrets.CHARCHA_VM_HOST }} BUILD="'${{ steps.plan.outputs.build }}'" bash -s <<'REMOTE'
+            "$VM" BUILD="'${{ steps.plan.outputs.build }}'" bash -s <<'REMOTE'
             set -euo pipefail
             for s in $BUILD; do
               docker pull -q "localhost:5000/charcha-$s:latest" >/dev/null
@@ -206,7 +212,7 @@ jobs:
           pkill -f "ssh -f -N .*127.0.0.1:5000:127.0.0.1:5000" || true
           # Stop it, then drop layers no image uses any more so its disk use
           # stays at about one copy of the current images.
-          ssh -o BatchMode=yes -o ConnectTimeout=15 -i ~/.ssh/id_ed25519 tech_intern@${{ secrets.CHARCHA_VM_HOST }} \
+          ssh -o BatchMode=yes -o ConnectTimeout=15 -i ~/.ssh/id_ed25519 "$VM" \
             "docker rm -f charcha-deploy-registry >/dev/null 2>&1 || true
              docker run --rm -v charcha_deploy_registry:/var/lib/registry $DEPLOY_REGISTRY_IMAGE \
                garbage-collect --delete-untagged /etc/distribution/config.yml >/dev/null" \
@@ -217,7 +223,6 @@ jobs:
       - name: Send the code to the VM
         run: |
           set -euo pipefail
-          VM="tech_intern@${{ secrets.CHARCHA_VM_HOST }}"
           deployed=$(ssh -o BatchMode=yes -o ConnectTimeout=15 -i ~/.ssh/id_ed25519 "$VM" 'git -C ~/charcha rev-parse HEAD')
           if [ "$deployed" = "$GITHUB_SHA" ]; then
             echo "The VM already has $GITHUB_SHA"
@@ -233,7 +238,7 @@ jobs:
 
       - name: Restart on the VM (each service only when idle)
         run: |
-          ssh -o BatchMode=yes -o ConnectTimeout=15 -o ServerAliveInterval=30 -i ~/.ssh/id_ed25519 tech_intern@${{ secrets.CHARCHA_VM_HOST }} \
+          ssh -o BatchMode=yes -o ConnectTimeout=15 -o ServerAliveInterval=30 -i ~/.ssh/id_ed25519 "$VM" \
             RESTART="'${{ steps.plan.outputs.restart }}'" bash -s <<'REMOTE'
             set -euo pipefail
             cd ~/charcha
@@ -267,7 +272,7 @@ jobs:
             for i in $(seq 1 30); do
               if docker compose -f docker-compose.prod.yml exec -T nginx wget -qO- http://backend:8080/health >/dev/null \
                 && docker compose -f docker-compose.prod.yml exec -T nginx wget -qO- http://frontend:3000/ >/dev/null \
-                && docker compose -f docker-compose.prod.yml exec -T nginx wget --no-check-certificate -qO- https://localhost/health >/dev/null; then
+                && docker compose -f docker-compose.prod.yml exec -T nginx wget -qO- http://localhost/health >/dev/null; then
                 docker compose -f docker-compose.prod.yml ps
                 docker image prune -f >/dev/null
                 if [ "$status" = 2 ]; then
