@@ -1480,7 +1480,50 @@ export interface MeetingPrep {
 
 export type TranscriptExportFormat = "txt" | "md" | "json" | "srt" | "vtt";
 
+export type BoardNodeKind = "summary" | "decision" | "task" | "risk" | "question" | "idea" | "note" | "timeline";
+
+export interface MeetingBoardNode {
+  id: string;
+  kind: BoardNodeKind;
+  title: string;
+  text: string;
+  x: number;
+  y: number;
+  origin: "ai" | "manual";
+  locked: boolean;
+  source_start_ms: number | null;
+  source_id: string | null;
+}
+
+export interface MeetingBoardEdge { id: string; source: string; target: string }
+
+export interface MeetingBoardRecord {
+  id: string;
+  meeting_id: string | null;
+  capture_request_id: string | null;
+  title: string;
+  nodes: MeetingBoardNode[];
+  edges: MeetingBoardEdge[];
+  version: number;
+  paused: boolean;
+  ai_cursor_seconds: number;
+  updated_at: string | null;
+}
+
+export interface LiveBoardCaption { seq: number; speaker: string; text: string; start: number; end: number }
+
 export const api = {
+  getMeetingBoard: (meetingId: string) => apiFetch<MeetingBoardRecord>(`/api/boards/meetings/${meetingId}`),
+  getCaptureBoard: (captureId: string) => apiFetch<MeetingBoardRecord>(`/api/boards/captures/${captureId}`),
+  getCaptureCaptions: (captureId: string) => apiFetch<LiveBoardCaption[]>(`/api/boards/captures/${captureId}/captions`),
+  pauseMeetingBoard: (boardId: string, paused: boolean) => apiFetch<MeetingBoardRecord>(`/api/boards/${boardId}/pause`, {
+    method: "POST", body: JSON.stringify({ paused }),
+  }),
+  saveMeetingBoard: (board: MeetingBoardRecord) => apiFetch<MeetingBoardRecord>(`/api/boards/${board.id}`, {
+    method: "PUT",
+    body: JSON.stringify({ expected_version: board.version, title: board.title, nodes: board.nodes, edges: board.edges }),
+  }),
+  getBoardHistory: (boardId: string) => apiFetch<{version: number; source: string; actor_id: string | null; created_at: string | null}[]>(`/api/boards/${boardId}/history`),
   getVoiceProfile: () => apiFetch<VoiceProfileStatus>("/api/voice/profile"),
   enrollVoice: (audio: Blob) => {
     const form = new FormData();

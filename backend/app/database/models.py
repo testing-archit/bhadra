@@ -165,6 +165,67 @@ class Meeting(Base):
     )
 
 
+class MeetingBoard(Base):
+    """Editable meeting canvas. A live capture can own it before a meeting exists."""
+
+    __tablename__ = "meeting_boards"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()"))
+    meeting_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("meetings.id", ondelete="CASCADE"), unique=True, index=True
+    )
+    capture_request_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("capture_requests.id", ondelete="SET NULL"), unique=True, index=True
+    )
+    title: Mapped[str] = mapped_column(String, nullable=False, server_default="Meeting board")
+    nodes: Mapped[list] = mapped_column(JSONB, nullable=False, server_default=text("'[]'::jsonb"))
+    edges: Mapped[list] = mapped_column(JSONB, nullable=False, server_default=text("'[]'::jsonb"))
+    version: Mapped[int] = mapped_column(Integer, nullable=False, server_default="1")
+    paused: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("false"))
+    ai_cursor_seconds: Mapped[float] = mapped_column(Float, nullable=False, server_default="0")
+    last_ai_at: Mapped[datetime | None] = mapped_column(TIMESTAMP(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        TIMESTAMP(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+
+class MeetingBoardRevision(Base):
+    """One immutable board snapshot for history and conflict recovery."""
+
+    __tablename__ = "meeting_board_revisions"
+    __table_args__ = (UniqueConstraint("board_id", "version", name="uq_board_revision_version"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()"))
+    board_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("meeting_boards.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    version: Mapped[int] = mapped_column(Integer, nullable=False)
+    nodes: Mapped[list] = mapped_column(JSONB, nullable=False)
+    edges: Mapped[list] = mapped_column(JSONB, nullable=False)
+    actor_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"))
+    source: Mapped[str] = mapped_column(String, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), server_default=func.now())
+
+
+class LiveCaption(Base):
+    """A finalized caption chunk sent by the bot while a call is happening."""
+
+    __tablename__ = "meeting_live_captions"
+    __table_args__ = (UniqueConstraint("capture_request_id", "seq", name="uq_live_caption_seq"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()"))
+    capture_request_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("capture_requests.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    seq: Mapped[int] = mapped_column(Integer, nullable=False)
+    speaker: Mapped[str] = mapped_column(String, nullable=False)
+    text: Mapped[str] = mapped_column(Text, nullable=False)
+    start_seconds: Mapped[float] = mapped_column(Float, nullable=False)
+    end_seconds: Mapped[float] = mapped_column(Float, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), server_default=func.now())
+
+
 class Project(Base):
     """A cross-meeting entity that tasks/decisions/risks can be tagged with,
     so 'show me everything tied to Project X' works across the whole

@@ -213,6 +213,33 @@ def live_task(text: str, capture_request_id: str) -> str | None:
         return None
 
 
+def live_captions(capture_request_id: str, captions: list[dict]) -> bool:
+    """Send only finalized caption deltas; sequence numbers make retries safe."""
+    try:
+        response = httpx.post(
+            f"{config.BACKEND_URL}/api/bot/capture-requests/{capture_request_id}/captions",
+            headers=_bot_headers(), json={"captions": captions}, timeout=20,
+        )
+        response.raise_for_status()
+        return True
+    except Exception as error:
+        log.warning("Live captions delayed: %s", error)
+        return False
+
+
+def live_whiteboard(capture_request_id: str) -> str | None:
+    try:
+        response = httpx.post(
+            f"{config.BACKEND_URL}/api/bot/capture-requests/{capture_request_id}/board/refresh",
+            headers=_bot_headers(), timeout=15,
+        )
+        response.raise_for_status()
+        return str(response.json().get("url") or "") or None
+    except Exception as error:
+        log.warning("Could not start the live board: %s", error)
+        return None
+
+
 def speech(text: str) -> bytes | None:
     """MP3 of `text` spoken by Gnani Timbre, via the backend; None on failure."""
     try:

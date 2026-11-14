@@ -306,9 +306,13 @@ function LiveNotetakers() {
               />
             </span>
             <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-medium">
-                {request.title || request.meeting_code}
-              </p>
+              {recording ? (
+                <Link href={`/meetings/live/${request.id}`} className="block truncate text-sm font-medium hover:text-sidebar-primary hover:underline">
+                  {request.title || request.meeting_code}
+                </Link>
+              ) : (
+                <p className="truncate text-sm font-medium">{request.title || request.meeting_code}</p>
+              )}
               <p className="truncate text-xs text-sidebar-foreground/80">
                 {request.requested_by
                   ? `${request.requested_by}'s notetaker, `

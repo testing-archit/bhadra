@@ -11,7 +11,7 @@ from slowapi.middleware import SlowAPIMiddleware
 
 from app.config import settings
 from app.rate_limit import limiter
-from app.routes import admin, auth, bot, calendar, capture, chat, decisions, digest, email, jira, meeting_workspace, meetings, notifications, policy_chat, projects, recordings, recycle_bin, tasks, transcribe, tts, live, recap, vocabulary, voice
+from app.routes import admin, auth, boards, bot, calendar, capture, chat, decisions, digest, email, jira, meeting_workspace, meetings, notifications, policy_chat, projects, recordings, recycle_bin, tasks, transcribe, tts, live, recap, vocabulary, voice
 from app import mcp_server
 from app.services import calendar_service, email_service, jira_service, processing_service, usage_ledger
 
@@ -60,6 +60,7 @@ app.add_middleware(
 app.include_router(auth.router)
 app.include_router(meeting_workspace.router)
 app.include_router(meetings.router)
+app.include_router(boards.router)
 app.include_router(capture.router)
 app.include_router(calendar.router)
 app.include_router(tasks.router)

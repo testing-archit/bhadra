@@ -9,6 +9,7 @@ import { ProcessingPanel } from "@/components/meeting/processing-panel";
 import { TranscriptWorkspace, TranscriptFocus } from "@/components/meeting/transcript-workspace";
 import { EvidenceChips } from "@/components/meeting/evidence-chips";
 import { GuidedReview } from "@/components/meeting/guided-review";
+import { MeetingBoard } from "@/components/meeting/meeting-board";
 import { AskAiPanel } from "@/components/meeting/ask-ai-panel";
 import { AnalyticsPanel } from "@/components/meeting/analytics-panel";
 import { ResolvedCitation } from "@/components/cited-markdown";
@@ -63,14 +64,15 @@ import {
   MessagesSquare,
   Sparkles,
   BarChart3,
+  Network,
   ShieldCheck,
   Send,
 } from "lucide-react";
 import { SOURCE_LABELS } from "@/lib/labels";
 
 import { STATUS_LABELS } from "@/lib/labels";
-type TabId = "summary" | "transcript" | "actions" | "ask" | "insights";
-const TAB_IDS: TabId[] = ["summary", "transcript", "actions", "ask", "insights"];
+type TabId = "summary" | "transcript" | "actions" | "board" | "ask" | "insights";
+const TAB_IDS: TabId[] = ["summary", "transcript", "actions", "board", "ask", "insights"];
 type DeleteTarget = {
   type: "meeting" | "task" | "decision" | "risk";
   id: string;
@@ -718,6 +720,7 @@ export default function MeetingDetailPage() {
           <TabsTrigger value="summary"><NotebookText /> Summary</TabsTrigger>
           <TabsTrigger value="transcript"><FileText /> Transcript</TabsTrigger>
           <TabsTrigger value="actions"><ListChecks /> Action items ({meeting.tasks.length + meeting.decisions.length + meeting.risks.length})</TabsTrigger>
+          <TabsTrigger value="board"><Network /> Board</TabsTrigger>
           <TabsTrigger value="ask"><MessagesSquare /> Ask Wilco</TabsTrigger>
           <TabsTrigger value="insights"><BarChart3 /> Insights</TabsTrigger>
         </TabsList>
@@ -1116,6 +1119,10 @@ export default function MeetingDetailPage() {
             </CardContent>
           </Card>
 
+        </TabsContent>
+
+        <TabsContent value="board" className="pt-3">
+          <MeetingBoard meetingId={id} />
         </TabsContent>
 
         <TabsContent value="ask" className="pt-3">
