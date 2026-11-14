@@ -211,6 +211,103 @@ MEETINGS = [
         ],
         "risks": [],
     },
+    {
+        "title": "Sharma Kirana wholesale order call",
+        "ago": 2, "minutes": 18, "source": "record", "project": "Kirana voice bookkeeping",
+        "transcript": (
+            "Archit: Sharma ji, aapka is mahine ka hisaab dekh lete hain.\n"
+            "Sharma ji (shopkeeper): Haan, Ramesh supplier ko 1,240 rupaye dene baaki hain, aur Meena ji ka 380 udhaar hai.\n"
+            "Vedant: Aur Sharma ji, aapke apne customers ka total udhaar kitna hai?\n"
+            "Sharma ji: 6,750 rupaye, 14 logon ka. Sabse zyada Gupta ji ka, 1,100.\n"
+            "Archit: Theek hai, Monday ko sabko WhatsApp pe reminder chala jayega.\n"
+            "Sharma ji: Aur Diwali ka maal, 20 kilo cheeni aur 10 litre tel, Wednesday tak chahiye."
+        ),
+        "summary": (
+            "Sharma ji owes the supplier Ramesh Rs 1,240 and Meena ji Rs 380. His own customers owe him Rs 6,750 across "
+            "14 people, the largest being Gupta ji at Rs 1,100. WhatsApp reminders go out on Monday, and he needs 20 kg sugar "
+            "and 10 litres of oil by Wednesday."
+        ),
+        "tasks": [
+            ("me", "Send WhatsApp udhaar reminders to Sharma ji's 14 customers", 1, "High", "pending"),
+            ("Sharma ji", "Pay Ramesh supplier Rs 1,240", 3, "Medium", "pending"),
+            ("mate", "Place the order for 20 kg sugar and 10 litres oil", 2, "High", "pending"),
+        ],
+        "decisions": [
+            ("Udhaar reminders go out every Monday on WhatsApp", "Customers pay faster after a polite weekly nudge", ["Daily SMS", "No reminders"], None),
+        ],
+        "risks": [("Gupta ji's Rs 1,100 udhaar is 45 days old", "Medium")],
+    },
+    {
+        "title": "Gram sabha minutes: Hadapsar ward water supply",
+        "ago": 4, "minutes": 64, "source": "record", "project": "Civic voice minutes",
+        "transcript": (
+            "Sarpanch: Aaj ka mudda paani hai. Ward 7 mein teen din se nal nahi aaya.\n"
+            "Resident (Sunita tai): Hamare yahan tanker bhi late aata hai, subah 11 baje.\n"
+            "Ward officer: Pipeline repair ka kaam Friday tak khatam hoga, tab tak tanker subah 7 baje aayega.\n"
+            "Sarpanch: Theek hai. Complaint register bhi voice se bharenge, Charcha se.\n"
+            "Resident: Aur street light ka kya? Gali number 4 mein andhera hai."
+        ),
+        "summary": (
+            "Ward 7 has had no tap water for three days. Pipeline repairs finish by Friday; until then the tanker comes at 7 am "
+            "instead of 11 am. Complaints will be logged by voice. Residents also raised the broken street light in lane 4."
+        ),
+        "tasks": [
+            ("Ward officer", "Finish the Ward 7 pipeline repair", 5, "High", "in_progress"),
+            ("Ward officer", "Move the water tanker to 7 am until the repair is done", 0, "High", "pending"),
+            ("Sarpanch", "Raise the lane 4 street light complaint with the electricity board", 7, "Medium", "pending"),
+        ],
+        "decisions": [
+            ("Complaints at the gram sabha are logged by voice", "Most residents prefer speaking to filling forms", ["Paper complaint register"], None),
+            ("Tanker arrives at 7 am until the pipeline is fixed", "Families need water before work and school", ["Keep 11 am"], None),
+        ],
+        "risks": [("Pipeline repair may slip past Friday if parts are late", "High")],
+    },
+    {
+        "title": "Class 8 PTM: spoken Hindi quiz pilot",
+        "ago": 7, "minutes": 40, "source": "bot", "project": "Bolke seekho",
+        "transcript": (
+            "Teacher (Kavita ma'am): Bacche voice quiz mein 20 mein se average 14 la rahe hain.\n"
+            "Parent (Mr Iyer): Mera beta Tamil bolta hai ghar pe, kya quiz Tamil mein ho sakta hai?\n"
+            "Archit: Haan, Gnani Tamil support karta hai, next week se Tamil option denge.\n"
+            "Teacher: Aur weekly report parents ko WhatsApp pe chahiye.\n"
+            "Parent: Quiz raat 9 baje ke baad nahi hona chahiye."
+        ),
+        "summary": (
+            "Class 8 students average 14/20 on the spoken Hindi quiz. Parents asked for a Tamil option, which starts next week, "
+            "a weekly WhatsApp report, and no quizzes after 9 pm."
+        ),
+        "tasks": [
+            ("me", "Add the Tamil option to the spoken quiz", 6, "High", "pending"),
+            ("Kavita ma'am", "Send the first weekly WhatsApp report to parents", 4, "Medium", "pending"),
+        ],
+        "decisions": [
+            ("No quizzes after 9 pm", "Parents want evenings free for sleep", None, None),
+            ("Weekly progress goes to parents on WhatsApp", "Parents check WhatsApp, not email", ["Email report"], None),
+        ],
+        "risks": [("Tamil accuracy is untested with children's voices", "Medium")],
+    },
+    {
+        "title": "Accessibility review with older users",
+        "ago": 10, "minutes": 30, "source": "record", "project": "Charcha app",
+        "transcript": (
+            "Shanti ji (72): Chhote button dikhte nahi. Bas bolne ka button bada ho.\n"
+            "Vedant: Aap bolke poochhengi toh Charcha jawab bolke sunayega.\n"
+            "Shanti ji: Haan, yeh accha hai. Awaaz thodi dheemi ho.\n"
+            "Archit: Hum speech speed slow kar denge aur text bada.\n"
+            "Ramesh ji (68): Mujhe Marathi mein sunna hai."
+        ),
+        "summary": (
+            "Older users want one large speak button, answers read aloud more slowly, bigger text, and Marathi speech."
+        ),
+        "tasks": [
+            ("mate", "Add a slower speech option for spoken answers", 5, "Medium", "pending"),
+            ("me", "Test Marathi read-aloud with Ramesh ji", 8, "Low", "pending"),
+        ],
+        "decisions": [
+            ("Spoken answers get a slow speed for older users", "Shanti ji found normal speed too fast", None, None),
+        ],
+        "risks": [],
+    },
 ]
 
 
@@ -251,9 +348,14 @@ async def main(emails: list[str], reset: bool) -> None:
                         db.add(_decision(meeting.id, project_id, entry, speakers))
                         added += 1
             await db.commit()
-            print(f"Demo data already present ({len(existing)} meetings); added {added} missing decisions. Use --reset to rebuild it all.")
-            return
-        if existing:
+            print(f"Demo data already present ({len(existing)} meetings); added {added} missing decisions.")
+            skip = {int(m.client_meeting_id.removeprefix(SEED_PREFIX)) for m in existing}
+            if len(skip) >= len(MEETINGS):
+                print("Every demo meeting is present. Use --reset to rebuild it all.")
+                return
+        else:
+            skip = set()
+        if existing and reset:
             await db.execute(delete(Meeting).where(Meeting.client_meeting_id.like(f"{SEED_PREFIX}%")))
             await db.flush()
 
@@ -267,6 +369,8 @@ async def main(emails: list[str], reset: bool) -> None:
         projects: dict[str, Project] = {}
         counts = {"meetings": 0, "tasks": 0, "decisions": 0, "risks": 0}
         for index, spec in enumerate(MEETINGS):
+            if index in skip:
+                continue
             name = spec["project"]
             if name not in projects:
                 project = await db.scalar(select(Project).where(Project.name == name))
