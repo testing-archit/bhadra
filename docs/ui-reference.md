@@ -31,4 +31,4 @@ Mutations were intercepted. Verification did not start a bot, modify a real cale
 
 ## Local preview
 
-The isolated frontend runs at `http://localhost:3200`, with a local-only proxy on 3300 forwarding to the existing backend on 8000. The reviewed files are also copied into the shared checkout after checking for concurrent edits. Checkpoint pushes use the UI topic branch; production remains unchanged.
+The isolated frontend runs at `http://localhost:3200`, with a local-only proxy on 3300 forwarding to the existing backend on 8000. The reviewed files are also copied into the shared checkout after checking for concurrent edits. The production release uses the existing CI deployment. The preview-only proxy and environment file are excluded from the frontend container.

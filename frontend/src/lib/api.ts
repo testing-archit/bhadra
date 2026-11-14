@@ -1780,7 +1780,11 @@ export const api = {
     apiFetch<JiraSettings>("/api/admin/jira/projects", { method: "PUT", body: JSON.stringify(body) }),
   startJiraOAuth: () => apiFetch<{ url: string }>("/api/admin/jira/oauth/start"),
   disconnectAdminJira: () => apiFetch<JiraSettings>("/api/admin/jira", { method: "DELETE" }),
-  adminJiraProjects: () => apiFetch<JiraProjects>("/api/admin/jira/projects"),
+  adminJiraProjects: async (): Promise<JiraProjects> => {
+    // Accept the existing server contract while the branding rolls out.
+    const projects = await apiFetch<Partial<JiraProjects> & { charcha?: JiraProjects["wilco"] }>("/api/admin/jira/projects");
+    return { jira: projects.jira ?? [], wilco: projects.wilco ?? projects.charcha ?? [] };
+  },
   syncAdminJira: () => apiFetch<JiraSettings & { changed: number }>("/api/admin/jira/sync", { method: "POST" }),
 
   createTask: (fields: { description: string; owner?: string; deadline?: string; due_date?: string; priority?: string; parent_task_id?: string }) =>
