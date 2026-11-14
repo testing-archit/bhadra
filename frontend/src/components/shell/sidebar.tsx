@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import {
   Bot,
   ChevronsUpDown,
+  ChevronRight,
   FileAudio,
   FileText,
   ListPlus,
@@ -25,12 +26,23 @@ import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { useTheme, type ThemePreference } from "@/lib/theme";
 import { cn } from "@/lib/utils";
-import { Menu, MenuContent, MenuItem, MenuLabel, MenuSeparator, MenuTrigger } from "@/components/ui/menu";
+import {
+  Menu,
+  MenuContent,
+  MenuItem,
+  MenuLabel,
+  MenuSeparator,
+  MenuTrigger,
+} from "@/components/ui/menu";
 import { BrandMark } from "@/components/brand";
 import { NAV_GROUPS, isNavActive } from "./nav-config";
 import { isCaptureLive, useShell } from "./shell-context";
 
-const THEME_OPTIONS: { value: ThemePreference; label: string; icon: typeof Sun }[] = [
+const THEME_OPTIONS: {
+  value: ThemePreference;
+  label: string;
+  icon: typeof Sun;
+}[] = [
   { value: "light", label: "Light", icon: Sun },
   { value: "dark", label: "Dark", icon: Moon },
   { value: "system", label: "Match system", icon: Monitor },
@@ -59,21 +71,32 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   }
 
   return (
-    <div className="flex h-full flex-col bg-sidebar text-sidebar-foreground">
-      <div className="flex h-14 shrink-0 items-center gap-2.5 px-4">
-        <Link href="/dashboard" onClick={onNavigate} className="flex items-center gap-2.5 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring">
+    <div className="flex h-full flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground">
+      <div className="flex h-20 shrink-0 items-center gap-2.5 px-5">
+        <Link
+          href="/dashboard"
+          onClick={onNavigate}
+          className="flex items-center gap-2.5 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring"
+        >
           <BrandMark className="size-8" />
-          <span className="font-heading text-lg leading-none font-semibold tracking-tight">Wilco</span>
+          <span className="font-heading text-lg leading-none font-semibold tracking-tight">
+            Wilco
+          </span>
         </Link>
       </div>
 
       <div className="flex flex-col gap-1.5 px-3 pb-3">
         <Menu>
-          <MenuTrigger className="flex h-10 w-full items-center justify-center gap-2 rounded-full bg-sidebar-primary text-sm font-semibold text-sidebar-primary-foreground outline-none transition-[background-color,transform] duration-150 hover:bg-sidebar-primary/90 active:scale-[0.98] focus-visible:ring-3 focus-visible:ring-sidebar-ring">
+          <MenuTrigger className="flex h-10 w-full items-center justify-center gap-2 rounded-xl bg-sidebar-primary text-sm font-semibold text-sidebar-primary-foreground outline-none transition-[background-color,transform] duration-150 hover:bg-sidebar-primary/90 active:scale-[0.98] focus-visible:ring-3 focus-visible:ring-sidebar-ring">
             <Plus className="size-4" /> New meeting
           </MenuTrigger>
           <MenuContent className="w-64">
-            <MenuItem onClick={() => { onNavigate?.(); openNotetaker(); }}>
+            <MenuItem
+              onClick={() => {
+                onNavigate?.();
+                openNotetaker();
+              }}
+            >
               <Bot /> Send notetaker to a Meet
             </MenuItem>
             <MenuItem onClick={() => go("/meetings/new?source=upload")}>
@@ -99,40 +122,74 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
         </Menu>
         <button
           type="button"
-          onClick={() => { onNavigate?.(); setCommandOpen(true); }}
+          onClick={() => {
+            onNavigate?.();
+            setCommandOpen(true);
+          }}
           className="flex h-9 w-full items-center gap-2 rounded-lg border border-sidebar-border bg-sidebar-accent/50 px-3 text-sm text-sidebar-foreground/65 outline-none transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground focus-visible:ring-2 focus-visible:ring-sidebar-ring"
         >
           <Search className="size-4" />
           <span className="flex-1 text-left">Search</span>
-          <kbd className="rounded border border-sidebar-border bg-sidebar px-1.5 font-sans text-[10px] font-medium">⌘K</kbd>
+          <kbd className="rounded border border-sidebar-border bg-sidebar px-1.5 font-sans text-[10px] font-medium">
+            ⌘K
+          </kbd>
         </button>
       </div>
 
-      <nav className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto px-3 py-2" aria-label="Primary">
+      <nav
+        className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-3 py-2"
+        aria-label="Primary"
+      >
         {NAV_GROUPS.map((group) => {
-          const items = group.items.filter((item) => !item.adminOnly || user?.is_admin);
+          const items = group.items.filter(
+            (item) => !item.adminOnly || user?.is_admin,
+          );
           if (!items.length) return null;
-          return (
-            <div key={group.label ?? "main"} className="flex flex-col gap-0.5">
-              {group.label && <p className="px-2.5 pb-1 text-xs font-medium text-sidebar-foreground/55">{group.label}</p>}
-              {items.map((item) => {
-                const active = isNavActive(item, pathname);
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    onClick={onNavigate}
-                    aria-current={active ? "page" : undefined}
-                    className={cn(
-                      "group relative flex h-9 items-center gap-2.5 rounded-lg px-2.5 text-sm text-sidebar-foreground/80 outline-none transition-colors hover:bg-sidebar-accent/70 hover:text-sidebar-foreground focus-visible:ring-2 focus-visible:ring-sidebar-ring",
-                      active && "bg-sidebar-accent font-medium text-sidebar-accent-foreground before:absolute before:inset-y-2.5 before:-left-3 before:w-[3px] before:rounded-r-full before:bg-sidebar-primary hover:bg-sidebar-accent",
-                    )}
-                  >
-                    <item.icon className={cn("size-4 shrink-0 text-sidebar-foreground/55", active && "text-sidebar-primary")} />
-                    {item.label}
-                  </Link>
-                );
-              })}
+          const links = items.map((item) => {
+            const active = isNavActive(item, pathname);
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={onNavigate}
+                aria-current={active ? "page" : undefined}
+                className={cn(
+                  "flex min-h-10 items-center gap-3 rounded-xl px-3 text-sm text-sidebar-foreground/60 outline-none transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground focus-visible:ring-2 focus-visible:ring-sidebar-ring",
+                  active &&
+                    "bg-sidebar-accent font-medium text-sidebar-accent-foreground",
+                )}
+              >
+                <item.icon
+                  className={cn(
+                    "size-4 shrink-0",
+                    active && "text-sidebar-primary",
+                  )}
+                  aria-hidden="true"
+                />
+                {item.label}
+              </Link>
+            );
+          });
+          return group.label ? (
+            <details
+              key={group.label}
+              className="group/more"
+              open={
+                items.some((item) => isNavActive(item, pathname)) || undefined
+              }
+            >
+              <summary className="flex min-h-10 cursor-pointer list-none items-center gap-3 rounded-xl px-3 text-sm text-sidebar-foreground/60 hover:bg-sidebar-accent focus-visible:outline-2 focus-visible:outline-sidebar-ring">
+                <ChevronRight
+                  className="size-4 transition-transform group-open/more:rotate-90"
+                  aria-hidden="true"
+                />
+                More
+              </summary>
+              <div className="mt-1 flex flex-col gap-1">{links}</div>
+            </details>
+          ) : (
+            <div key="main" className="flex flex-col gap-1">
+              {links}
             </div>
           );
         })}
@@ -146,7 +203,8 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
           onClick={onNavigate}
           className="flex h-8 items-center gap-2.5 rounded-lg px-2.5 text-sm text-sidebar-foreground/80 transition-colors hover:bg-sidebar-accent/70 hover:text-sidebar-foreground"
         >
-          <Puzzle className="size-4 text-sidebar-foreground/55" /> Chrome extension
+          <Puzzle className="size-4 text-sidebar-foreground/55" /> Get the
+          extension
         </Link>
         <Link
           href="/settings"
@@ -154,7 +212,8 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
           aria-current={pathname === "/settings" ? "page" : undefined}
           className={cn(
             "flex h-8 items-center gap-2.5 rounded-lg px-2.5 text-sm text-sidebar-foreground/80 transition-colors hover:bg-sidebar-accent/70 hover:text-sidebar-foreground",
-            pathname === "/settings" && "bg-sidebar-accent font-medium text-sidebar-accent-foreground",
+            pathname === "/settings" &&
+              "bg-sidebar-accent font-medium text-sidebar-accent-foreground",
           )}
         >
           <Settings className="size-4 text-sidebar-foreground/55" /> Settings
@@ -167,8 +226,12 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
                 {initialsFor(user.name, user.email)}
               </span>
               <span className="min-w-0 flex-1">
-                <span className="block truncate text-sm font-medium">{user.name || user.email.split("@")[0]}</span>
-                <span className="block truncate text-xs text-sidebar-foreground/60">{user.team_name || user.department || user.email}</span>
+                <span className="block truncate text-sm font-medium">
+                  {user.name || user.email.split("@")[0]}
+                </span>
+                <span className="block truncate text-xs text-sidebar-foreground/60">
+                  {user.team_name || user.department || user.email}
+                </span>
               </span>
               <ChevronsUpDown className="size-4 shrink-0 text-sidebar-foreground/55" />
             </MenuTrigger>
@@ -180,10 +243,18 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
               <MenuSeparator />
               <MenuLabel>Appearance</MenuLabel>
               {THEME_OPTIONS.map((option) => (
-                <MenuItem key={option.value} onClick={() => setPreference(option.value)}>
+                <MenuItem
+                  key={option.value}
+                  onClick={() => setPreference(option.value)}
+                >
                   <option.icon />
                   <span className="flex-1">{option.label}</span>
-                  {preference === option.value && <span className="size-1.5 rounded-full bg-primary" aria-label="Selected" />}
+                  {preference === option.value && (
+                    <span
+                      className="size-1.5 rounded-full bg-primary"
+                      aria-label="Selected"
+                    />
+                  )}
                 </MenuItem>
               ))}
               <MenuSeparator />
@@ -204,7 +275,9 @@ function LiveNotetakers() {
   const { captures, refreshCaptures } = useShell();
   // Only visits this person still gets notes from (a colleague's notetaker
   // they stopped following drops out of their list).
-  const live = captures.filter((item) => isCaptureLive(item) && item.subscribed !== false).slice(0, 3);
+  const live = captures
+    .filter((item) => isCaptureLive(item) && item.subscribed !== false)
+    .slice(0, 3);
   if (!live.length) return null;
 
   async function stop(id: string) {
@@ -222,14 +295,27 @@ function LiveNotetakers() {
         return (
           <div key={request.id} className="flex items-start gap-2.5">
             <span className="relative mt-1.5 flex size-2 shrink-0">
-              {recording && <span className="absolute inline-flex size-full animate-ping rounded-full bg-destructive/60" />}
-              <span className={cn("relative inline-flex size-2 rounded-full", recording ? "bg-destructive" : "bg-warning")} />
+              {recording && (
+                <span className="absolute inline-flex size-full animate-ping rounded-full bg-destructive/60" />
+              )}
+              <span
+                className={cn(
+                  "relative inline-flex size-2 rounded-full",
+                  recording ? "bg-destructive" : "bg-warning",
+                )}
+              />
             </span>
             <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-medium">{request.title || request.meeting_code}</p>
+              <p className="truncate text-sm font-medium">
+                {request.title || request.meeting_code}
+              </p>
               <p className="truncate text-xs text-sidebar-foreground/60">
-                {request.requested_by ? `${request.requested_by}'s notetaker, ` : ""}
-                {request.queue_position ? `Queued, ${request.queue_position} ahead` : request.status_label}
+                {request.requested_by
+                  ? `${request.requested_by}'s notetaker, `
+                  : ""}
+                {request.queue_position
+                  ? `Queued, ${request.queue_position} ahead`
+                  : request.status_label}
               </p>
             </div>
             {request.active && !request.stop_requested && (
@@ -237,8 +323,14 @@ function LiveNotetakers() {
                 type="button"
                 onClick={() => void stop(request.id)}
                 className="grid size-6 shrink-0 place-items-center rounded-md text-sidebar-foreground/60 transition-colors hover:bg-destructive/20 hover:text-sidebar-foreground"
-                aria-label={request.status === "requested" ? "Cancel notetaker" : "Stop notetaker"}
-                title={request.status === "requested" ? "Cancel" : "Stop recording"}
+                aria-label={
+                  request.status === "requested"
+                    ? "Cancel notetaker"
+                    : "Stop notetaker"
+                }
+                title={
+                  request.status === "requested" ? "Cancel" : "Stop recording"
+                }
               >
                 <Square className="size-3" />
               </button>

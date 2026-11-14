@@ -4,7 +4,7 @@ Updated 15 November 2026. Read this before editing or synchronizing this checkou
 
 ## Ownership
 
-- Claude owns the ongoing UI generation, frontend styling, fonts, brand components, and dashboard work. Codex will inspect these files without editing them until a handoff.
+- Codex owns the reference-video UI and UX redesign, as assigned by the latest user instruction. The prior frontend was preserved in commit `50dd6cf` before edits. Other sessions should wait for the current UI handoff before editing those surfaces.
 - Codex owns this coordination handoff and integration checks. Backend or extension changes need an announced scope before work starts.
 - The other contributor's current scope is unknown. Treat existing changes as work in progress until their owner identifies a completed checkpoint.
 - Each contributor should append a dated handoff with their files, commit, checks, and remaining work. Reading this file is coordination; it does not imply another running session has acknowledged it.
@@ -42,3 +42,10 @@ The user subsequently requested relevant design skills from the supplied catalog
 The user's latest instruction assigns the UI and UX redesign to Codex using the supplied local reference video. This supersedes the earlier UI ownership assignment. Codex is working in `/private/tmp/bhadra-reference-ui` on `codex/reference-ui-20261115`, preserving a snapshot of the existing frontend first. Other sessions should avoid editing Home, the shell, global theme styles, the notetaker dialog, and guided review until handoff. No other session has acknowledged this note.
 
 Four additional catalog skills are installed and linked: `improve-ui`, `fixing-accessibility`, `fixing-motion-performance`, and `ux-writing`. The broader application changes in the shared checkout remain uncommitted; checkpoint branches do not deploy them.
+
+
+## Reference redesign implementation
+
+Codex reworked Home, the shared shell, the capture dialog, and guided meeting review on `codex/reference-ui-20261115`. The new interface uses a static cool atmosphere on Home, a compact composer, a focused follow-up, five primary destinations, and progressive disclosure for detailed meeting content. Capture consent remains mandatory; voice learning has a separate opt-in. `DESIGN.md` describes the current direction.
+
+Preview runs from the isolated worktree on `http://localhost:3200`. A temporary loopback proxy on port 3300 forwards to the existing local backend on 8000, because backend CORS does not allow 3200. The proxy and preview env file are local-only. UI checks use saved demo reads and intercept mutations, so verification does not send a bot into a real meeting or change saved notes.

@@ -1,32 +1,41 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowRight, Bot, Check, ChevronLeft, ChevronRight, Mic, Sparkles, Video } from "lucide-react";
-import { api, ApiError, type MeetingDetail, type MeetingSummary, type TaskListItem, type VoiceProfileStatus } from "@/lib/api";
+import {
+  ArrowRight,
+  ArrowUpRight,
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  Headphones,
+  ListChecks,
+  Mic,
+  Video,
+} from "lucide-react";
+import {
+  api,
+  ApiError,
+  type MeetingDetail,
+  type MeetingSummary,
+  type TaskListItem,
+  type VoiceProfileStatus,
+} from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
-import { compareByUrgency, formatDue, isMyTask, taskDueDate } from "@/lib/tasks";
+import { compareByUrgency, formatDue, isMyTask } from "@/lib/tasks";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { TwoTone, Waveform } from "@/components/brand";
+import { HomeComposer } from "@/components/home-composer";
 import { isCaptureLive, useShell } from "@/components/shell/shell-context";
 
-type FocusItem = { kind: "voice" } | { kind: "review"; meeting: MeetingSummary; count: number } | { kind: "task"; task: TaskListItem };
-
-const KIND_LABEL = { voice: "One-time setup", review: "Needs your review", task: "Your task" } as const;
-const KIND_TINT = {
-  voice: "bg-tint-sky text-tint-sky-foreground",
-  review: "bg-tint-lilac text-tint-lilac-foreground",
-  task: "bg-tint-peach text-tint-peach-foreground",
-} as const;
-
-function greetingFor(hour: number) {
-  return hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
-}
+type FocusItem =
+  | { kind: "voice" }
+  | { kind: "review"; meeting: MeetingSummary; count: number }
+  | { kind: "task"; task: TaskListItem };
 
 export default function HomePage() {
   const { user } = useAuth();
-  const { openNotetaker, captures } = useShell();
+  const { captures } = useShell();
   const [tasks, setTasks] = useState<TaskListItem[] | null>(null);
   const [meetings, setMeetings] = useState<MeetingSummary[] | null>(null);
   const [latest, setLatest] = useState<MeetingDetail | null>(null);
@@ -34,258 +43,378 @@ export default function HomePage() {
   const [voice, setVoice] = useState<VoiceProfileStatus | null>(null);
   const [cursor, setCursor] = useState(0);
   const [busy, setBusy] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    void api.getVoiceProfile().then(setVoice).catch(() => undefined);
-    Promise.all([api.listTasks(), api.listMeetings()]).then(([taskRows, meetingRows]) => {
-      setTasks(taskRows);
-      setMeetings(meetingRows);
-      if (meetingRows[0] && meetingRows[0].processing_state !== "processing") {
-        void api.getMeeting(meetingRows[0].id).then(setLatest).catch(() => undefined);
-        void api.getTranscript(meetingRows[0].id, { limit: 1 }).then((page) =>
-          setUnknownSpeakers(page.speakers.filter((speaker) => !speaker.named && speaker.segment_count > 0).length)
-        ).catch(() => undefined);
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    const [taskResult, meetingResult] = await Promise.allSettled([
+      api.listTasks(),
+      api.listMeetings(),
+    ]);
+    if (taskResult.status === "fulfilled") setTasks(taskResult.value);
+    if (meetingResult.status === "fulfilled") {
+      setMeetings(meetingResult.value);
+      const first = meetingResult.value.find(
+        (row) => row.processing_state !== "processing",
+      );
+      if (first) {
+        void api
+          .getMeeting(first.id)
+          .then(setLatest)
+          .catch(() => undefined);
+        void api
+          .getTranscript(first.id, { limit: 1 })
+          .then((page) =>
+            setUnknownSpeakers(
+              page.speakers.filter(
+                (speaker) => !speaker.named && speaker.segment_count > 0,
+              ).length,
+            ),
+          )
+          .catch(() => undefined);
+      } else {
+        setLatest(null);
+        setUnknownSpeakers(0);
       }
-    }).catch((cause) => setError(cause instanceof ApiError ? cause.message : "Your briefing could not be loaded."));
+    }
+    if (taskResult.status === "rejected" || meetingResult.status === "rejected")
+      setError("Some of your briefing couldn't load.");
+    setLoading(false);
   }, []);
+  useEffect(() => {
+    void load();
+    void api
+      .getVoiceProfile()
+      .then(setVoice)
+      .catch(() => undefined);
+  }, [load]);
 
   const queue = useMemo(() => {
     const items: FocusItem[] = [];
-    if (voice?.available && !voice.enrolled) items.push({ kind: "voice" });
-    if (latest && meetings?.[0]?.id === latest.id) {
-      const count = latest.tasks.filter((task) => !task.verified_at).length
-        + latest.decisions.filter((decision) => !decision.verified_at).length + unknownSpeakers;
-      if (count) items.push({ kind: "review", meeting: meetings[0], count });
+    const meeting = meetings?.find((row) => row.id === latest?.id);
+    if (latest && meeting) {
+      const count =
+        latest.tasks.filter((task) => !task.verified_at).length +
+        latest.decisions.filter((decision) => !decision.verified_at).length +
+        unknownSpeakers;
+      if (count) items.push({ kind: "review", meeting, count });
     }
-    for (const task of (tasks ?? []).filter((row) => row.status !== "done" && isMyTask(row, user)).sort(compareByUrgency)) {
+    for (const task of (tasks ?? [])
+      .filter((row) => row.status !== "done" && isMyTask(row, user))
+      .sort(compareByUrgency))
       items.push({ kind: "task", task });
-    }
+    if (voice?.available && !voice.enrolled) items.push({ kind: "voice" });
     return items;
   }, [latest, meetings, tasks, user, voice, unknownSpeakers]);
-
-  // Headline counts for the hero band. All three come from data already on
-  // the page; nothing here is estimated.
-  const counts = useMemo(() => {
-    if (!tasks || !meetings) return null;
-    const mine = tasks.filter((row) => row.status !== "done" && isMyTask(row, user));
-    const now = Date.now();
-    const weekAhead = now + 7 * 86_400_000;
-    const weekAgo = now - 7 * 86_400_000;
-    return {
-      open: mine.length,
-      dueSoon: mine.filter((row) => {
-        const due = taskDueDate(row);
-        return due !== null && due.getTime() <= weekAhead;
-      }).length,
-      meetings: meetings.filter((row) => new Date(row.date).getTime() >= weekAgo).length,
-    };
-  }, [tasks, meetings, user]);
-
   const position = Math.min(cursor, Math.max(0, queue.length - 1));
   const active = queue[position];
-  const live = captures.find((item) => isCaptureLive(item) && item.subscribed !== false);
-  const firstName = (user?.name || user?.email.split("@")[0] || "there").split(" ")[0];
+  const live = captures.filter(
+    (item) => isCaptureLive(item) && item.subscribed !== false,
+  );
+  const firstName = (user?.name || user?.email.split("@")[0] || "there").split(
+    " ",
+  )[0];
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? "Morning" : hour < 17 ? "Afternoon" : "Evening";
 
   async function finishTask(task: TaskListItem) {
     setBusy(true);
     setError(null);
     try {
       await api.updateTaskStatus(task.id, "done");
-      setTasks((current) => current?.filter((row) => row.id !== task.id) ?? null);
+      setTasks(
+        (current) => current?.filter((row) => row.id !== task.id) ?? null,
+      );
       setCursor(0);
     } catch (cause) {
-      setError(cause instanceof ApiError ? cause.message : "Could not complete this task.");
+      setError(
+        cause instanceof ApiError
+          ? cause.message
+          : "Couldn't complete the task. Try again.",
+      );
     } finally {
       setBusy(false);
     }
   }
 
   return (
-    <div className="mx-auto flex max-w-6xl flex-col gap-6 pb-10">
-      <header className="hero-band relative overflow-hidden rounded-[1.75rem] px-6 pt-7 pb-6 sm:px-9 sm:pt-9">
-        <div className="flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
-          <div className="min-w-0">
-            <p className="text-sm text-band-muted">{greetingFor(new Date().getHours())},</p>
-            <h1 className="mt-1 truncate pb-1 text-5xl leading-[0.95] font-semibold tracking-[-0.04em] sm:text-7xl">{firstName}</h1>
-            <p className="mt-3 max-w-md text-sm leading-6 text-band-muted">
-              {tasks === null
-                ? "Getting your briefing…"
-                : queue.length
-                  ? `${queue.length} ${queue.length === 1 ? "thing needs" : "things need"} you. One at a time.`
-                  : "Nothing needs you right now."}
-            </p>
+    <div className="home-workspace">
+      <section className="home-stage" aria-labelledby="home-heading">
+        <div className="home-atmosphere" aria-hidden="true" />
+        <div className="relative flex w-full max-w-2xl flex-col items-center">
+          <p className="mb-5 text-sm text-muted-foreground">
+            {greeting}, {firstName}.
+          </p>
+          <h1
+            id="home-heading"
+            className="text-center text-[clamp(2rem,4vw,3.25rem)] leading-[1.06] font-medium tracking-[-0.055em]"
+          >
+            Be in the conversation.
+          </h1>
+          <p className="mt-4 text-center text-base text-muted-foreground">
+            We&apos;ll remember what matters.
+          </p>
+          <div className="mt-7 w-full">
+            <HomeComposer />
           </div>
-          <dl className="grid grid-cols-3 gap-6 sm:gap-10">
-            {([
-              ["Open", "tasks", counts?.open],
-              ["Due", "within 7 days", counts?.dueSoon],
-              ["Meetings", "last 7 days", counts?.meetings],
-            ] as const).map(([lead, rest, value]) => (
-              <div key={lead} className="min-w-0">
-                <dt className="text-xs leading-tight font-medium text-band-foreground">
-                  {lead}
-                  <span className="block font-normal text-band-muted">{rest}</span>
-                </dt>
-                <dd className="font-dots mt-1 text-6xl leading-none sm:text-[5.25rem]">{value ?? "–"}</dd>
-              </div>
-            ))}
-          </dl>
         </div>
+      </section>
 
-        <div className="mt-8 flex flex-col gap-5 border-t border-white/10 pt-5 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex min-w-0 items-center gap-4">
-            <Waveform live={Boolean(live)} bars={live ? 18 : 28} className="h-9 shrink-0" />
-            <p className="min-w-0 truncate text-sm text-band-muted" role={live ? "status" : undefined}>
-              {live ? (
-                <>
-                  <span className="font-medium text-band-foreground">{live.title || live.meeting_code}</span> · Wilco is in the call
-                </>
-              ) : (
-                "Ready for your next meeting"
-              )}
-            </p>
-          </div>
-          <div className="flex shrink-0 flex-wrap gap-2">
+      {live.length > 0 && (
+        <div
+          className="mb-7 flex flex-col gap-2"
+          aria-label="Active notetakers"
+        >
+          {live.map((capture) => (
             <Link
-              href="/memory"
-              className="inline-flex h-10 items-center gap-2 rounded-full border border-white/15 px-4 text-sm font-medium text-band-foreground transition-colors duration-150 hover:bg-white/10 focus-visible:ring-3 focus-visible:ring-marigold/60 focus-visible:outline-none"
+              key={capture.id}
+              href={
+                capture.meeting_id
+                  ? `/meetings/${capture.meeting_id}`
+                  : "/meetings"
+              }
+              className="live-meeting-strip"
             >
-              <Sparkles className="size-4" /> Ask memory
+              <span className="grid size-9 shrink-0 place-items-center rounded-full bg-success/10 text-success">
+                <Headphones className="size-4" aria-hidden="true" />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-sm font-medium">
+                  {capture.title || capture.meeting_code}
+                </span>
+                <span className="block text-xs text-muted-foreground">
+                  {capture.status_label}
+                </span>
+              </span>
+              <span className="text-xs text-muted-foreground">
+                {capture.status === "capturing" ? "Recording" : "View status"}
+              </span>
+              <ArrowUpRight className="size-4" aria-hidden="true" />
             </Link>
-            <button
-              type="button"
-              onClick={() => openNotetaker()}
-              className="inline-flex h-10 items-center gap-2 rounded-full bg-marigold px-4 text-sm font-semibold text-marigold-foreground transition-[background-color,transform] duration-150 hover:bg-marigold/90 active:scale-[0.98] focus-visible:ring-3 focus-visible:ring-marigold/60 focus-visible:outline-none"
-            >
-              <Bot className="size-4" /> Bring Wilco to a meeting
-            </button>
-          </div>
+          ))}
         </div>
-      </header>
+      )}
 
-      {error && <p className="text-sm text-destructive" role="alert">{error}</p>}
+      {error && (
+        <div
+          className="mb-5 flex items-center justify-between gap-3 rounded-xl border border-destructive/30 p-3 text-sm"
+          role="alert"
+        >
+          <p>{error}</p>
+          <button
+            type="button"
+            disabled={loading}
+            onClick={() => void load()}
+            className="shrink-0 font-medium underline underline-offset-4"
+          >
+            Try again
+          </button>
+        </div>
+      )}
 
-      <div className="grid gap-6 lg:grid-cols-[1.45fr_1fr] lg:items-start">
-        <section aria-label="Focused item" className="flex flex-col overflow-hidden rounded-[1.4rem] border bg-card">
-          <div className="h-1 bg-muted">
-            <div
-              className="h-full bg-marigold transition-[width] duration-300 ease-out"
-              style={{ width: queue.length ? `${((position + 1) / queue.length) * 100}%` : "100%" }}
-            />
+      <div className="home-lower-grid">
+        <section className="focus-panel" aria-labelledby="focus-heading">
+          <div className="flex items-center justify-between gap-3">
+            <h2 id="focus-heading" className="text-sm font-medium">
+              Needs you{" "}
+              <span className="ml-2 text-muted-foreground">
+                {loading ? "" : queue.length}
+              </span>
+            </h2>
+            <Link href="/tasks" className="quiet-link">
+              All tasks <ArrowUpRight className="size-3.5" aria-hidden="true" />
+            </Link>
           </div>
-          <div className="flex-1 p-6 sm:p-8" aria-live="polite">
-            {tasks === null ? (
-              <Skeleton className="h-52 w-full rounded-2xl" />
+          <div
+            className="flex min-h-60 flex-1 flex-col justify-center py-6"
+            aria-live="polite"
+            aria-busy={loading || busy}
+          >
+            {loading ? (
+              <Skeleton className="h-36 w-full rounded-xl" />
             ) : !active ? (
-              <div className="flex min-h-56 flex-col items-start justify-center">
-                <span className="mb-4 grid size-12 place-items-center rounded-2xl bg-tint-mint text-tint-mint-foreground"><Check className="size-6" /></span>
-                <h2 className="font-heading text-2xl font-semibold tracking-tight">You&apos;re clear for now</h2>
-                <p className="mt-2 max-w-lg text-sm leading-6 text-muted-foreground">New tasks and meetings that need your review will appear here.</p>
-                <Link href="/meetings" className="mt-5 inline-flex items-center gap-1.5 text-sm font-semibold underline-offset-4 hover:underline">
-                  Browse meetings <ArrowRight className="size-4" />
-                </Link>
-              </div>
-            ) : (
-              <div className="flex min-h-64 flex-col">
-                <div className="flex items-center justify-between gap-4">
-                  <span className={`rounded-full px-3 py-1 text-xs font-semibold ${KIND_TINT[active.kind]}`}>{KIND_LABEL[active.kind]}</span>
-                  <span className="text-xs text-muted-foreground tabular-nums">{position + 1} of {queue.length}</span>
-                </div>
-                <h2 className="mt-6 max-w-3xl font-heading text-2xl leading-snug font-semibold tracking-tight sm:text-[1.9rem]">
-                  {active.kind === "voice" ? "Let Wilco learn your voice" : active.kind === "review" ? `Review ${active.meeting.title}` : active.task.description}
-                </h2>
-                <p className="mt-3 text-sm text-muted-foreground">
-                  {active.kind === "voice"
-                    ? "A short recording helps name your speech in future meetings."
-                    : active.kind === "review"
-                      ? `${active.count} ${active.count === 1 ? "item" : "items"} to confirm or correct before the recap is ready.`
-                      : `${active.task.meeting_title}${formatDue(active.task) ? ` · Due ${formatDue(active.task)}` : ""}`}
+              <>
+                <span className="mb-5 grid size-10 place-items-center rounded-full bg-success/10 text-success">
+                  <Check className="size-5" aria-hidden="true" />
+                </span>
+                <h3 className="text-2xl font-medium tracking-tight">
+                  {error
+                    ? "Your briefing is on hold."
+                    : "A little breathing room."}
+                </h3>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  {error
+                    ? "Try loading it again above."
+                    : "You're all caught up."}
                 </p>
-                <div className="mt-auto flex flex-wrap items-center gap-3 pt-8">
-                  {active.kind === "voice" ? (
-                    <Link href="/voice-setup" className="inline-flex h-10 items-center gap-2 rounded-full bg-primary px-5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/85">
-                      Set up voice <ArrowRight className="size-4" />
-                    </Link>
-                  ) : active.kind === "review" ? (
-                    <Link href={`/meetings/${active.meeting.id}?review=1`} className="inline-flex h-10 items-center gap-2 rounded-full bg-primary px-5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/85">
-                      Review now <ArrowRight className="size-4" />
-                    </Link>
+              </>
+            ) : (
+              <>
+                <div className="mb-4 flex items-center gap-2 text-xs text-muted-foreground">
+                  {active.kind === "review" ? (
+                    <Video className="size-4" />
+                  ) : active.kind === "task" ? (
+                    <ListChecks className="size-4" />
                   ) : (
+                    <Mic className="size-4" />
+                  )}
+                  {active.kind === "review"
+                    ? `${active.count} to confirm`
+                    : active.kind === "task"
+                      ? "Your next task"
+                      : "Optional voice setup"}
+                </div>
+                <h3 className="max-w-xl text-2xl leading-snug font-medium tracking-tight">
+                  {active.kind === "voice"
+                    ? "Put a name to your voice."
+                    : active.kind === "review"
+                      ? active.meeting.title
+                      : active.task.description}
+                </h3>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  {active.kind === "voice"
+                    ? "Record once. Get better speaker names."
+                    : active.kind === "review"
+                      ? "Check the decisions, owners and names."
+                      : [
+                          active.task.meeting_title,
+                          formatDue(active.task) &&
+                            `Due ${formatDue(active.task)}`,
+                        ]
+                          .filter(Boolean)
+                          .join(" · ")}
+                </p>
+                <div className="mt-6 flex flex-wrap items-center gap-4">
+                  {active.kind === "task" ? (
                     <>
-                      <Button size="lg" className="h-10 rounded-full px-5" onClick={() => void finishTask(active.task)} disabled={busy}>
-                        <Check className="size-4" /> {busy ? "Saving…" : "Mark done"}
+                      <Button
+                        size="lg"
+                        disabled={busy}
+                        onClick={() => void finishTask(active.task)}
+                      >
+                        <Check data-icon="inline-start" />
+                        {busy ? "Saving…" : "Mark done"}
                       </Button>
-                      <Link href={`/tasks?task=${active.task.id}`} className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">
-                        Open task
+                      <Link
+                        href={`/tasks?task=${active.task.id}`}
+                        className="quiet-link"
+                      >
+                        Open task <ArrowUpRight className="size-3.5" />
                       </Link>
                     </>
+                  ) : (
+                    <Link
+                      href={
+                        active.kind === "voice"
+                          ? "/voice-setup"
+                          : `/meetings/${active.meeting.id}?review=1`
+                      }
+                      className="focus-action"
+                    >
+                      {active.kind === "voice"
+                        ? "Set up voice"
+                        : "Review meeting"}
+                      <ArrowRight className="size-4" aria-hidden="true" />
+                    </Link>
                   )}
                 </div>
-              </div>
+              </>
             )}
           </div>
-          {queue.length > 1 && (
-            <div className="flex items-center justify-between border-t px-6 py-3 sm:px-8">
-              <span className="text-xs text-muted-foreground">{queue.length - 1} more in your queue</span>
+          <div className="flex min-h-10 items-center justify-between border-t pt-4">
+            <p className="text-xs text-muted-foreground">
+              {queue.length
+                ? `${position + 1} of ${queue.length}`
+                : "Nothing to chase."}
+            </p>
+            {queue.length > 1 && (
               <div className="flex gap-1">
-                <button type="button" aria-label="Previous item" disabled={position === 0} onClick={() => setCursor(position - 1)} className="grid size-9 place-items-center rounded-full transition-colors hover:bg-muted disabled:opacity-30">
+                <button
+                  type="button"
+                  aria-label="Previous item"
+                  disabled={position === 0}
+                  onClick={() => setCursor(position - 1)}
+                  className="focus-step"
+                >
                   <ChevronLeft className="size-4" />
                 </button>
-                <button type="button" aria-label="Next item" disabled={position >= queue.length - 1} onClick={() => setCursor(position + 1)} className="grid size-9 place-items-center rounded-full transition-colors hover:bg-muted disabled:opacity-30">
+                <button
+                  type="button"
+                  aria-label="Next item"
+                  disabled={position === queue.length - 1}
+                  onClick={() => setCursor(position + 1)}
+                  className="focus-step"
+                >
                   <ChevronRight className="size-4" />
                 </button>
               </div>
-            </div>
-          )}
-        </section>
-
-        <div className="flex flex-col gap-6">
-          <section className="rounded-[1.4rem] border bg-card p-5">
-            <div className="mb-2 flex items-center justify-between">
-              <h2 className="font-heading text-lg font-semibold tracking-tight"><TwoTone lead="Recent" rest="meetings" /></h2>
-              <Link href="/meetings" className="text-xs font-semibold underline-offset-4 hover:underline">All meetings</Link>
-            </div>
-            {meetings === null ? (
-              <Skeleton className="h-40 w-full rounded-xl" />
-            ) : meetings.length === 0 ? (
-              <p className="py-6 text-sm text-muted-foreground">Your meetings will show up here.</p>
-            ) : (
-              <ul className="-mx-2 flex flex-col">
-                {meetings.slice(0, 4).map((meeting) => (
-                  <li key={meeting.id}>
-                    <Link href={`/meetings/${meeting.id}`} className="group flex items-center gap-3 rounded-xl px-2 py-2.5 transition-colors hover:bg-muted">
-                      <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-tint-sky text-tint-sky-foreground"><Video className="size-4" /></span>
-                      <span className="min-w-0 flex-1">
-                        <span className="block truncate text-sm font-medium">{meeting.title}</span>
-                        <span className="block text-xs text-muted-foreground">
-                          {new Date(meeting.date).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}
-                        </span>
-                      </span>
-                      <ArrowRight className="size-4 shrink-0 text-muted-foreground transition-transform duration-150 group-hover:translate-x-0.5 group-hover:text-foreground" />
-                    </Link>
-                  </li>
-                ))}
-              </ul>
             )}
-          </section>
-          <div className="grid grid-cols-2 gap-3">
-            <Link href="/memory" className="flex flex-col gap-6 rounded-[1.4rem] border bg-card p-4 transition-colors hover:bg-muted/60">
-              <span className="grid size-10 place-items-center rounded-xl bg-tint-lilac text-tint-lilac-foreground"><Sparkles className="size-5" /></span>
-              <span>
-                <strong className="block text-sm font-semibold">Ask a meeting</strong>
-                <span className="mt-0.5 block text-xs text-muted-foreground">Answers with sources</span>
-              </span>
-            </Link>
-            <Link href="/record" className="flex flex-col gap-6 rounded-[1.4rem] border bg-card p-4 transition-colors hover:bg-muted/60">
-              <span className="grid size-10 place-items-center rounded-xl bg-tint-peach text-tint-peach-foreground"><Mic className="size-5" /></span>
-              <span>
-                <strong className="block text-sm font-semibold">Record in person</strong>
-                <span className="mt-0.5 block text-xs text-muted-foreground">Outside Meet or Teams</span>
-              </span>
+          </div>
+        </section>
+        <section className="recent-panel" aria-labelledby="recent-heading">
+          <div className="mb-4 flex items-center justify-between">
+            <h2 id="recent-heading" className="text-sm font-medium">
+              Recent conversations
+            </h2>
+            <Link href="/meetings" className="quiet-link">
+              View all <ArrowUpRight className="size-3.5" />
             </Link>
           </div>
-        </div>
+          {loading ? (
+            <Skeleton className="h-52 w-full rounded-xl" />
+          ) : !meetings?.length ? (
+            <p className="py-10 text-sm text-muted-foreground">
+              {meetings === null
+                ? "Meetings couldn't load."
+                : "Your first conversation starts above."}
+            </p>
+          ) : (
+            <ul className="flex flex-col">
+              {meetings.slice(0, 4).map((meeting, index) => (
+                <li key={meeting.id}>
+                  <Link
+                    href={`/meetings/${meeting.id}`}
+                    className="recent-meeting-row"
+                  >
+                    <span className="meeting-glyph" data-tone={index % 3}>
+                      <Video className="size-4" aria-hidden="true" />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-sm font-medium">
+                        {meeting.title}
+                      </span>
+                      <span className="mt-1 block text-xs text-muted-foreground">
+                        {new Date(meeting.date).toLocaleDateString(undefined, {
+                          month: "short",
+                          day: "numeric",
+                        })}
+                        {meeting.duration_minutes
+                          ? ` · ${meeting.duration_minutes} min`
+                          : ""}
+                        {meeting.processing_state === "processing"
+                          ? " · Processing"
+                          : ""}
+                      </span>
+                    </span>
+                    <ArrowUpRight
+                      className="size-4 shrink-0 text-muted-foreground"
+                      aria-hidden="true"
+                    />
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+          <Link
+            href="/meetings?view=calendar"
+            className="mt-5 inline-flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground"
+          >
+            See what&apos;s coming up{" "}
+            <ArrowRight className="size-3.5" aria-hidden="true" />
+          </Link>
+        </section>
       </div>
     </div>
   );

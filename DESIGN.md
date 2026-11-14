@@ -1,57 +1,49 @@
-# Wilco design system: "night glow"
+# Wilco design system
 
-Wilco is voice-first meeting memory for Indian teams. The look follows a pinned reference: a dark sky lit by soft colour, frosted glass surfaces, and one big prompt you can type into or speak to. It's blended with Wilco's own identity: neel indigo, a genda-marigold accent, Devanagari-ready type, and Hinglish copy.
+Wilco helps people stay in the conversation and leave with clear next steps. The reference video supplied on 15 November 2026 informs the dark canvas, blue and pink perimeter light, compact input, and generous spacing. Colour draws attention to the entrance; work stays calm.
 
-## Principles
+## Visual direction
 
-- **Voice is the way in.** The marigold mic is the one bright, always-findable action. Don't give anything else marigold's weight.
-- **Bold at the door, calm in the room.** Home's hero and the sign-in page carry the glow, the gradient headline and the big glass prompt. Working screens (meetings, tasks, decisions, settings) stay restrained: familiar controls, dense lists, no decoration.
-- **Glass is a material, not a garnish.** Only floating surfaces are frosted: cards, the sidebar, menus, the prompt. The page itself is never glass.
-- **No eyebrows.** No kicker or label line above a heading; the heading carries its own weight.
+- Home has one composer for joining a meeting or asking about past meetings. A focused follow-up and recent conversations sit underneath. Do not add a statistics banner or competing promotional cards.
+- Atmosphere is static and scoped to Home. Keep it away from task text, transcripts, forms, and meeting review. The light theme uses the same structure with a pale, cool canvas.
+- Surfaces use a quiet border and restrained radius. The composer and focused review are distinct surfaces; recent meetings are simple rows. Avoid nested cards.
+- Geist carries interface and display text. Mukta provides Devanagari fallback. Keep display text compact enough that the next action remains visible. Doto remains available for existing call sites but Home does not use decorative counters.
 
-## Colour (tokens in `frontend/src/app/globals.css`)
+## Theme tokens
 
-Components use tokens only, never raw hex values.
+All component colours come from `frontend/src/app/globals.css`. Define palette changes there, never as hard-coded component colours.
 
-| Role | Dark (default) | Light |
-|---|---|---|
-| Page | night `#0E0C1F` (`--background`) | lavender white |
-| Glows behind the page | neel-violet, gulabi pink, genda (`--glow-a/b/c`) | the same in pastel |
-| Text | near-white | deep indigo ink |
-| Primary (links, selection, focus) | violet `#8B7CFF` | neel `#5B4CF0` |
-| Accent: record and ask actions only | genda marigold `#F0A020` (`--marigold`) | same |
-| Success / destructive | mehendi green / sindoor red | same |
-| Surfaces | white at 5% over the glow, 22px blur | white at 62% over the glow |
+| Role | Tokens |
+| --- | --- |
+| Canvas and copy | `--background`, `--foreground` |
+| Working surfaces | `--card`, `--card-foreground`, `--border` |
+| Secondary text | `--muted-foreground` |
+| Primary action | `--primary`, `--primary-foreground` |
+| Cool blue brand accent | `--marigold`, `--marigold-foreground` (legacy token names retained for existing consumers) |
+| Home perimeter light | `--aurora-a` (cobalt), `--aurora-b` (orchid) |
+| Recording, errors, success | `--destructive`, `--warning`, `--success` |
+| Small meeting markers | `--tint-sky`, `--tint-lilac`, `--tint-peach` and their foregrounds |
 
-- **Glows:** fixed radial gradients drawn by `body::before`: top centre, right edge, bottom left.
-- **Dark first:** the app opens in dark mode, with light and system as choices. The pinned reference is dark, and the light theme is a full equal, not an afterthought.
-- **Browser surfaces:** selection, the caret (marigold), scrollbars and checkbox/radio accents are themed. Numbers use tabular figures.
+The dark canvas is `oklch(0.135 0.012 270)`; the light canvas is `oklch(0.982 0.004 260)`. The cool blue accent is `oklch(0.8 0.12 260)`. Keep colour out of dense body copy.
 
-## Type
+## Primary journeys
 
-- **Baloo 2** for headings (`font-heading`; h1–h3 by default) and **Mukta** for body text. Both are by Ek Type and both carry Devanagari, so Hindi and Hinglish render in the same family as English.
-- **Hero headlines:** up to 6xl, tight leading, `text-balance`. The person's name, or the key word, takes the `.text-glow` sweep (white → violet → gulabi → genda).
-- **Gradient text** is reserved for one phrase per hero. Never use it in working screens.
+**Home:** paste a Meet or Teams link, continue to recording consent, then invite Wilco. Asking past meetings is a separate composer tab. Recording in person and uploading remain small secondary links. A live capture shows its real status; no decorative waveform implies that recording has started.
 
-## Components
+**Meeting review:** one task, decision, or uncertain speaker at a time. Confirm or edit inline. Open source evidence when needed. The full transcript, notes, and insights sit behind the Full meeting disclosure; citation deep links open it automatically. A skipped speaker remains unnamed. Saving a speaker name and opting into future voice learning are separate choices.
 
-- **`PromptHero`** (Home): one glass prompt box.
-  - It contains a textarea, a "Capture a meeting" chip and a "Record in person" chip. Below `sm` the chips show icons only, with aria-labels.
-  - On the right sit the marigold mic (`VoiceAskButton`) and a round send button.
-  - Hinglish example questions sit below as glass chips.
-  - Typed questions open `/memory?q=`. Spoken ones add `&voice=1`, so the answer is read aloud.
-- **`VoiceAskButton`:** marigold rounded square. While recording it turns red with a pulse and a timer, then shows "Listening" while Gnani Prisma transcribes.
-- **`SpeakButton`:** "Listen" / "Stop", reads text aloud with Gnani Timbre. Compact under chat answers, outline on the meeting summary. One voice plays at a time.
-- **`Card`:** 2xl radius, glass (`bg-card` with backdrop blur), and a 1px ring. Never nest cards.
-- **Sidebar:** glass. The active item has a marigold bar on its left edge, and "New meeting" is a marigold pill.
-- **Brand:** `BrandMark` is a speech bubble with a marigold bindi on neel, in `components/brand.tsx`. On sign-in the Devanagari wordmark चर्चा takes the gradient sweep.
+**Navigation:** Home, Meetings, Tasks, Memory, and Talk to Wilco are primary. More reveals the remaining tools. All pages remain available in command search. Mobile navigation uses the existing Base UI dialog for focus management and Escape dismissal.
+
+**Capture:** keep one link field, an explicit recording acknowledgement, and optional title/style controls. Show a clear success state, queue state, or recoverable error. Loading notetaker status must not reset entered text or consent.
+
+## Copy and accessibility
+
+Use short, concrete labels that describe the next action. Keep consent, access restrictions, errors, and uncertain identification explicit. Avoid repeated explanations and decorative labels. Label every input and icon-only control, associate field errors, show keyboard focus, and preserve contrast in both themes.
 
 ## Motion
 
-- Transitions are 150–250 ms and only show state changes: recording pulse, loading spinners, hover colour.
-- There's no page-load choreography in the app.
+Use short transitions for direct interaction feedback. Do not animate the Home atmosphere or run background particle loops. Animate transform and opacity where possible, respect reduced motion, and keep blur static and confined to existing overlay behaviour. Do not add an animation library solely for decoration.
 
-## Copy
+## Implementation
 
-- Sentence case and plain verbs. Hinglish where users would speak it: "Bolo", "Kuch bhi poocho…", "Wilco sun raha hai".
-- Say "charcha" for a conversation: "New meeting", "Record a meeting".
+Reuse the existing Base UI / shadcn primitives, Lucide icons, authentication, capture queue, and meeting APIs. `HomeComposer` owns the Home input. `GuidedReview` owns focused review. Theme styles belong in the shared stylesheet. See `docs/design-skills.md` for installed skills and `docs/coordination.md` before editing shared files.

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { AlertTriangle, Bot, CalendarDays, Clock, Loader2, Plus, Search, SlidersHorizontal, Users, Video, X } from "lucide-react";
+import { AlertTriangle, Bot, CalendarDays, Clock, Loader2, Search, SlidersHorizontal, Users, Video, X } from "lucide-react";
 import { api, ApiError, type DirectoryUser, type MeetingSummary } from "@/lib/api";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -118,22 +118,16 @@ export default function MeetingsPage() {
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Meetings"
-        description="Every meeting your team has captured, with its transcript, notes and follow-ups."
         actions={
-          <>
-            <Button variant="outline" onClick={() => openNotetaker()}>
-              <Bot /> Send notetaker
-            </Button>
-            <Link href="/meetings/new" className={buttonVariants()}>
-              <Plus /> Add meeting
-            </Link>
-          </>
+          <Button onClick={() => openNotetaker()}>
+            <Bot /> Invite Wilco
+          </Button>
         }
       />
 
       <NotetakerActivity />
 
-      <div className="flex gap-1 self-start rounded-lg bg-muted p-0.5" role="tablist" aria-label="Meetings view">
+      <div className="flex gap-1 self-start rounded-lg bg-muted p-0.5" role="group" aria-label="Meetings view">
         {([
           ["recorded", "Recorded", Video],
           ["calendar", "Calendar", CalendarDays],
@@ -141,8 +135,7 @@ export default function MeetingsPage() {
           <button
             key={value}
             type="button"
-            role="tab"
-            aria-selected={view === value}
+            aria-pressed={view === value}
             onClick={() => chooseView(value)}
             className={cn(
               "flex h-8 items-center gap-1.5 rounded-md px-3 text-sm text-muted-foreground",

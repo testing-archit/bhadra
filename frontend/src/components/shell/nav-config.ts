@@ -33,23 +33,18 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       { href: "/dashboard", label: "Home", icon: House, exact: true },
       { href: "/meetings", label: "Meetings", icon: Video },
-      { href: "/recap", label: "Call & voice recap", icon: FileAudio },
       { href: "/tasks", label: "Tasks", icon: ListChecks },
+      { href: "/memory", label: "Memory", icon: Sparkles },
+      { href: "/live", label: "Talk to Wilco", icon: AudioLines },
+    ],
+  },
+  {
+    label: "More",
+    items: [
+      { href: "/recap", label: "Call & voice recap", icon: FileAudio },
       { href: "/decisions", label: "Decisions", icon: Scale },
       { href: "/projects", label: "Projects", icon: FolderKanban },
-    ],
-  },
-  {
-    label: "Ask",
-    items: [
-      { href: "/live", label: "Wilco Live", icon: AudioLines },
-      { href: "/memory", label: "Company memory", icon: Sparkles },
       { href: "/policy", label: "Policies", icon: BookOpenCheck },
-    ],
-  },
-  {
-    label: "Organization",
-    items: [
       { href: "/vocabulary", label: "Vocabulary", icon: SpellCheck },
       { href: "/admin", label: "Admin", icon: ShieldCheck, adminOnly: true },
     ],

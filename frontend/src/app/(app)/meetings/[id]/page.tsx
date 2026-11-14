@@ -126,6 +126,7 @@ export default function MeetingDetailPage() {
   const [deleting, setDeleting] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [tab, setTab] = useState<TabId>("summary");
+  const [detailsOpen, setDetailsOpen] = useState(false);
   const [currentMs, setCurrentMs] = useState<number | null>(null);
   const [playing, setPlaying] = useState(false);
   // Stable, so the transcript's per-frame word highlighting isn't restarted
@@ -167,9 +168,10 @@ export default function MeetingDetailPage() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const requested = params.get("tab") as TabId | null;
-    if (requested && TAB_IDS.includes(requested)) setTab(requested);
+    if (requested && TAB_IDS.includes(requested)) { setTab(requested); setDetailsOpen(true); }
     const segment = params.get("segment");
     if (segment) {
+      setDetailsOpen(true);
       setTab("transcript");
       setFocus({ segmentId: segment, nonce: Date.now() });
     }
@@ -192,12 +194,14 @@ export default function MeetingDetailPage() {
   }
 
   function openEvidence(ref: EvidenceRef) {
+    setDetailsOpen(true);
     setTab("transcript");
     setFocus({ segmentId: ref.segment_id, nonce: Date.now() });
     if (ref.start_ms !== null && audioUrl) seekTo(ref.start_ms);
   }
 
   function openCitation(citation: ResolvedCitation) {
+    setDetailsOpen(true);
     const segment = citation.segment;
     if (!segment?.segment_id) {
       setTab("summary");
@@ -702,14 +706,19 @@ export default function MeetingDetailPage() {
         onShare={() => void copyShareLink()}
         shareBusy={shareBusy}
         shareCopied={shareCopied}
+        onOpenFullMeeting={() => setDetailsOpen(true)}
       />
 
-      <Tabs value={tab} onValueChange={(value) => setTab(value as TabId)}>
+      <details className="meeting-details" open={detailsOpen} onToggle={(event) => setDetailsOpen(event.currentTarget.open)}>
+        <summary className="flex cursor-pointer list-none items-center justify-between gap-3 rounded-xl border px-5 py-4 text-sm font-medium focus-visible:outline-2 focus-visible:outline-ring">
+          Full meeting <span className="text-xs font-normal text-muted-foreground">{detailsOpen ? "Close details −" : "Transcript, notes & insights +"}</span>
+        </summary>
+      <Tabs className="pt-5" value={tab} onValueChange={(value) => setTab(value as TabId)}>
         <TabsList className="h-auto! w-full flex-wrap justify-start sm:w-fit">
           <TabsTrigger value="summary"><NotebookText /> Summary</TabsTrigger>
           <TabsTrigger value="transcript"><FileText /> Transcript</TabsTrigger>
           <TabsTrigger value="actions"><ListChecks /> Action items ({meeting.tasks.length + meeting.decisions.length + meeting.risks.length})</TabsTrigger>
-          <TabsTrigger value="ask"><MessagesSquare /> Ask AI</TabsTrigger>
+          <TabsTrigger value="ask"><MessagesSquare /> Ask Wilco</TabsTrigger>
           <TabsTrigger value="insights"><BarChart3 /> Insights</TabsTrigger>
         </TabsList>
 
@@ -1218,6 +1227,7 @@ export default function MeetingDetailPage() {
 
         </TabsContent>
       </Tabs>
+      </details>
 
       {editingTask && (
         <TaskEditDialog
