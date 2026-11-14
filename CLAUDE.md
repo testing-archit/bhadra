@@ -28,6 +28,10 @@ Keep these updated, and commit doc changes with the code: the whole team works t
 - To redo the sign-in, run `backend/bot/generate_auth.py` on a laptop, then `docker compose cp` the file to `notetaker:/data/auth.json`. Never commit it.
 - Without it, Meet refuses the bot ("You can't join this video call").
 
+**Charcha Live** (`/live`): a Gemini-Live-style spoken conversation built on Gnani.
+- **Request:** `POST /api/live/turn` takes one utterance. Prisma transcribes it with Auto-LID, Gemini answers from a cached digest of recent meetings, and Timbre speaks the answer: v2.5 for Hinglish, v3.0 for other Indian languages.
+- **Browser:** voice detection and barge-in run in `components/live-session.tsx`.
+
 **Live call features:** say or type "Charcha, …" in Meet. The bot answers from the call's captions and speaks the answer through a virtual microphone (Timbre). "Charcha recap" and "Charcha, add task: …" also work.
 
 **Demo data:** `backend/scripts/seed_demo.py <owner email> <teammate email>` (10 Hinglish meetings). It adds whatever is missing; `--reset` rebuilds everything.

@@ -13,12 +13,16 @@ Built by **team Bhadra**: Archit and Vedant.
 | Gnani model | What Charcha uses it for |
 |---|---|
 | **Prisma v3** (speech-to-text, `codemix`, `indic-auto`) | Transcribes meetings, in-person recordings and spoken questions in Hindi, English and Hinglish |
-| **Timbre v2.5** (text-to-speech, `hi-en`) | Reads answers and summaries aloud in Hinglish, and lets the notetaker **speak in the call** |
+| **Timbre v2.5** (`hi-en`) and **v3.0** (all Indian languages) | Reads answers aloud, powers Charcha Live's spoken replies in the speaker's own language, and lets the notetaker **speak in the call** |
 
 The loop is: **Prisma hears, Gemini thinks, Timbre speaks.**
 
 ## What it does
 
+- **Charcha Live: talk to your meetings, like Gemini Live, built on Gnani.**
+  - Tap once and just talk, in Hindi, English, Hinglish or any of 8 more Indian languages.
+  - Charcha detects when you've finished, answers out loud from your meetings, and stops the moment you interrupt.
+  - It replies in your language and script: Tamil in Tamil, Marathi in Marathi.
 - **Ask by voice, hear the answer.** Tap the mic and ask "Sharma ji ka kitna udhaar baaki hai?". Charcha answers from your meetings, with line-level citations, and reads the answer aloud.
 - **A notetaker in the call, like Claude Meetings** (see [docs/claude-meetings.md](docs/claude-meetings.md)):
   - It joins Google Meet (or Teams by link), records and turns on captions.
@@ -36,6 +40,7 @@ The loop is: **Prisma hears, Gemini thinks, Timbre speaks.**
 
 | | |
 |---|---|
+| ![Charcha Live: hands-free voice conversation](docs/screenshots/live-dark.png) | ![Home](docs/screenshots/home-dark.png) |
 | ![Ask memory by voice: an answer with citations](docs/screenshots/memory-answer-dark.png) | ![A meeting: summary, tasks, decisions and transcript](docs/screenshots/meeting-dark.png) |
 | ![Decisions with reasons, alternatives and reversals](docs/screenshots/decisions-dark.png) | ![Tasks board](docs/screenshots/tasks-dark.png) |
 | ![Sign-in](docs/screenshots/login-dark.png) | ![Connect Claude (MCP)](docs/screenshots/connect-claude-dark.png) |
