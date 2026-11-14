@@ -341,3 +341,11 @@ Validation: 17 focused bot/runtime tests passed, Python compilation passed, and 
 Remaining: production version/configuration confirmation, real English/Hinglish/audio baseline, acoustic-to-response timing, model/TTS streaming spans, explicit spoken interruption, durable action cancellation/reconciliation, complete frontend/backend regression suite, and live Meet/Teams acceptance. Queue cancellation here is session-shutdown cancellation; it is not a claim of completed barge-in or durable actions. No production latency or capacity improvement has been measured; no deployment is included.
 
 The checked instrumentation is a foundation. Phase 1 and Phase 2 exit criteria remain open until real-call measurements and acceptance pass.
+
+### Checkpoint 2 — voice board operations and presentation prototype
+
+Implemented structured board commands with bounded operations, temporary references for complete flows, locked-point protection, command-id replay handling, safe undo, and conflict checks against concurrent human edits. Generation runs outside database locks, including the existing autonomous board refresher. Bot-only board state/command routes reuse machine authentication; no external connector writes were added. Wilco and the legacy wake name are recognized.
+
+Added an opt-in Meet canvas presenter, off by default with `PRESENT_BOARD=0`. It renders only board content, updates from saved state, and stops its tracks/timers. A real local Chromium test sent the canvas through WebRTC, verified a received frame/live update, repeated presentation, and stop. This does not establish real Meet compatibility or remote attendee reception.
+
+Validation: 434 backend tests passed against local Postgres; additional focused board tests passed after strengthening polite undo handling and protection of intervening human edits. No actual model generation or real meeting was exercised. Research, reproduction instructions, synthetic screenshot, and live acceptance requirements are in [voice-whiteboard.md](voice-whiteboard.md). No deployment, vendor subscription, or production performance claim.

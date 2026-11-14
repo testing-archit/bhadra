@@ -518,6 +518,33 @@ async def request_live_board(
     return {"board_id": str(board.id), "url": f"{settings.public_app_url.rstrip('/')}/meetings/live/{request_id}"}
 
 
+class LiveBoardCommand(BaseModel):
+    command_id: uuid.UUID
+    command: str = Field(min_length=1, max_length=1000)
+
+
+@router.get("/capture-requests/{request_id}/board", dependencies=[Depends(require_bot)])
+async def bot_board_state(request_id: uuid.UUID, db: AsyncSession = Depends(get_db)) -> dict:
+    capture = await db.get(CaptureRequest, request_id)
+    if capture is None or capture.status != "capturing":
+        raise HTTPException(status_code=404, detail="Active capture not found")
+    board = await board_service.ensure_for_capture(db, capture)
+    await db.commit()
+    return board_service.serialize(board)
+
+
+@router.post("/capture-requests/{request_id}/board/commands", dependencies=[Depends(require_bot)])
+async def bot_board_command(request_id: uuid.UUID, body: LiveBoardCommand, db: AsyncSession = Depends(get_db)) -> dict:
+    try:
+        return await board_service.command_capture_board(db, request_id, body.command_id, body.command)
+    except LookupError as error:
+        raise HTTPException(status_code=404, detail=str(error)) from error
+    except board_service.BoardCommandConflict as error:
+        raise HTTPException(status_code=409, detail=str(error)) from error
+    except ValueError as error:
+        raise HTTPException(status_code=422, detail=str(error)) from error
+
+
 @router.post("/live-answer", dependencies=[Depends(require_bot)])
 async def live_answer(body: LiveQuestion, db: AsyncSession = Depends(get_db)) -> dict:
     """A question typed in the call's chat, answered from that call's own

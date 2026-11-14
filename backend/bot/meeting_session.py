@@ -33,6 +33,8 @@ from pathlib import Path
 from playwright.async_api import BrowserContext, Page, async_playwright
 
 import config
+import board_presenter
+from board_intent import board_intent
 from command_runtime import Command, CommandRuntime, stage
 import meet_chat
 import teams_dom
@@ -149,7 +151,7 @@ PARTICIPANT_COUNT_JS = """
 # speaks), whatever the participant count says.
 SPEECH_IS_COMPANY_SECONDS = 30
 # "Charcha, <question>" said aloud. Captions spell the name a few ways.
-WAKE_RE = re.compile(r"(?:^|[.!?]\s+|\b(?:hey|hi|ok|okay|so|achha|acha)\s+)(?:char\s?cha+|charchaa|carcha|charchya)\b[\s,:.!-]+(.+?)(?=$|\b(?:hey\s+)?(?:char\s?cha+|charchaa|carcha)\b)", re.IGNORECASE)
+WAKE_RE = re.compile(r"(?:^|[.!?]\s+|\b(?:hey|hi|ok|okay|so|achha|acha)\s+)(?:wil\s?co|wilko|vilco|char\s?cha+|charchaa|carcha|charchya)\b[\s,:.!-]+(.+?)(?=$|\b(?:hey\s+)?(?:wil\s?co|wilko|vilco|char\s?cha+|charchaa|carcha)\b)", re.IGNORECASE)
 # A spoken question is answered once its speaker has paused this long.
 SPOKEN_QUESTION_PAUSE_SECONDS = 2.5
 
@@ -290,7 +292,7 @@ def _plain(text: str) -> str:
 
 
 _LEAVE_RE = re.compile(
-    r"\b(?:note\s?taker|charcha|char\s?cha|carcha)\b(?:\s+\w+){0,2}?\s+"
+    r"\b(?:note\s?taker|wilco|wil\s?co|wilko|charcha|char\s?cha|carcha)\b(?:\s+\w+){0,2}?\s+"
     r"(?:please\s+|pls\s+|plz\s+|ab\s+|aap\s+)?(?:leave|chale\s+jao|chali\s+jao|nikal\s+jao|bye|stop\s+recording)\b"
 )
 
@@ -477,6 +479,7 @@ class MeetingSession:
         self.chat_ready = False
         self._caption_sent_keys: set[tuple[str, float]] = set()
         self._caption_seq = 0
+        self._board_active = False
         self._last_caption_flush = 0.0
         self._browser_lock = asyncio.Lock()
         self._caption_flush_lock = asyncio.Lock()
@@ -794,11 +797,32 @@ class MeetingSession:
 
     async def execute_command(self, page: Page, command: Command) -> str | None:
         asked, question = command.asked, command.question
-        if self.capture_request_id and re.search(r"\b(?:make|create|start|open|show|banao)\b.*\b(?:whiteboard|board)\b", question, re.I):
+        intent = board_intent(question, self._board_active, bool(meet_chat.task_text(question)))
+        if self.capture_request_id and intent == "stop":
+            if config.PRESENT_BOARD and self.USES_GOOGLE_LOGIN:
+                async with self._browser_lock:
+                    await board_presenter.stop(page)
+                reply = "Stopped presenting the board."
+            else:
+                reply = "Automatic presentation isn't enabled here."
+        elif self.capture_request_id and intent == "present":
+            self._board_active = True
+            reply = await self.present_board(page)
+        elif self.capture_request_id and intent in {"open", "open_present"}:
             await self.flush_live_captions(force=True)
             with stage(self.session_id, command.id, "board_request"):
                 url = await asyncio.to_thread(uploader.live_whiteboard, self.capture_request_id)
-            reply = f"I started a meeting board: {url}" if url else "I couldn't open the board right now. Try again in a moment."
+            self._board_active = bool(url)
+            reply = f"I opened the meeting board: {url}" if url else "I couldn't open the board right now. Try again in a moment."
+            if url and intent == "open_present":
+                reply += " " + await self.present_board(page)
+        elif self.capture_request_id and intent == "edit":
+            with stage(self.session_id, command.id, "board_edit"):
+                result = await asyncio.to_thread(uploader.board_command, self.capture_request_id, command.id, question)
+            self._board_active = True
+            reply = result['message']
+            if config.PRESENT_BOARD and result.get('board') and self.USES_GOOGLE_LOGIN:
+                await page.evaluate('(board) => window.__wilcoBoard?.draw(board)', result['board'])
         else:
             task = meet_chat.task_text(question)
             if task and self.capture_request_id:
@@ -819,6 +843,14 @@ class MeetingSession:
                     sent = await meet_chat.send(page, reply)
                 log.info("Command %s chat delivery: %s", command.id, sent)
         return reply
+
+    async def present_board(self, page: Page) -> str:
+        if not config.PRESENT_BOARD or not self.USES_GOOGLE_LOGIN:
+            return "Automatic presentation isn't enabled here. Open the board link and share that tab in Meet."
+        board = await asyncio.to_thread(uploader.board_state, self.capture_request_id)
+        async with self._browser_lock:
+            started = await board_presenter.start(page, board) if board else False
+        return "Meet shows the board as presenting." if started else "I couldn't start presenting. Open the board link and share that tab in Meet."
 
     async def answer_chat(self, page: Page) -> None:
         """Compatibility entry point; the active session uses CommandRuntime."""
@@ -867,11 +899,32 @@ class MeetingSession:
             # checks settled captions and typed chat without a DOM observer.
             runtime.changed = self.captions.changed
             flush_task = asyncio.create_task(self._caption_flush_loop())
+            present_task = asyncio.create_task(self._presentation_loop(page))
             try:
                 return await self._stay(page)
             finally:
                 flush_task.cancel()
-                await asyncio.gather(flush_task, return_exceptions=True)
+                present_task.cancel()
+                await asyncio.gather(flush_task, present_task, return_exceptions=True)
+                if config.PRESENT_BOARD and self.USES_GOOGLE_LOGIN and not page.is_closed():
+                    async with self._browser_lock:
+                        await board_presenter.stop(page)
+
+    async def _presentation_loop(self, page: Page) -> None:
+        while True:
+            try:
+                if config.PRESENT_BOARD and self.USES_GOOGLE_LOGIN and self.capture_request_id:
+                    state = await page.evaluate('() => window.__wilcoBoard?.state()')
+                    if state and state.get('active'):
+                        board = await asyncio.to_thread(uploader.board_state, self.capture_request_id)
+                        if board and board['version'] != state['version']:
+                            await page.evaluate('(board) => window.__wilcoBoard.draw(board)', board)
+                        elif board is None:
+                            async with self._browser_lock:
+                                await board_presenter.stop(page)
+            except Exception:
+                log.warning('Board presentation refresh unavailable')
+            await asyncio.sleep(2)
 
     async def _caption_flush_loop(self) -> None:
         while True:
@@ -1004,6 +1057,8 @@ class MeetingSession:
                 context = await browser.new_context(storage_state=storage, viewport={"width": 1280, "height": 800})
                 await self.grant_media(context)
                 await context.add_init_script(HIDE_VIDEO_JS)
+                if config.PRESENT_BOARD and self.USES_GOOGLE_LOGIN:
+                    await context.add_init_script(board_presenter.SCRIPT)
                 page = await context.new_page()
                 try:
                     self.report("joining", "Opening the meeting")

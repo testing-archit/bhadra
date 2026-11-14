@@ -176,8 +176,8 @@ def _key(kind: str, title: str) -> str:
 async def refresh_live_board(capture_id: uuid.UUID, *, force: bool = False) -> None:
     """Batch recent finalized captions into grounded draft points.
 
-    The row lock serializes model updates; humans still get a version conflict
-    rather than silently losing their own edits. No call is made for every
+    Planning happens outside transactions; version checks protect human edits.
+    No call is made for every
     caption and the transcript never expands to all company memory.
     """
     if not settings.gemini_api_key:
@@ -222,7 +222,9 @@ async def refresh_live_board(capture_id: uuid.UUID, *, force: bool = False) -> N
             "Use the caption number for source_seq. Omit small talk, speculation, and repeated points. "
             "A proposal is an idea, not a decision. An unassigned possibility is not a task."
         )
+        expected_version, board_id = board.version, board.id
         usage_ledger.attribute(user_id=capture.user_id, meeting_id=capture.meeting_id)
+        await db.commit()  # Release locks while waiting for the provider.
         try:
             result, _ = await asyncio.to_thread(
                 gemini_service.generate_structured,
@@ -238,6 +240,11 @@ async def refresh_live_board(capture_id: uuid.UUID, *, force: bool = False) -> N
             # caption batch can try again without losing the cursor.
             await db.rollback()
             return
+        board = (await db.execute(select(MeetingBoard).where(MeetingBoard.id == board_id)
+                                  .with_for_update().execution_options(populate_existing=True))).scalar_one()
+        if board.paused or board.version != expected_version:
+            await db.commit()
+            return  # A person/voice command changed the board; recompute next pass.
         by_seq = {row.seq: row for row in rows}
         nodes = list(board.nodes or [])
         existing_keys = {_key(str(node.get("kind")), str(node.get("title"))) for node in nodes}
@@ -289,3 +296,82 @@ async def finalize_capture_board(db: AsyncSession, capture: CaptureRequest, meet
     if nodes != (board.nodes or []) or edges != (board.edges or []):
         await save_snapshot(db, board, expected_version=board.version, nodes=nodes,
                             edges=edges, actor_id=None, source="final_notes")
+
+
+class BoardCommandConflict(ValueError):
+    pass
+
+
+async def command_capture_board(db, capture_id: uuid.UUID, command_id: uuid.UUID, command: str) -> dict:
+    """Plan outside transactions; commit only against the version actually planned."""
+    import json
+    import re
+    from app.services.board_commands import BoardCommandPlan, SYSTEM_PROMPT, apply_operations
+
+    capture = await db.get(CaptureRequest, capture_id)
+    if capture is None or capture.status != 'capturing':
+        raise LookupError('Active capture not found')
+    board = await ensure_for_capture(db, capture)
+    board_id, expected_version = board.id, board.version
+    tag = f'voice:{command_id}'
+    prior = await db.scalar(select(MeetingBoardRevision).where(
+        MeetingBoardRevision.board_id == board_id, MeetingBoardRevision.source.in_([tag, f'voice_undo:{command_id}']),
+    ))
+    if prior:
+        await db.commit()
+        return {'board': serialize(board), 'message': 'This board request was already applied.', 'duplicate': True}
+    snapshot = serialize(board)
+    user_id, meeting_id = capture.user_id, capture.meeting_id
+    await db.commit()  # Never hold board/advisory locks while waiting for a model.
+    normalized = command.strip().lower().rstrip('.!?')
+    while True:
+        cleaned = re.sub(r'^(?:please|can you|could you)\s+', '', normalized)
+        if cleaned == normalized:
+            break
+        normalized = cleaned
+    undo = normalized in {'undo', 'undo that', 'undo last change', 'undo the last change', 'undo the last board change'}
+    plan = None
+    if not undo:
+        usage_ledger.attribute(user_id=user_id, meeting_id=meeting_id)
+        plan, _ = await asyncio.to_thread(
+            gemini_service.generate_structured, SYSTEM_PROMPT,
+            json.dumps({'request': command, 'board': snapshot}, ensure_ascii=False),
+            BoardCommandPlan, max_output_tokens=2200, feature='meeting_whiteboard_command',
+        )
+        if not plan.operations:
+            return {'board': snapshot, 'message': plan.message or 'Which point should I change?'}
+    board = (await db.execute(select(MeetingBoard).where(MeetingBoard.id == board_id)
+                              .with_for_update().execution_options(populate_existing=True))).scalar_one()
+    prior = await db.scalar(select(MeetingBoardRevision).where(
+        MeetingBoardRevision.board_id == board_id, MeetingBoardRevision.source.in_([tag, f'voice_undo:{command_id}']),
+    ))
+    if prior:
+        await db.commit()
+        return {'board': serialize(board), 'message': 'This board request was already applied.', 'duplicate': True}
+    if board.version != expected_version:
+        raise BoardCommandConflict('The board changed while I was working. Please ask again.')
+    # Capture may have ended during planning.
+    await db.refresh(capture)
+    if capture.status != 'capturing':
+        raise BoardCommandConflict('The live meeting has ended; edit its saved board instead.')
+    if undo:
+        latest = await db.scalar(select(MeetingBoardRevision).where(
+            MeetingBoardRevision.board_id == board_id, MeetingBoardRevision.version == board.version))
+        if latest is None or not latest.source.startswith('voice:'):
+            raise BoardCommandConflict('I can undo the last voice edit only before another edit is saved.')
+        previous = await db.scalar(select(MeetingBoardRevision).where(
+            MeetingBoardRevision.board_id == board_id, MeetingBoardRevision.version == board.version - 1))
+        if previous is None:
+            raise BoardCommandConflict('There is no earlier board version to restore.')
+        nodes, edges = previous.nodes, previous.edges
+        tag = f'voice_undo:{command_id}'
+        message = 'Undid the last voice edit.'
+    else:
+        nodes, edges = apply_operations(board.nodes or [], board.edges or [], plan.operations, command_id)
+        message = f'Updated the board with {len(plan.operations)} change' + ('s.' if len(plan.operations) != 1 else '.')
+    # Pause autonomous additions after an explicit edit; users can resume in the board.
+    board.paused = True
+    await save_snapshot(db, board, expected_version=expected_version, nodes=nodes, edges=edges,
+                        actor_id=None, source=tag)
+    await db.commit()
+    return {'board': serialize(board), 'message': message, 'duplicate': False}

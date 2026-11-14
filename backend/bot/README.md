@@ -171,3 +171,18 @@ Session shutdown cancels queued work and terminates/reaps active ffmpeg playback
 synchronous HTTP request already running in a thread may still finish: cancellation
 does not undo external writes. Spoken barge-in, durable actions, and provider streaming
 remain follow-up work. Real Meet and Teams acceptance is required before release.
+
+## Voice board editing and presentation prototype
+
+See [voice-whiteboard.md](../../docs/voice-whiteboard.md) for the capability table,
+voice examples, alternatives researched, validation, and remaining real-call checks.
+
+Open a board with “Wilco, open a whiteboard”, then ask “Wilco, draw a signup flow”.
+Edits use version checks and command IDs; undo cannot overwrite a later human edit.
+Explicit edits pause autonomous AI additions until Resume AI is selected in the board.
+
+Automatic Meet presentation is experimental and defaults off. `PRESENT_BOARD=1` in
+`backend/bot/.env` enables a canvas-only display-media adapter in the bot's browser.
+It needs an explicit “present the board” request and a successful Meet UI check.
+It has passed a local Chromium/WebRTC media test, not a real Meet acceptance session.
+Teams presentation is not enabled. Manual sharing of the board tab remains available.

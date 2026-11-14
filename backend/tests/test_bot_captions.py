@@ -238,3 +238,11 @@ def test_shutdown_terminates_playback_and_removes_audio(tmp_path, monkeypatch):
         assert not list(session.dir.glob("speech_*.mp3"))
         page.evaluate.assert_any_await("window.__charchaSpeaking = false")
     asyncio.run(scenario())
+
+
+def test_wilco_wake_name_and_exit_work_alongside_legacy_name(tmp_path, monkeypatch):
+    monkeypatch.setattr(meeting_session.config, 'SESSIONS_DIR', tmp_path)
+    session = meeting_session.MeetingSession({'meet_url': 'https://meet.google.com/abc-defg-hij'})
+    session.captions.latest[1] = ('Ravi', 'Wilco, open a whiteboard', meeting_session.time.monotonic() - 3)
+    assert session.spoken_questions() == [('Ravi', 'open a whiteboard')]
+    assert meeting_session.wants_exit('Wilco please leave')

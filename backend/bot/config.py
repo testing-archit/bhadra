@@ -87,3 +87,6 @@ EXIT_PHRASES = [
 SESSIONS_DIR = STATE_DIR / "sessions"
 PENDING_DIR = STATE_DIR / "pending_uploads"
 SCHEDULER_STATE_PATH = STATE_DIR / "scheduler_state.json"
+
+# Experimental: canvas-only Meet screen sharing, pending real-call acceptance.
+PRESENT_BOARD = _env("PRESENT_BOARD", "0").lower() in {"1", "true", "yes"}

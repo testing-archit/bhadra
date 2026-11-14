@@ -80,3 +80,7 @@ Codex is implementing command scheduling and metadata-only stage timings in `/pr
 ### Command runtime checkpoint
 
 Implemented on `codex/meeting-agent-pipeline` from `25559c0`: bot command runtime, caption wakeups, bounded execution/playback, metadata-only timings, optional MLflow dependencies/export, shutdown playback cleanup, focused tests, and tracing validator. Validation: 17 focused tests passed; four synthetic traces stored/retrieved; compile and whitespace checks passed. Full suite, production confirmation, and real-call acceptance remain pending. No deployment. See `docs/meeting-agent-plan.md` implementation log and the bot README for scope and commands.
+
+## Voice whiteboard checkpoint, 15 November 2026
+
+Continued on `codex/meeting-agent-pipeline`: structured board operations and bot-only endpoints, replay-safe revisions/undo, optimistic concurrency without provider calls under row locks, Wilco/legacy command routing, and opt-in canvas presentation assets. Presentation defaults off and is Meet-only. Full backend suite: 434 passed against disposable local Postgres. Local Chromium/WebRTC proof and synthetic screenshot passed; real Meet remote reception, live model/audio accuracy, and capacity remain unverified. See `docs/voice-whiteboard.md`. No deployment.
