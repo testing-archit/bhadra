@@ -58,3 +58,24 @@ async def test_timbre_errors_are_raised_not_cached():
 
     with patch.object(httpx.AsyncClient, "post", failing_post), pytest.raises(RuntimeError):
         await tts_service.synthesize("Hello team")
+
+
+def test_long_regional_text_is_split_into_sentence_chunks():
+    sentence = "उद्या सकाळी सात वाजता पाण्याचा टँकर येईल. "
+    chunks = tts_service._chunks((sentence * 20).strip())
+    assert len(chunks) > 1
+    assert all(len(chunk) <= tts_service.CHUNK_CHARS for chunk in chunks)
+    assert all(chunk.endswith(".") for chunk in chunks)
+
+
+async def test_chunks_are_spoken_and_joined():
+    bodies = []
+
+    async def fake_post(self, url, **kwargs):
+        bodies.append(kwargs["json"]["text"])
+        return httpx.Response(200, content=b"MP3" + str(len(bodies)).encode(), headers={"content-type": "audio/mpeg"}, request=httpx.Request("POST", url))
+
+    text = ("Yeh ek lamba vaakya hai jo baar baar aata hai. " * 15).strip()
+    with patch.object(httpx.AsyncClient, "post", fake_post):
+        audio = await tts_service.synthesize(text)
+    assert len(bodies) > 1 and audio.startswith(b"MP31")

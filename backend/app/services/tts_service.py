@@ -51,6 +51,57 @@ def _cache_path(text: str, language: str, model: str, voice: str) -> Path:
     return Path(settings.recordings_dir).resolve() / "tts_cache" / digest[:2] / f"{digest}.mp3"
 
 
+CHUNK_CHARS = 300
+
+
+def _chunks(text: str) -> list[str]:
+    """Sentence-sized pieces of at most CHUNK_CHARS (a single overlong
+    sentence is cut at a space)."""
+    if len(text) <= CHUNK_CHARS:
+        return [text]
+    sentences = re.split(r"(?<=[.!?।])\s+", text)
+    chunks: list[str] = []
+    current = ""
+    for sentence in sentences:
+        while len(sentence) > CHUNK_CHARS:
+            cut = sentence.rfind(" ", 0, CHUNK_CHARS)
+            cut = cut if cut > CHUNK_CHARS // 3 else CHUNK_CHARS
+            if current:
+                chunks.append(current)
+                current = ""
+            chunks.append(sentence[:cut].strip())
+            sentence = sentence[cut:].strip()
+        if current and len(current) + 1 + len(sentence) > CHUNK_CHARS:
+            chunks.append(current)
+            current = sentence
+        else:
+            current = f"{current} {sentence}".strip()
+    if current:
+        chunks.append(current)
+    return [chunk for chunk in chunks if chunk]
+
+
+async def _speak_chunk(client: httpx.AsyncClient, text: str, model: str, voice: str, language: str) -> bytes:
+    """One Timbre request, retried once on a server error."""
+    for attempt in range(2):
+        response = await client.post(
+            settings.gnani_tts_url,
+            headers={"X-API-Key-ID": settings.gnani_api_key},
+            json={
+                "text": text,
+                "model": model,
+                "voice": voice,
+                "language": language,
+                "audio_config": {"container": "mp3", "sample_rate": 24000, "bitrate": "64k"},
+            },
+        )
+        if response.is_success and response.headers.get("content-type", "").startswith("audio/"):
+            return response.content
+        if response.status_code < 500 or attempt == 1:
+            break
+    raise RuntimeError(f"Gnani Timbre error {response.status_code}: {response.text[:300]}")
+
+
 def voice_for(language: str) -> tuple[str, str]:
     """(model, voice) for a language: the fast Hinglish/Hindi/English voice,
     or Timbre v3.0, whose voices speak every supported Indian language."""
@@ -79,21 +130,14 @@ async def synthesize(text: str, language: str | None = None) -> bytes:
     except OSError:
         pass
 
+    # Timbre answers overlong text with a generic 500, and regional scripts
+    # run long, so speak in sentence-sized pieces and join the MP3s (MP3
+    # frames concatenate cleanly).
+    pieces = []
     async with httpx.AsyncClient(timeout=httpx.Timeout(60.0, connect=10.0)) as client:
-        response = await client.post(
-            settings.gnani_tts_url,
-            headers={"X-API-Key-ID": settings.gnani_api_key},
-            json={
-                "text": text,
-                "model": model,
-                "voice": voice,
-                "language": language,
-                "audio_config": {"container": "mp3", "sample_rate": 24000, "bitrate": "64k"},
-            },
-        )
-    if not response.is_success or not response.headers.get("content-type", "").startswith("audio/"):
-        raise RuntimeError(f"Gnani Timbre error {response.status_code}: {response.text[:300]}")
-    audio = response.content
+        for chunk in _chunks(text):
+            pieces.append(await _speak_chunk(client, chunk, model, voice, language))
+    audio = b"".join(pieces)
 
     # Timbre is billed by the request, not the second; the ledger records
     # the spoken length so Admin → AI spend shows how much was read aloud.
