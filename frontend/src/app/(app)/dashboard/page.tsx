@@ -1,298 +1,120 @@
 "use client";
 
-import { Suspense, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import {
-  AlertTriangle,
-  ArrowUpRight,
-  ChevronLeft,
-  ChevronRight,
-  ListChecks,
-  RefreshCw,
-  Scale,
-  Video,
-} from "lucide-react";
-import { api, ApiError, type Digest, type MeetingSummary, type TaskListItem } from "@/lib/api";
+import { ArrowRight, Bot, Check, ChevronLeft, ChevronRight, Mic, Sparkles, Video } from "lucide-react";
+import { api, ApiError, type MeetingDetail, type MeetingSummary, type TaskListItem, type VoiceProfileStatus } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
-import { isTaskOverdue } from "@/lib/deadline";
-import { compareByUrgency, formatDue, isMine } from "@/lib/tasks";
-import { cn } from "@/lib/utils";
+import { compareByUrgency, formatDue, isMyTask } from "@/lib/tasks";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
 import { isCaptureLive, useShell } from "@/components/shell/shell-context";
-import { UpcomingMeetings } from "@/components/upcoming-meetings";
-import { PromptHero } from "@/components/prompt-hero";
 
-
-function weekRange(digest: Digest) {
-  const start = new Date(digest.week_start);
-  const end = new Date(digest.week_end);
-  end.setDate(end.getDate() - 1);
-  const format = (date: Date) => date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
-  return `${format(start)} – ${format(end)}`;
-}
+type FocusItem = { kind: "voice" } | { kind: "review"; meeting: MeetingSummary; count: number } | { kind: "task"; task: TaskListItem };
 
 export default function HomePage() {
   const { user } = useAuth();
   const { openNotetaker, captures } = useShell();
   const [tasks, setTasks] = useState<TaskListItem[] | null>(null);
   const [meetings, setMeetings] = useState<MeetingSummary[] | null>(null);
+  const [latest, setLatest] = useState<MeetingDetail | null>(null);
+  const [unknownSpeakers, setUnknownSpeakers] = useState(0);
+  const [voice, setVoice] = useState<VoiceProfileStatus | null>(null);
+  const [cursor, setCursor] = useState(0);
+  const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    Promise.all([api.listTasks(), api.listMeetings()])
-      .then(([taskList, meetingList]) => {
-        setTasks(taskList);
-        setMeetings(meetingList);
-      })
-      .catch((cause) => setError(cause instanceof ApiError ? cause.message : "Your workspace could not be loaded."));
+    void api.getVoiceProfile().then(setVoice).catch(() => undefined);
+    Promise.all([api.listTasks(), api.listMeetings()]).then(([taskRows, meetingRows]) => {
+      setTasks(taskRows);
+      setMeetings(meetingRows);
+      if (meetingRows[0] && meetingRows[0].processing_state !== "processing") {
+        void api.getMeeting(meetingRows[0].id).then(setLatest).catch(() => undefined);
+        void api.getTranscript(meetingRows[0].id, { limit: 1 }).then((page) =>
+          setUnknownSpeakers(page.speakers.filter((speaker) => !speaker.named && speaker.segment_count > 0).length)
+        ).catch(() => undefined);
+      }
+    }).catch((cause) => setError(cause instanceof ApiError ? cause.message : "Your briefing could not be loaded."));
   }, []);
 
-  const myTasks = useMemo(
-    () => (tasks ?? []).filter((task) => task.status !== "done" && isMine(task, user)).sort(compareByUrgency),
-    [tasks, user],
-  );
-  const live = captures.filter((item) => isCaptureLive(item) && item.subscribed !== false);
-  const firstName = user?.name?.split(/\s+/)[0];
+  const queue = useMemo(() => {
+    const items: FocusItem[] = [];
+    if (voice?.available && !voice.enrolled) items.push({ kind: "voice" });
+    if (latest && meetings?.[0]?.id === latest.id) {
+      const count = latest.tasks.filter((task) => !task.verified_at).length
+        + latest.decisions.filter((decision) => !decision.verified_at).length + unknownSpeakers;
+      if (count) items.push({ kind: "review", meeting: meetings[0], count });
+    }
+    for (const task of (tasks ?? []).filter((row) => row.status !== "done" && isMyTask(row, user)).sort(compareByUrgency)) {
+      items.push({ kind: "task", task });
+    }
+    return items;
+  }, [latest, meetings, tasks, user, voice, unknownSpeakers]);
+  const position = Math.min(cursor, Math.max(0, queue.length - 1));
+  const active = queue[position];
+  const live = captures.find((item) => isCaptureLive(item) && item.subscribed !== false);
 
-  async function completeTask(task: TaskListItem) {
-    setTasks((current) => current?.map((item) => (item.id === task.id ? { ...item, status: "done" } : item)) ?? null);
+  async function finishTask(task: TaskListItem) {
+    setBusy(true);
+    setError(null);
     try {
       await api.updateTaskStatus(task.id, "done");
-    } catch {
-      setTasks((current) => current?.map((item) => (item.id === task.id ? task : item)) ?? null);
+      setTasks((current) => current?.filter((row) => row.id !== task.id) ?? null);
+      setCursor(0);
+    } catch (cause) {
+      setError(cause instanceof ApiError ? cause.message : "Could not complete this task.");
+    } finally {
+      setBusy(false);
     }
   }
 
   return (
-    <div className="flex flex-col gap-8">
-      <PromptHero firstName={firstName} onCapture={() => openNotetaker()} />
-
-      {live.length > 0 && (
-        <section className="flex flex-col gap-3 rounded-2xl border border-primary/25 bg-primary/5 p-4 sm:flex-row sm:items-center">
-          <span className="relative flex size-2.5 shrink-0">
-            <span className="absolute inline-flex size-full animate-ping rounded-full bg-destructive/60" />
-            <span className="relative inline-flex size-2.5 rounded-full bg-destructive" />
-          </span>
-          <div className="min-w-0 flex-1">
-            <p className="font-medium">
-              {live.length === 1 ? (live[0].title || live[0].meeting_code) : `${live.length} meetings in progress`}
-            </p>
-            <p className="text-sm text-muted-foreground">
-              {live.length === 1 ? live[0].status_label : live.map((item) => item.title || item.meeting_code).join(", ")}
-              . Notes appear here when the call ends.
-            </p>
-          </div>
-        </section>
-      )}
-
-      {error && <p className="text-sm text-destructive">{error}</p>}
-
-      <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_340px]">
-        <div className="flex min-w-0 flex-col gap-8">
-          {/* Reads ?brief= from a pre-meeting notification. */}
-          <Suspense fallback={null}>
-            <UpcomingMeetings />
-          </Suspense>
-
-          <section className="flex flex-col gap-3">
-            <SectionHeading title="Your open tasks" count={tasks ? myTasks.length : undefined} href="/tasks?owner=me" linkLabel="All tasks" />
-            {!tasks ? (
-              <Skeleton className="h-48 w-full rounded-xl" />
-            ) : myTasks.length === 0 ? (
-              <div className="rounded-xl border border-dashed px-5 py-8 text-center">
-                <ListChecks className="mx-auto size-5 text-muted-foreground" />
-                <p className="mt-2 text-sm font-medium">Nothing assigned to you</p>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  Tasks land here when someone names you as the owner in a meeting.
-                </p>
-              </div>
-            ) : (
-              <div className="overflow-hidden rounded-xl border bg-card">
-                {myTasks.slice(0, 8).map((task) => {
-                  const overdue = isTaskOverdue(task.deadline, task.meeting_date, task.status, task.due_date);
-                  const due = formatDue(task);
-                  return (
-                    <div key={task.id} className="flex items-start gap-3 border-b px-4 py-3 last:border-b-0">
-                      <Checkbox
-                        className="mt-0.5"
-                        checked={false}
-                        onCheckedChange={() => void completeTask(task)}
-                        aria-label={`Mark “${task.description}” done`}
-                      />
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm leading-snug">{task.description}</p>
-                        <p className="mt-1 flex flex-wrap items-center gap-x-2 text-xs text-muted-foreground">
-                          {due && (
-                            <span className={cn(overdue && "flex items-center gap-1 font-medium text-destructive")}>
-                              {overdue && <AlertTriangle className="size-3" />}
-                              {overdue ? `Overdue, ${due}` : `Due ${due}`}
-                            </span>
-                          )}
-                          {task.meeting_hidden ? (
-                            <span className="truncate">{task.meeting_title}</span>
-                          ) : (
-                            <Link href={`/meetings/${task.meeting_id}`} className="truncate hover:text-foreground hover:underline">
-                              {task.meeting_title}
-                            </Link>
-                          )}
-                        </p>
-                      </div>
-                      {task.priority === "High" && (
-                        <span className="shrink-0 rounded-md bg-destructive/10 px-1.5 py-0.5 text-xs font-medium text-destructive">High</span>
-                      )}
-                    </div>
-                  );
-                })}
-                {myTasks.length > 8 && (
-                  <Link href="/tasks?owner=me" className="block px-4 py-2.5 text-sm text-primary hover:bg-muted/50">
-                    {myTasks.length - 8} more
-                  </Link>
-                )}
-              </div>
-            )}
-          </section>
-
-          <section className="flex flex-col gap-3">
-            <SectionHeading title="Recent meetings" href="/meetings" linkLabel="All meetings" />
-            {!meetings ? (
-              <Skeleton className="h-56 w-full rounded-xl" />
-            ) : meetings.length === 0 ? (
-              <div className="rounded-xl border border-dashed px-5 py-8 text-center">
-                <Video className="mx-auto size-5 text-muted-foreground" />
-                <p className="mt-2 text-sm font-medium">No meetings yet</p>
-                <p className="mt-1 text-sm text-muted-foreground">Send the notetaker into your next Google Meet or Teams call to get started.</p>
-              </div>
-            ) : (
-              <div className="overflow-hidden rounded-xl border bg-card">
-                {meetings.slice(0, 5).map((meeting) => (
-                  <Link
-                    key={meeting.id}
-                    href={`/meetings/${meeting.id}`}
-                    className="group flex items-center gap-3 border-b px-4 py-3 transition-colors last:border-b-0 hover:bg-muted/50"
-                  >
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium group-hover:text-primary">{meeting.title}</p>
-                      <p className="mt-0.5 line-clamp-1 text-xs text-muted-foreground">{meeting.summary || "No summary yet"}</p>
-                    </div>
-                    <span className="shrink-0 text-xs text-muted-foreground">
-                      {new Date(meeting.date).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
-                    </span>
-                  </Link>
-                ))}
-              </div>
-            )}
-          </section>
+    <div className="mx-auto flex max-w-5xl flex-col gap-8 pb-10">
+      <header className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-primary">Your briefing</p>
+          <h1 className="mt-2 font-heading text-4xl font-semibold tracking-tight sm:text-5xl">What needs me?</h1>
+          <p className="mt-2 text-sm text-muted-foreground">One thing at a time. The rest can wait.</p>
         </div>
+        <Button onClick={() => openNotetaker()} className="shrink-0"><Bot className="size-4" /> Bring Charcha to a meeting</Button>
+      </header>
 
-        <WeekPanel />
+      {live && <div className="flex items-center gap-3 rounded-2xl border border-primary/25 bg-primary/5 px-4 py-3" role="status"><span className="size-2.5 animate-pulse rounded-full bg-destructive" /><p className="min-w-0 flex-1 truncate text-sm"><strong>{live.title || live.meeting_code}</strong> · Charcha is in the call</p></div>}
+
+      <section aria-label="Focused item" className="overflow-hidden rounded-3xl border bg-card shadow-sm">
+        <div className="h-1.5 bg-primary/10"><div className="h-full bg-primary transition-all" style={{ width: queue.length ? `${((position + 1) / queue.length) * 100}%` : "100%" }} /></div>
+        <div className="min-h-76 p-6 sm:p-9" aria-live="polite">
+          {tasks === null ? <Skeleton className="h-48 w-full rounded-2xl" /> : !active ? (
+            <div className="flex min-h-56 flex-col items-start justify-center">
+              <span className="mb-4 grid size-12 place-items-center rounded-2xl bg-success/10 text-success"><Check className="size-6" /></span>
+              <h2 className="font-heading text-2xl font-semibold">You&apos;re clear for now</h2>
+              <p className="mt-2 max-w-lg text-sm leading-6 text-muted-foreground">New tasks and meetings that need your review will appear here.</p>
+              <Link href="/meetings" className="mt-5 inline-flex items-center gap-1.5 text-sm font-semibold text-primary hover:underline">Browse meetings <ArrowRight className="size-4" /></Link>
+            </div>
+          ) : (
+            <div className="flex min-h-56 flex-col">
+              <div className="flex items-center justify-between gap-4"><span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">{active.kind === "voice" ? "One-time setup" : active.kind === "review" ? "Needs your review" : "Your task"}</span><span className="font-mono text-xs tabular-nums text-muted-foreground">{position + 1} / {queue.length}</span></div>
+              <h2 className="mt-7 max-w-3xl font-heading text-2xl font-semibold leading-snug sm:text-3xl">{active.kind === "voice" ? "Let Charcha learn your voice" : active.kind === "review" ? `Review ${active.meeting.title}` : active.task.description}</h2>
+              <p className="mt-3 text-sm text-muted-foreground">{active.kind === "voice" ? "A short recording helps name your speech in future meetings." : active.kind === "review" ? `${active.count} ${active.count === 1 ? "item" : "items"} to confirm or correct before the recap is ready.` : `${active.task.meeting_title}${formatDue(active.task) ? ` · Due ${formatDue(active.task)}` : ""}`}</p>
+              <div className="mt-auto flex flex-wrap items-center gap-3 pt-8">
+                {active.kind === "voice" ? <Link href="/voice-setup" className="inline-flex h-10 items-center gap-2 rounded-full bg-primary px-5 text-sm font-semibold text-primary-foreground hover:bg-primary/90">Set up voice <ArrowRight className="size-4" /></Link> : active.kind === "review" ? <Link href={`/meetings/${active.meeting.id}?review=1`} className="inline-flex h-10 items-center gap-2 rounded-full bg-primary px-5 text-sm font-semibold text-primary-foreground hover:bg-primary/90">Review now <ArrowRight className="size-4" /></Link> : <>
+                  <Button onClick={() => void finishTask(active.task)} disabled={busy}><Check className="size-4" /> {busy ? "Saving…" : "Mark done"}</Button>
+                  <Link href={`/tasks?task=${active.task.id}`} className="text-sm font-medium text-muted-foreground hover:text-foreground">Open task</Link>
+                </>}
+              </div>
+            </div>
+          )}
+        </div>
+        {queue.length > 1 && <div className="flex items-center justify-between border-t px-5 py-3 sm:px-9"><span className="text-xs text-muted-foreground">{queue.length - 1} more in your queue</span><div className="flex gap-1"><button type="button" aria-label="Previous item" disabled={position === 0} onClick={() => setCursor(position - 1)} className="grid size-9 place-items-center rounded-full hover:bg-muted disabled:opacity-30"><ChevronLeft className="size-4" /></button><button type="button" aria-label="Next item" disabled={position >= queue.length - 1} onClick={() => setCursor(position + 1)} className="grid size-9 place-items-center rounded-full hover:bg-muted disabled:opacity-30"><ChevronRight className="size-4" /></button></div></div>}
+      </section>
+      {error && <p className="text-sm text-destructive" role="alert">{error}</p>}
+
+      <div className="grid gap-4 md:grid-cols-2">
+        <Link href="/memory" className="group flex items-center gap-4 rounded-2xl border bg-card/60 p-5 transition-colors hover:bg-card"><span className="grid size-11 place-items-center rounded-xl bg-primary/10 text-primary"><Sparkles className="size-5" /></span><span className="flex-1"><strong className="block text-sm">Ask about any meeting</strong><span className="mt-1 block text-xs text-muted-foreground">Find an answer with its source</span></span><ArrowRight className="size-4 text-muted-foreground group-hover:text-primary" /></Link>
+        <Link href="/record" className="group flex items-center gap-4 rounded-2xl border bg-card/60 p-5 transition-colors hover:bg-card"><span className="grid size-11 place-items-center rounded-xl bg-primary/10 text-primary"><Mic className="size-5" /></span><span className="flex-1"><strong className="block text-sm">Record in person</strong><span className="mt-1 block text-xs text-muted-foreground">For conversations outside Meet</span></span><ArrowRight className="size-4 text-muted-foreground group-hover:text-primary" /></Link>
       </div>
+      <section><div className="mb-3 flex items-center justify-between"><h2 className="font-heading text-lg font-semibold">Recent meetings</h2><Link href="/meetings" className="text-xs font-semibold text-primary hover:underline">All meetings</Link></div><div className="overflow-hidden rounded-2xl border bg-card/60">{meetings === null ? <Skeleton className="h-20 w-full" /> : meetings.length === 0 ? <p className="px-5 py-8 text-sm text-muted-foreground">Your meetings will show up here.</p> : meetings.slice(0, 3).map((meeting) => <Link key={meeting.id} href={`/meetings/${meeting.id}`} className="group flex items-center gap-3 border-b px-5 py-4 last:border-0 hover:bg-muted/50"><Video className="size-4 shrink-0 text-muted-foreground" /><span className="min-w-0 flex-1 truncate text-sm font-medium">{meeting.title}</span><span className="text-xs text-muted-foreground">{new Date(meeting.date).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</span><ArrowRight className="size-4 text-muted-foreground group-hover:text-primary" /></Link>)}</div></section>
     </div>
-  );
-}
-
-function SectionHeading({ title, count, href, linkLabel }: { title: string; count?: number; href: string; linkLabel: string }) {
-  return (
-    <div className="flex items-center justify-between gap-3">
-      <h3 className="flex items-center gap-2 font-semibold">
-        {title}
-        {count !== undefined && count > 0 && (
-          <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground tabular-nums">{count}</span>
-        )}
-      </h3>
-      <Link href={href} className="flex items-center gap-0.5 text-sm text-muted-foreground hover:text-foreground">
-        {linkLabel} <ArrowUpRight className="size-3.5" />
-      </Link>
-    </div>
-  );
-}
-
-/** The weekly digest, folded into Home: what the team got through and what
- * it decided, one week at a time. */
-function WeekPanel() {
-  const [offset, setOffset] = useState(0);
-  const [digest, setDigest] = useState<Digest | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    setDigest(null);
-    api
-      .getDigest(offset)
-      .then((result) => !cancelled && setDigest(result))
-      .catch((cause) => !cancelled && setError(cause instanceof ApiError ? cause.message : "The weekly digest could not be loaded."));
-    return () => {
-      cancelled = true;
-    };
-  }, [offset]);
-
-  const stats = digest
-    ? [
-        { label: "Meetings", value: digest.meetings_count, icon: Video },
-        { label: "Tasks done", value: digest.tasks_completed, icon: ListChecks },
-        { label: "Decisions", value: digest.decisions_made, icon: Scale },
-        { label: "Reversals", value: digest.contradictions_found, icon: RefreshCw },
-      ]
-    : [];
-
-  return (
-    <aside className="flex flex-col gap-3">
-      <div className="flex items-center justify-between gap-2">
-        <h3 className="font-semibold">{offset === 0 ? "This week" : offset === -1 ? "Last week" : "Week of"}</h3>
-        <div className="flex items-center gap-1">
-          <span className="mr-1 text-xs text-muted-foreground tabular-nums">{digest ? weekRange(digest) : ""}</span>
-          <Button variant="ghost" size="icon-sm" onClick={() => setOffset((value) => value - 1)} aria-label="Previous week">
-            <ChevronLeft />
-          </Button>
-          <Button variant="ghost" size="icon-sm" onClick={() => setOffset((value) => value + 1)} disabled={offset >= 0} aria-label="Next week">
-            <ChevronRight />
-          </Button>
-        </div>
-      </div>
-
-      {error && <p className="text-sm text-destructive">{error}</p>}
-
-      <div className="rounded-xl border bg-card">
-        <div className="grid grid-cols-2">
-          {digest
-            ? stats.map((stat, index) => (
-                <div key={stat.label} className={cn("flex flex-col gap-1 p-4", index % 2 === 0 && "border-r", index < 2 && "border-b")}>
-                  <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                    <stat.icon className="size-3.5" /> {stat.label}
-                  </span>
-                  <span className="text-2xl font-semibold tabular-nums">{stat.value}</span>
-                </div>
-              ))
-            : [0, 1, 2, 3].map((index) => (
-                <div key={index} className="p-4"><Skeleton className="h-10 w-full" /></div>
-              ))}
-        </div>
-
-        {digest && digest.decisions.length > 0 && (
-          <div className="border-t p-4">
-            <p className="mb-2 text-xs font-medium text-muted-foreground">Decided</p>
-            <ul className="flex flex-col gap-3">
-              {digest.decisions.slice(0, 6).map((decision) => (
-                <li key={decision.id} className="text-sm">
-                  <Link href={`/meetings/${decision.meeting_id}`} className="leading-snug hover:text-primary">
-                    {decision.decision}
-                  </Link>
-                  {decision.conflict_note && (
-                    <p className="mt-1 flex items-start gap-1.5 text-xs text-warning">
-                      <AlertTriangle className="mt-px size-3 shrink-0" />
-                      {decision.conflict_note}
-                    </p>
-                  )}
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-        {digest && digest.meetings_count === 0 && (
-          <p className="border-t p-4 text-sm text-muted-foreground">No meetings were captured this week.</p>
-        )}
-      </div>
-    </aside>
   );
 }

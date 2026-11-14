@@ -181,6 +181,13 @@ export interface AuthResponse {
   name: string | null;
 }
 
+export interface VoiceProfileStatus {
+  enrolled: boolean;
+  available: boolean;
+  confirmed_samples: number;
+  updated_at: string | null;
+}
+
 export interface MeetingSummary {
   id: string;
   title: string;
@@ -1474,6 +1481,16 @@ export interface MeetingPrep {
 export type TranscriptExportFormat = "txt" | "md" | "json" | "srt" | "vtt";
 
 export const api = {
+  getVoiceProfile: () => apiFetch<VoiceProfileStatus>("/api/voice/profile"),
+  enrollVoice: (audio: Blob) => {
+    const form = new FormData();
+    form.append("audio", audio, "voice.webm");
+    form.append("consent", "true");
+    return apiFetch<{ enrolled: boolean; confirmed_samples: number }>("/api/voice/profile", { method: "POST", body: form });
+  },
+  deleteVoiceProfile: () => apiFetch<{ enrolled: boolean }>("/api/voice/profile", { method: "DELETE" }),
+  confirmVoiceSpeaker: (meetingId: string, speakerKey: string) =>
+    apiFetch<{ confirmed: boolean; confirmed_samples: number }>(`/api/voice/confirm/${meetingId}/${encodeURIComponent(speakerKey)}`, { method: "POST" }),
   /** A 90-day token for connecting Claude or another MCP client. */
   createConnectorToken: () =>
     apiFetch<{ token: string; url: string; expires_at: string }>("/api/auth/connector-token", { method: "POST" }),

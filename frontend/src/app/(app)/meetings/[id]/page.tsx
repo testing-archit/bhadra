@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ProcessingPanel } from "@/components/meeting/processing-panel";
 import { TranscriptWorkspace, TranscriptFocus } from "@/components/meeting/transcript-workspace";
 import { EvidenceChips } from "@/components/meeting/evidence-chips";
+import { GuidedReview } from "@/components/meeting/guided-review";
 import { AskAiPanel } from "@/components/meeting/ask-ai-panel";
 import { AnalyticsPanel } from "@/components/meeting/analytics-panel";
 import { ResolvedCitation } from "@/components/cited-markdown";
@@ -693,6 +694,15 @@ export default function MeetingDetailPage() {
           )}
         </div>
       )}
+
+      <GuidedReview
+        meeting={meeting}
+        onChanged={reloadMeeting}
+        onEvidence={openEvidence}
+        onShare={() => void copyShareLink()}
+        shareBusy={shareBusy}
+        shareCopied={shareCopied}
+      />
 
       <Tabs value={tab} onValueChange={(value) => setTab(value as TabId)}>
         <TabsList className="h-auto! w-full flex-wrap justify-start sm:w-fit">

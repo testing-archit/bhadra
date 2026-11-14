@@ -14,8 +14,9 @@ import logging
 import uuid
 
 from app.database.db import async_session
-from app.database.models import Meeting, RecordingSession, Trace
-from app.services import followup_service, insight_service, jira_service, processing_service, transcriber, transcript_service, vocabulary_service
+from app.database.models import Meeting, MeetingAttendee, RecordingSession, Trace
+from app.services import followup_service, insight_service, jira_service, processing_service, transcriber, transcript_service, vocabulary_service, voice_identity
+from sqlalchemy import select
 from app.services.meeting_index_service import rebuild_meeting_index
 from app.services import usage_ledger
 
@@ -49,9 +50,10 @@ async def transcribe_recording(meeting_id: uuid.UUID, recording_id: uuid.UUID) -
     directory = _session_dir(recording_id)
     audio_path = directory / "recording.webm"
     await processing_service.set_stage(meeting_id, "transcription", "running")
+    audio_bytes = await asyncio.to_thread(audio_path.read_bytes)
     try:
         detailed = await transcriber.transcribe_audio_detailed(
-            await asyncio.to_thread(audio_path.read_bytes), mime_type, language, people=people
+            audio_bytes, mime_type, language, people=people
         )
         if not detailed["turns"]:
             raise RuntimeError("No speech was recognized in this recording")
@@ -60,17 +62,41 @@ async def transcribe_recording(meeting_id: uuid.UUID, recording_id: uuid.UUID) -
         await processing_service.set_stage(meeting_id, "transcription", "failed", error=error)
         return False
 
+    # Identify enrolled colleagues only when the audio strongly matches their
+    # own confirmed voice profile. Uncertain turns remain Speaker N.
+    voice_names: dict[str, str] = {}
+    try:
+        async with async_session() as db:
+            attendee_ids = await db.scalars(
+                select(MeetingAttendee.user_id).where(
+                    MeetingAttendee.meeting_id == meeting_id,
+                    MeetingAttendee.user_id.is_not(None),
+                )
+            )
+            candidate_ids = {identifier for identifier in attendee_ids if identifier}
+            meeting = await db.get(Meeting, meeting_id)
+            if meeting:
+                candidate_ids.add(meeting.user_id)
+            voice_names = await voice_identity.match_known_voices(
+                db, audio_bytes, detailed["turns"], candidate_ids
+            )
+    except Exception:
+        logger.exception("Voice matching skipped for meeting %s", meeting_id)
+    detailed["speaker_names"] = voice_names
+    detailed["transcript"] = transcriber.format_transcript(detailed["turns"], voice_names)
     # The diarization file doubles as the recording's cache, so the speaker
     # panel works and a later re-analysis is an explicit, separate choice.
     (directory / "recording.diarization.json").write_text(json.dumps(detailed, ensure_ascii=False), encoding="utf-8")
     (directory / "recording.txt").write_text(detailed["transcript"], encoding="utf-8")
+    if voice_names:
+        (directory / "speaker_names.json").write_text(json.dumps(voice_names, ensure_ascii=False), encoding="utf-8")
     async with async_session() as db:
         meeting = await _live_meeting(db, meeting_id)
         if meeting is None:
             await processing_service.set_stage(meeting_id, "transcription", "skipped", error="Meeting was deleted")
             return False
         await transcript_service.replace_segments(
-            db, meeting, transcript_service.segments_from_turns(detailed["turns"]), language=language
+            db, meeting, transcript_service.segments_from_turns(detailed["turns"], voice_names), language=language
         )
         duration = float((detailed.get("metadata") or {}).get("duration") or 0)
         if duration:

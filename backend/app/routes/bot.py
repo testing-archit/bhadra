@@ -27,7 +27,7 @@ from app.database.db import get_db
 from app.database.models import CaptureEvent, CaptureRequest, Meeting, MeetingInsight, RecordingSession, ServiceHeartbeat, User
 from app.routes import meetings
 from app.routes.recordings import _session_dir, _speaker_activity
-from app.services import attendee_service, capture_service, live_assist, notetaker_monitor, processing_service, series_service, usage_ledger, speaker_mapping, transcriber, transcript_service
+from app.services import attendee_service, capture_service, live_assist, notetaker_monitor, processing_service, series_service, usage_ledger, speaker_mapping, transcriber, transcript_service, voice_identity
 
 router = APIRouter(prefix="/api/bot", tags=["bot"])
 logger = logging.getLogger(__name__)
@@ -155,7 +155,18 @@ async def bot_ingest(
                 people=[a.name for a in meta.attendees if a.name] + sorted(caption_speakers),
             )
             speaker_names = speaker_mapping.name_speakers(detailed["turns"], captions, bot_names)
+            try:
+                candidate_emails = {a.email.strip().lower() for a in meta.attendees if a.email}
+                candidates = await db.scalars(select(User.id).where(func.lower(User.email).in_(candidate_emails)))
+                voice_names = await voice_identity.match_known_voices(
+                    db, audio_bytes, detailed["turns"], set(candidates) | {owner.id}
+                )
+                for speaker, name in voice_names.items():
+                    speaker_names.setdefault(speaker, name)
+            except Exception:
+                logger.exception("Voice matching skipped for bot meeting %s", meta.event_id)
             transcript = transcriber.format_transcript(detailed["turns"], speaker_names)
+            detailed["transcript"] = transcript
         except Exception as error:
             # Captions are a worse transcript, but a meeting saved from them
             # beats a meeting lost to a Prisma outage. The audio is still

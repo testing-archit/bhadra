@@ -362,11 +362,21 @@ async def transcribe_audio_detailed(
 
     turns = []
     languages: Counter[str] = Counter()
+    next_speaker = 0
     for (offset, length, _upload), piece_payload in zip(pieces, payloads):
         if piece_payload.get("detected_language_code"):
             languages[piece_payload["detected_language_code"]] += 1
-        for turn in _turns_from_prisma(piece_payload):
+        piece_turns = _turns_from_prisma(piece_payload)
+        # REST calls number speakers independently. Reusing a number across
+        # chunks would merge different people in the transcript and review.
+        local_speakers = {
+            speaker: next_speaker + index
+            for index, speaker in enumerate(sorted({turn["speaker"] for turn in piece_turns}))
+        } if len(pieces) > 1 else {}
+        next_speaker += len(local_speakers)
+        for turn in piece_turns:
             if len(pieces) > 1:
+                turn["speaker"] = local_speakers[turn["speaker"]]
                 turn["start"] = round(turn["start"] + offset, 3)
                 turn["end"] = round(max(turn["end"] + offset, turn["start"]) if turn["end"] else offset + length, 3)
             turns.append(turn)

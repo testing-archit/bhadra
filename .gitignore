@@ -3,6 +3,7 @@
 backend/.venv/
 backend/.fastembed_cache/
 backend/recordings/
+backend/models/*.onnx
 backend/__pycache__/
 **/__pycache__/
 *.pyc

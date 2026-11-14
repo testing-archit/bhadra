@@ -37,6 +37,10 @@ class Settings(BaseSettings):
     gnani_stt_url: str = "https://api.vachana.ai/stt/v3"
     gnani_stt_model: str = "prisma-v3.0"
     gnani_stt_mode: str = "codemix"
+    # Local, CPU speaker embedding model. Used only for enrolled employees.
+    speaker_embedding_model_path: str = "models/wespeaker_en_voxceleb_resnet34.onnx"
+    speaker_match_threshold: float = 0.72
+    speaker_match_margin: float = 0.12
     # Gnani Timbre text-to-speech: Charcha reads answers and summaries aloud
     # with the same Gnani key. v2.5 answers in ~1 s; "hi-en" speaks Hinglish
     # (Roman-script Hindi mixed with English) naturally.

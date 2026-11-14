@@ -3,9 +3,9 @@
 ## Transcription (Gnani Prisma v3.0)
 
 `app/services/transcriber.py` calls Gnani Prisma v3.0 using Auto-LID and
-the `codemix` output mode. It is purpose-built for Indian-language meetings,
-including Hindi/English code-switching, and keeps Indian-language words in
-their native script while preserving English terms.
+the `codemix` output style. It handles Indian-language meetings, including
+Hindi/English code-switching. `codemix` keeps spoken Indian-language words
+in Latin script.
 
 - **Keyterm prompting** — `TEAM_ROSTER` (backend/.env, comma-separated
   names) and learned vocabulary are passed as Prisma key terms (up to 200).
@@ -26,12 +26,37 @@ TEAM_ROSTER=Archit, Avni, Vaibhav, Ravi, Astha, Prakhal, Ayan, Adarsh
 ```
 
 The extension popup's language dropdown (`en`/`hi`/`hinglish`/`auto`) still
-works — `hinglish` and `auto` use Prisma Auto-LID, while English and Hindi
-send `en-IN` and `hi-IN` respectively.
+works — `hinglish` and `auto` use Prisma's `indic-auto` code, while English
+and Hindi send `en-IN` and `hi-IN` respectively. Browser WebM audio is
+converted to OGG/Opus before the Prisma REST request.
+Clips up to 28 seconds use REST. Longer recordings are split into 25-second
+OGG clips and sent to REST in sequence, then placed on one timeline. Gnani's
+Batch queue can delay a complete meeting; short REST clips keep the result
+available promptly. Speaker IDs are unique per clip because Prisma numbers
+each clip independently; enrolled voice profiles may resolve the same person
+across clips.
 
 The durable chunk pass and final global pass can each consume transcription
 minutes. The chunk output is retained as a recovery fallback if the final
 pass times out or the provider is temporarily unavailable.
+
+## Voice profiles and speaker review
+
+Employees can open `/voice-setup` to record 8–60 seconds of their own speech
+and explicitly consent to speaker matching. The server creates a 256-number
+voice embedding with a local WeSpeaker ONNX model. Only the encrypted embedding
+is stored; the setup audio is discarded. Each person can replace or delete
+their profile. Meeting audio remains subject to the normal recording controls.
+
+The Docker image downloads the pinned model during its build. For a local
+Python server, run `python scripts/download_speaker_model.py` from `backend/`
+and install `requirements.txt`. `GET /api/voice/profile` reports whether the
+model is available. Prisma supplies anonymous speaker turns; Charcha compares
+those turns only against enrolled, eligible meeting participants. Weak or
+ambiguous matches stay unnamed. The meeting review lets a person correct
+names; confirming their own speaker turn can improve their profile when that
+meeting's audio is still available. Voice matching should be checked on real
+team speech before treating its automatic labels as reliable.
 
 ## CI/CD (`.github/workflows/deploy-vm.yml`)
 

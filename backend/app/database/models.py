@@ -43,6 +43,35 @@ class User(Base):
     created_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), server_default=func.now())
 
 
+class VoiceProfile(Base):
+    """Encrypted speaker embedding from a user's explicit voice setup."""
+    __tablename__ = "voice_profiles"
+
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
+    )
+    embedding_encrypted: Mapped[str] = mapped_column(Text, nullable=False)
+    model: Mapped[str] = mapped_column(String, nullable=False)
+    confirmed_samples: Mapped[int] = mapped_column(Integer, nullable=False, server_default="1")
+    created_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        TIMESTAMP(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+
+class VoiceProfileConfirmation(Base):
+    __tablename__ = "voice_profile_confirmations"
+
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
+    )
+    meeting_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("meetings.id", ondelete="CASCADE"), primary_key=True
+    )
+    speaker_key: Mapped[str] = mapped_column(String, primary_key=True)
+    created_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), server_default=func.now())
+
+
 class Team(Base):
     __tablename__ = "teams"
 

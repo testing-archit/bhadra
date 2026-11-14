@@ -25,10 +25,8 @@ def main(wav_path: str, out_path: str) -> None:
             files={"audio_file": ("meeting.wav", audio, "audio/wav")},
             data={
                 "model": "prisma-v3.0",
-                "mode": "codemix",
-                "format": "transcribe",
-                "language_code": "auto",
-                "preferred_language": "auto",
+                "format": "codemix",
+                "language_code": "indic-auto",
             },
         )
 

@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
 import { api, ApiError, RecycleBinItem } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArchiveRestore, Building2, CheckCircle2, ExternalLink, Monitor, Moon, RotateCcw, Sheet, Sun, Trash2 } from "lucide-react";
+import { ArchiveRestore, Building2, CheckCircle2, ExternalLink, Mic, Monitor, Moon, RotateCcw, Sheet, Sun, Trash2 } from "lucide-react";
 import { useTheme, type ThemePreference } from "@/lib/theme";
 import { PageHeader } from "@/components/page-header";
 import { CalendarSettings } from "@/components/calendar-settings";
@@ -154,6 +155,12 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
       )}
+
+      <Link href="/voice-setup" className="flex items-center gap-4 rounded-2xl border bg-card px-5 py-4 transition-colors hover:bg-accent">
+        <span className="grid size-10 place-items-center rounded-xl bg-primary/10 text-primary"><Mic className="size-5" /></span>
+        <span className="flex-1"><strong className="block text-sm">Your voice profile</strong><span className="text-xs text-muted-foreground">Set up, replace or remove speaker recognition</span></span>
+        <span className="text-xs font-semibold text-primary">Manage →</span>
+      </Link>
 
       <Card>
         <CardHeader>

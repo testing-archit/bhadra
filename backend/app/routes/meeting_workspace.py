@@ -523,9 +523,8 @@ async def rename_speakers(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> dict:
-    """Name diarized speakers. Diarization only says *that* someone else is
-    talking; a person establishes *who* — so this is the only path from
-    "Speaker 2" to a name."""
+    """Correct speaker names after diarization or voice matching. Human
+    edits take precedence over automatic labels."""
     meeting = await _readable_meeting(db, user, meeting_id)
     segments = await transcript_service.ensure_segments(db, meeting)
     keys = {s.speaker_key for s in segments}

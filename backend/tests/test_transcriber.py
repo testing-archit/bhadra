@@ -173,6 +173,7 @@ async def test_long_audio_is_sent_in_chunks_and_stitched_on_one_timeline(tmp_pat
     assert len(sent) == 3 and all(name.endswith(".ogg") for name in sent)
     assert [turn["text"] for turn in result["turns"]] == ["part 1", "part 2", "part 3"]
     assert [turn["start"] for turn in result["turns"]] == [0.0, 25.0, 50.0]
+    assert [turn["speaker"] for turn in result["turns"]] == [0, 1, 2]
     assert result["language"] == "hi-IN"
 
 
