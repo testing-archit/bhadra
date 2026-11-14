@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { Check, Copy, RotateCcw } from "lucide-react";
 import { SpeakButton } from "@/components/speak-button";
 
-export function ChatActions({ content, onRetry }: { content: string; onRetry: () => void }) {
+export function ChatActions({ content, onRetry, speak = false }: { content: string; onRetry: () => void; speak?: boolean }) {
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
@@ -20,7 +20,7 @@ export function ChatActions({ content, onRetry }: { content: string; onRetry: ()
 
   return (
     <div className="mt-2 flex items-center gap-1 text-muted-foreground">
-      <SpeakButton text={content} compact />
+      <SpeakButton text={content} compact autoPlay={speak} />
       <button
         type="button"
         onClick={copyAnswer}

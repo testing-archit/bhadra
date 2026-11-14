@@ -17,6 +17,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { ChatMarkdown } from "@/components/chat-markdown";
 import { CitedMarkdown, ResolvedCitation } from "@/components/cited-markdown";
 import { ChatActions } from "@/components/chat-actions";
+import { VoiceAskButton } from "@/components/voice-ask-button";
 import {
   CalendarDays,
   ChevronDown,
@@ -38,6 +39,8 @@ const MAX_SCOPE = 10;
 interface ChatEntry extends ChatHistoryMessage {
   sources?: ChatSource[];
   createdAt: string;
+  /** Answer to a spoken question: read aloud as soon as it arrives. */
+  spoken?: boolean;
 }
 
 const SUGGESTIONS = [
@@ -149,7 +152,7 @@ export default function MemoryPage() {
     refreshConversations();
   }
 
-  async function ask(question: string) {
+  async function ask(question: string, spoken = false) {
     if (!question || busy) return;
     stick.pin();
     const history = entries.map(({ role, content }) => ({ role, content }));
@@ -177,6 +180,7 @@ export default function MemoryPage() {
           content: result.answer,
           sources: result.sources,
           createdAt: new Date().toISOString(),
+          spoken,
         },
       ]);
       if (!activeId) setActiveId(result.conversation_id);
@@ -409,7 +413,7 @@ export default function MemoryPage() {
                       )}
                       {entry.sources && entry.sources.length > 0 && <MemorySources sources={entry.sources} />}
                     </div>
-                    <ChatActions content={entry.content} onRetry={() => retryAnswer(index)} />
+                    <ChatActions content={entry.content} onRetry={() => retryAnswer(index)} speak={entry.spoken} />
                   </div>
                 </div>
               )
@@ -460,12 +464,13 @@ export default function MemoryPage() {
               rows={2}
               className="min-h-12 resize-none border-0 bg-transparent px-3 py-2 shadow-none focus-visible:ring-0"
             />
+            <VoiceAskButton disabled={busy} onQuestion={(text) => void ask(text, true)} onError={setError} />
             <Button type="submit" size="icon" disabled={busy || !query.trim()} aria-label="Send question" className="h-10 w-10 shrink-0 rounded-xl">
               <Send className="h-4 w-4" />
             </Button>
           </form>
           <p className="mx-auto mt-2 max-w-[760px] text-center text-[10px] text-muted-foreground">
-            Charcha answers from captured meeting records. Check linked sources for important decisions.
+            Type or tap the mic and ask in Hindi, English or both. Charcha answers from captured meeting records and reads spoken questions' answers aloud.
           </p>
         </div>
       </section>

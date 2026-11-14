@@ -1464,6 +1464,13 @@ export type TranscriptExportFormat = "txt" | "md" | "json" | "srt" | "vtt";
 export const api = {
   /** Text read aloud by Gnani Timbre, as MP3. */
   speak: (text: string, language?: string) => apiPostBlob("/api/tts", { text, language }),
+  /** A short spoken clip (a question) transcribed by Gnani Prisma. */
+  transcribeClip: (audio: Blob, language = "hinglish") => {
+    const form = new FormData();
+    form.append("audio", audio, audio.type.includes("ogg") ? "question.ogg" : audio.type.includes("mp4") ? "question.m4a" : "question.webm");
+    form.append("meeting_language", language);
+    return apiFetch<{ text: string }>("/api/transcribe", { method: "POST", body: form });
+  },
   loginWithGoogle: (googleAccessToken: string) =>
     apiFetch<AuthResponse>("/api/auth/google", {
       method: "POST",

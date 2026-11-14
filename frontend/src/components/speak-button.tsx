@@ -13,7 +13,7 @@ type State = "idle" | "loading" | "playing" | "error";
 
 /** Reads `text` aloud with Gnani Timbre. `compact` matches the small
  * Copy / Retry actions under chat answers; the default is an outline button. */
-export function SpeakButton({ text, compact = false, className }: { text: string; compact?: boolean; className?: string }) {
+export function SpeakButton({ text, compact = false, autoPlay = false, className }: { text: string; compact?: boolean; autoPlay?: boolean; className?: string }) {
   const [state, setState] = useState<State>("idle");
   const urlRef = useRef<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -28,6 +28,15 @@ export function SpeakButton({ text, compact = false, className }: { text: string
     if (urlRef.current) URL.revokeObjectURL(urlRef.current);
     urlRef.current = null;
   }, [text]);
+
+  // An answer to a spoken question is spoken back without another tap.
+  const autoPlayed = useRef(false);
+  useEffect(() => {
+    if (!autoPlay || autoPlayed.current) return;
+    autoPlayed.current = true;
+    void play();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoPlay]);
 
   function stop() {
     audioRef.current?.pause();
