@@ -191,9 +191,9 @@ export default function ProjectDetailPage() {
               {decision.reason && (
                 <p className="text-sm text-muted-foreground">{decision.reason}</p>
               )}
-              {decision.alternatives.length > 0 && (
+              {(decision.alternatives ?? []).length > 0 && (
                 <p className="text-xs text-muted-foreground">
-                  Rejected: {decision.alternatives.join(", ")}
+                  Rejected: {(decision.alternatives ?? []).join(", ")}
                 </p>
               )}
               {decision.conflict_note && (

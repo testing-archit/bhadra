@@ -573,8 +573,8 @@ async def get_meeting(
                 "id": str(d.id),
                 "decision": d.decision,
                 "reason": d.reason,
-                "alternatives": d.alternatives,
-                "participants": d.participants,
+                "alternatives": d.alternatives or [],
+                "participants": d.participants or [],
                 "conflict_note": d.conflict_note,
                 "evidence": d.evidence or [],
                 "ai_flags": d.ai_flags or [],
@@ -1703,7 +1703,7 @@ async def get_shared_meeting(
             if task.deleted_at is None
         ],
         "decisions": [
-            {"decision": d.decision, "reason": d.reason, "alternatives": d.alternatives}
+            {"decision": d.decision, "reason": d.reason, "alternatives": d.alternatives or []}
             for d in meeting.decisions
             if d.deleted_at is None
         ],

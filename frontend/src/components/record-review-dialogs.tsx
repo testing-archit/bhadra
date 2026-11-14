@@ -35,8 +35,8 @@ export function SummaryReviewDialog({ open, summary, onOpenChange, onSave }: { o
 export function DecisionReviewDialog({ open, value, onOpenChange, onSave }: { open: boolean; value: { decision: string; reason: string | null; alternatives: string[]; participants: string[] }; onOpenChange: (open: boolean) => void; onSave: (fields: { decision: string; reason: string; alternatives: string[]; participants: string[] }) => Promise<void> }) {
   const [decision, setDecision] = useState(value.decision);
   const [reason, setReason] = useState(value.reason || "");
-  const [alternatives, setAlternatives] = useState(value.alternatives.join(", "));
-  const [participants, setParticipants] = useState(value.participants.join(", "));
+  const [alternatives, setAlternatives] = useState((value.alternatives ?? []).join(", "));
+  const [participants, setParticipants] = useState((value.participants ?? []).join(", "));
   const [saving, setSaving] = useState(false);
   async function save() { setSaving(true); try { const split = (text: string) => text.split(",").map((item) => item.trim()).filter(Boolean); await onSave({ decision: decision.trim(), reason: reason.trim(), alternatives: split(alternatives), participants: split(participants) }); onOpenChange(false); } finally { setSaving(false); } }
   return (

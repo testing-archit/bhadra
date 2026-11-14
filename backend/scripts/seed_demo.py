@@ -218,7 +218,7 @@ def _decision(meeting_id, project_id, entry, speakers) -> Decision:
     """entry: (text, reason) or (text, reason, alternatives, conflict_note).
     A conflict_note marks a decision that reverses an earlier one."""
     text, reason, *rest = entry
-    alternatives = rest[0] if rest else None
+    alternatives = (rest[0] if rest else None) or []
     conflict_note = rest[1] if len(rest) > 1 else None
     return Decision(
         meeting_id=meeting_id, project_id=project_id, decision=text, reason=reason,

@@ -267,8 +267,8 @@ async def get_project(
                 "meeting_summary": summary,
                 "decision": d.decision,
                 "reason": d.reason,
-                "alternatives": d.alternatives,
-                "participants": d.participants,
+                "alternatives": d.alternatives or [],
+                "participants": d.participants or [],
                 "conflict_note": d.conflict_note,
             }
             for d, title, date, summary in decisions_result.all()
