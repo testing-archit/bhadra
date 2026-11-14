@@ -1,3 +1,6 @@
+<!-- Team coordination: read docs/coordination.md before edits, commits, pulls, merges, or pushes. -->
+<!-- Design skills: see docs/design-skills.md; use .agents/skills/ and preserve DESIGN.md and existing components. -->
+
 # Charcha — Codex System Prompt
 # Place this file as AGENTS.md in the root of the project.
 # Codex reads this automatically on every session.

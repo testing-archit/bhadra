@@ -1,3 +1,6 @@
+<!-- Team coordination: read docs/coordination.md before edits, commits, pulls, merges, or pushes. -->
+<!-- Design skills: see docs/design-skills.md; use .claude/skills/ links and preserve DESIGN.md and existing components. -->
+
 # Charcha — Claude Code project guide
 # Claude Code reads this automatically on every session.
 
