@@ -1,0 +1,2 @@
+# Optional; enabled with the bot image ENABLE_COMMAND_TRACING build argument.
+mlflow-skinny==3.18.0

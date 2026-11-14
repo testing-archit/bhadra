@@ -131,3 +131,110 @@ def test_the_logo_camera_is_opt_in_and_needs_its_image(tmp_path, monkeypatch):
 
     image.unlink()
     assert meeting_session.session_for(teams).logo_camera is False
+
+
+def test_identical_caption_updates_do_not_restart_settling(monkeypatch):
+    clock = {"now": 10.0}
+    monkeypatch.setattr(meeting_session.time, "monotonic", lambda: clock["now"])
+    captions = meeting_session.CaptionLog()
+    batch = [{"id": 1, "speaker": "Ravi", "text": "Charcha, recap please"}]
+    asyncio.run(captions.on_captions(batch))
+    captions.changed.clear()
+    clock["now"] = 12.0
+    asyncio.run(captions.on_captions(batch))
+    assert captions.latest[1][2] == 10.0
+    assert not captions.changed.is_set()
+    batch[0]["text"] += " now"
+    asyncio.run(captions.on_captions(batch))
+    assert captions.latest[1][2] == 12.0
+    assert captions.changed.is_set()
+
+
+def test_lifecycle_can_exit_during_a_slow_command(tmp_path, monkeypatch):
+    monkeypatch.setattr(meeting_session.config, "SESSIONS_DIR", tmp_path)
+
+    async def scenario():
+        session = meeting_session.MeetingSession({"meet_url": "https://meet.google.com/abc-defg-hij"})
+        started = asyncio.Event()
+        cancelled = asyncio.Event()
+        incoming = [meeting_session.Command("", "recap")]
+
+        async def discover(_page):
+            result = incoming[:]
+            incoming.clear()
+            return result
+
+        async def execute(_page, _command):
+            started.set()
+            try:
+                await asyncio.Event().wait()
+            finally:
+                cancelled.set()
+
+        async def lifecycle(_page):
+            await asyncio.wait_for(started.wait(), 1)
+            return "asked to leave"
+
+        session.discover_commands = discover
+        session.execute_command = execute
+        session._stay = lifecycle
+        assert await asyncio.wait_for(session.stay(object()), 1) == "asked to leave"
+        assert cancelled.is_set()
+    asyncio.run(scenario())
+
+
+def test_caption_commands_wait_for_revisions_and_do_not_repeat(tmp_path, monkeypatch):
+    monkeypatch.setattr(meeting_session.config, "SESSIONS_DIR", tmp_path)
+    clock = {"now": 10.0}
+    monkeypatch.setattr(meeting_session.time, "monotonic", lambda: clock["now"])
+    session = meeting_session.MeetingSession({"meet_url": "https://meet.google.com/abc-defg-hij"})
+    session.captions.latest[1] = ("Ravi", "Charcha, recap please", 9.0)
+    assert session.spoken_questions() == []
+    session.captions.latest[1] = ("Ravi", "Charcha, recap the pricing discussion", 10.0)
+    clock["now"] = 12.6
+    assert session.spoken_questions() == [("Ravi", "recap the pricing discussion")]
+    assert session.spoken_questions() == []
+
+
+def test_shutdown_terminates_playback_and_removes_audio(tmp_path, monkeypatch):
+    from unittest.mock import AsyncMock
+    monkeypatch.setattr(meeting_session.config, "SESSIONS_DIR", tmp_path)
+    monkeypatch.setattr(meeting_session.config, "SPEAK_IN_CALL", True)
+    monkeypatch.setattr(meeting_session.uploader, "speech", lambda _text: b"audio")
+
+    async def scenario():
+        started = asyncio.Event()
+        class Process:
+            returncode = None
+            terminated = False
+
+            async def wait(self):
+                started.set()
+                if not self.terminated:
+                    await asyncio.Event().wait()
+                self.returncode = -15
+                return self.returncode
+
+            def terminate(self):
+                self.terminated = True
+
+        process = Process()
+        async def spawn(*_args, **_kwargs):
+            return process
+
+        async def click(*_args, **_kwargs):
+            return True
+
+        monkeypatch.setattr(meeting_session.asyncio, "create_subprocess_exec", spawn)
+        monkeypatch.setattr(meeting_session, "_click_if_visible", click)
+        session = meeting_session.MeetingSession({"meet_url": "https://meet.google.com/abc-defg-hij"})
+        session.voice_modules = ["test"]
+        page = type("Page", (), {"evaluate": AsyncMock(), "wait_for_timeout": AsyncMock(), "is_closed": lambda self: False})()
+        task = asyncio.create_task(session.speak(page, "hello"))
+        await asyncio.wait_for(started.wait(), 1)
+        task.cancel()
+        await asyncio.gather(task, return_exceptions=True)
+        assert process.terminated
+        assert not list(session.dir.glob("speech_*.mp3"))
+        page.evaluate.assert_any_await("window.__charchaSpeaking = false")
+    asyncio.run(scenario())

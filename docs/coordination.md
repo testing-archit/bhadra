@@ -65,3 +65,18 @@ The user authorised deployment of the light/violet UI. Preflight found productio
 The user selected Focus deck and Done / Snooze / Reassign from the design options. Codex is updating only Tasks and a dedicated task-focus component in `/private/tmp/bhadra-reference-ui`. The isolated branch fast-forwarded to `a62644a`, retaining the collaborator's meeting whiteboards and bot chat fix. Keep the shared checkout and its unfinished backend/extension changes intact. This pass removes repeated task summaries, puts filters behind a control, and preserves list/board and existing task APIs.
 
 Task focus deck implementation is ready for review: Tasks page, `task-focus-deck.tsx`, and scoped CSS only. The existing List/Board, exports, bulk tools, and task editor are preserved behind compact controls. Frontend build/typecheck and the local browser walkthrough passed; task mutations were mocked. Screenshots and validation limits are recorded in `docs/task-focus.md`. ESLint is blocked by the existing TypeScript 7 / typescript-eslint incompatibility. Shared frontend copies contain this Tasks change; other shared working-tree changes remain uncommitted.
+
+## Meeting agent planning, 15 November 2026
+
+- Added `docs/meeting-agent-plan.md` at the user's request: voice commands, whiteboard operations, Jira/email execution, personalized preparation, latency measurements, scaling, and phased acceptance criteria.
+- Documentation only; no application changes, implementation runs, commits, or deployment in this planning task. Existing shared changes and `docs/claude-meetings.md` remain intact.
+- Checked the plan's local references, section coverage, and fenced blocks. Performance targets are proposals; code-derived delay estimates are not production measurements.
+- Next work starts with baseline reconciliation and instrumentation. Reuse the newer worktree's existing boards rather than rebuilding them from the older shared checkout.
+
+## Meeting pipeline implementation scope, 15 November 2026
+
+Codex is implementing command scheduling and metadata-only stage timings in `/private/tmp/bhadra-meeting-agent`, branch `codex/meeting-agent-pipeline`, based on fetched `origin/main` at `25559c0`. Scope is bot runtime, focused regression tests, and planning handoff. Existing board/UI behavior and shared unfinished application changes are preserved. No production deployment is included in this checkpoint.
+
+### Command runtime checkpoint
+
+Implemented on `codex/meeting-agent-pipeline` from `25559c0`: bot command runtime, caption wakeups, bounded execution/playback, metadata-only timings, optional MLflow dependencies/export, shutdown playback cleanup, focused tests, and tracing validator. Validation: 17 focused tests passed; four synthetic traces stored/retrieved; compile and whitespace checks passed. Full suite, production confirmation, and real-call acceptance remain pending. No deployment. See `docs/meeting-agent-plan.md` implementation log and the bot README for scope and commands.

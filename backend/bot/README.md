@@ -134,3 +134,40 @@ docker compose -f docker-compose.prod.yml logs -f notetaker
   then. When they break, transcripts still come through with `Speaker 1/2/…`, and people
   can rename speakers in the meeting page.
 - Recording people needs their consent. Tell attendees the notetaker is recording.
+
+## Command pipeline timings
+
+Commands run in three owned tasks: intake, execution/chat delivery, and speech playback.
+Each command and speech queue holds up to eight items; a full queue applies backpressure.
+Caption changes wake intake; a 500 ms timeout also checks typed chat and settled captions.
+The existing 2.5 second caption-settling rule remains. Duplicate identical captions do not
+restart that timer. Caption uploads and capture lifecycle checks run independently.
+
+`command_timing` JSON log records correlate `session_id` and `command_id`, with stage,
+outcome, duration, and queue wait. Stages include execution, answer/task/board requests,
+chat delivery, and speech (synthesis plus playback). These records contain no command or
+reply text. They do not measure acoustic end-of-speech, model first token, or first audio
+byte yet. The existing uploader logs are a separate surface.
+
+Optional MLflow export: build the bot image with `--build-arg ENABLE_COMMAND_TRACING=1`,
+then provide `MEETING_COMMAND_MLFLOW=1`, `MLFLOW_TRACKING_URI`, and
+`MLFLOW_EXPERIMENT_ID` in the notetaker environment. The default image does not install
+MLflow. Export failure must not fail commands; no raw provider exception is forwarded.
+Use a reachable tracking service in production and asynchronous trace logging.
+
+To validate locally without a browser, provider calls, or a database:
+
+```bash
+python -m pip install -r backend/bot/requirements-tracing.txt
+python backend/scripts/validate_command_tracing.py --tracking-uri file:///tmp/wilco-traces
+python -m pytest --noconftest backend/tests/test_bot_captions.py backend/tests/test_command_runtime.py -q
+```
+
+The tracing validator checks four stored/retrievable traces from two synthetic commands.
+`--noconftest` limits this bot-only check to local tests and avoids the application's
+database fixture; it is not a replacement for the full backend suite.
+
+Session shutdown cancels queued work and terminates/reaps active ffmpeg playback. A
+synchronous HTTP request already running in a thread may still finish: cancellation
+does not undo external writes. Spoken barge-in, durable actions, and provider streaming
+remain follow-up work. Real Meet and Teams acceptance is required before release.
