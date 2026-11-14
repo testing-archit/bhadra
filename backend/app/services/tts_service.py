@@ -45,10 +45,18 @@ def spoken_text(text: str) -> str:
     return text.strip()
 
 
-def _cache_path(text: str, language: str) -> Path:
-    key = "|".join([settings.gnani_tts_model, settings.gnani_tts_voice, language, text])
+def _cache_path(text: str, language: str, model: str, voice: str) -> Path:
+    key = "|".join([model, voice, language, text])
     digest = hashlib.sha256(key.encode()).hexdigest()
     return Path(settings.recordings_dir).resolve() / "tts_cache" / digest[:2] / f"{digest}.mp3"
+
+
+def voice_for(language: str) -> tuple[str, str]:
+    """(model, voice) for a language: the fast Hinglish/Hindi/English voice,
+    or Timbre v3.0, whose voices speak every supported Indian language."""
+    if language in {"hi-en", "hi-IN", "en-IN", "auto"}:
+        return settings.gnani_tts_model, settings.gnani_tts_voice
+    return settings.gnani_tts_multilingual_model, settings.gnani_tts_multilingual_voice
 
 
 async def synthesize(text: str, language: str | None = None) -> bytes:
@@ -63,7 +71,8 @@ async def synthesize(text: str, language: str | None = None) -> bytes:
     if not text:
         raise ValueError("Nothing to read aloud")
 
-    path = _cache_path(text, language)
+    model, voice = voice_for(language)
+    path = _cache_path(text, language, model, voice)
     try:
         if path.is_file():
             return path.read_bytes()
@@ -76,8 +85,8 @@ async def synthesize(text: str, language: str | None = None) -> bytes:
             headers={"X-API-Key-ID": settings.gnani_api_key},
             json={
                 "text": text,
-                "model": settings.gnani_tts_model,
-                "voice": settings.gnani_tts_voice,
+                "model": model,
+                "voice": voice,
                 "language": language,
                 "audio_config": {"container": "mp3", "sample_rate": 24000, "bitrate": "64k"},
             },
@@ -88,7 +97,7 @@ async def synthesize(text: str, language: str | None = None) -> bytes:
 
     # Timbre is billed by the request, not the second; the ledger records
     # the spoken length so Admin → AI spend shows how much was read aloud.
-    usage_ledger.record_audio("speech", "gnani_tts", settings.gnani_tts_model, len(audio) * 8 / _MP3_BITRATE_BPS)
+    usage_ledger.record_audio("speech", "gnani_tts", model, len(audio) * 8 / _MP3_BITRATE_BPS)
     try:
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_bytes(audio)

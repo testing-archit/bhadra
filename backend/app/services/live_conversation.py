@@ -23,7 +23,7 @@ _digests: dict[uuid.UUID, tuple[float, str]] = {}
 SYSTEM_PROMPT = """You are Charcha, talking with someone out loud about their team's meetings, like a helpful colleague on a call.
 
 - Speak, don't write: one to three short sentences, no lists, no markdown, no citations, no emoji.
-- Reply in the language the person used. For Hindi or Hinglish, reply in Hinglish written in Roman script (for example "Sharma ji ka 1,240 rupaye baaki hai"), because your reply is read aloud.
+- Reply in the language the person used. For Hindi or Hinglish, reply in Hinglish written in Roman script (for example "Sharma ji ka 1,240 rupaye baaki hai"), because your reply is read aloud. For English, reply in English. For Tamil, Telugu, Kannada, Malayalam, Marathi, Bengali, Gujarati or Punjabi, reply in that language in its own script.
 - Say numbers and amounts plainly, like "1,240 rupaye", and keep names as spoken.
 - Use ONLY the meeting digest below and the conversation so far. If the digest doesn't cover something, say so in one sentence and suggest asking Company memory or checking the meeting.
 - For greetings or small talk, answer naturally and briefly.
@@ -59,14 +59,28 @@ async def meeting_digest(db, user: User) -> str:
     return digest
 
 
-def reply(history: list[dict], user_text: str, digest: str, name: str | None) -> str:
+LANGUAGE_NAMES = {
+    "ta-IN": "Tamil", "te-IN": "Telugu", "kn-IN": "Kannada", "ml-IN": "Malayalam", "mr-IN": "Marathi",
+    "bn-IN": "Bengali", "gu-IN": "Gujarati", "pa-IN": "Punjabi",
+}
+
+
+def speech_language(detected: str | None) -> str:
+    """The Timbre language for the reply: the person's own Indian language,
+    else Hinglish (which also reads English well)."""
+    return detected if detected in LANGUAGE_NAMES else "hi-en"
+
+
+def reply(history: list[dict], user_text: str, digest: str, name: str | None, detected: str | None = None) -> str:
     convo = "\n".join(
         f"{'Person' if turn.get('role') == 'user' else 'Charcha'}: {str(turn.get('content') or '').strip()}"
         for turn in history[-MAX_HISTORY_TURNS:]
         if str(turn.get("content") or "").strip()
     )
+    language = LANGUAGE_NAMES.get(detected or "")
     prompt = (
-        (f"The person's name is {name}.\n\n" if name else "")
+        (f"The person is speaking {language}. Reply in {language}, in its own script.\n\n" if language else "")
+        + (f"The person's name is {name}.\n\n" if name else "")
         + f"Meeting digest:\n{digest}\n\n"
         + (f"Conversation so far:\n{convo}\n\n" if convo else "")
         + f"Person: {user_text.strip()}\nCharcha:"

@@ -299,6 +299,8 @@ async def transcribe_audio_detailed(
         "transcript": format_transcript(turns),
         "turns": turns,
         "diagnostics": diagnostics,
+        # e.g. "hi-IN", "ta-IN"; set when Prisma's Auto-LID ran.
+        "language": payload.get("detected_language_code") or metadata.get("detected_language_code"),
         "metadata": {
             "request_id": payload.get("request_id") or metadata.get("request_id"),
             "duration": duration,

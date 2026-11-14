@@ -50,16 +50,18 @@ async def live_turn(
 
     digest = await live_conversation.meeting_digest(db, user)
     try:
-        answer = await asyncio.to_thread(live_conversation.reply, past, text, digest, (user.name or "").split(" ")[0] or None)
+        answer = await asyncio.to_thread(
+            live_conversation.reply, past, text, digest, (user.name or "").split(" ")[0] or None, heard.get("language")
+        )
     except Exception:
         logger.exception("Charcha Live reply failed")
         answer = "Sorry, abhi jawab nahi de paaya. Ek baar phir boliye?"
     if not answer:
         answer = "Sorry, main samjha nahi. Ek baar phir boliye?"
     try:
-        speech = await tts_service.synthesize(answer)
+        speech = await tts_service.synthesize(answer, live_conversation.speech_language(heard.get("language")))
         encoded = base64.b64encode(speech).decode()
     except Exception:
         logger.exception("Charcha Live speech failed")
         encoded = None
-    return {"transcript": text, "reply": answer, "audio": encoded}
+    return {"transcript": text, "reply": answer, "audio": encoded, "language": heard.get("language")}

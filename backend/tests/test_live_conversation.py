@@ -38,3 +38,30 @@ async def test_live_turn_with_silence_returns_nothing(client, member_user):
             "/api/live/turn", files={"audio": ("turn.webm", b"x", "audio/webm")}, headers=auth_headers(member_user)
         )
     assert response.json() == {"transcript": "", "reply": None, "audio": None}
+
+
+async def test_live_turn_replies_in_the_detected_language(client, member_user):
+    heard = {"turns": [{"text": "சர்மாவுக்கு எவ்வளவு பாக்கி?"}], "language": "ta-IN"}
+    spoken = {}
+
+    async def fake_synthesize(text, language=None):
+        spoken["language"] = language
+        return b"ID3"
+
+    with patch.object(settings, "gnani_api_key", "test"), patch(
+        "app.services.transcriber.transcribe_audio_detailed", return_value=heard
+    ), patch("app.services.gemini_service.generate_text", return_value=("1,240 ரூபாய்.", {})) as gen, patch(
+        "app.services.tts_service.synthesize", fake_synthesize
+    ):
+        response = await client.post(
+            "/api/live/turn", files={"audio": ("turn.webm", b"x", "audio/webm")}, headers=auth_headers(member_user)
+        )
+    assert response.json()["language"] == "ta-IN"
+    assert spoken["language"] == "ta-IN"
+    assert "Reply in Tamil" in gen.call_args.args[1]
+
+
+def test_tamil_uses_the_multilingual_voice():
+    from app.services import tts_service
+    assert tts_service.voice_for("ta-IN") == ("timbre-v3.0", "Shivani")
+    assert tts_service.voice_for("hi-en") == ("timbre-v2.5", "Nalini")
