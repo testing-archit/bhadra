@@ -104,6 +104,21 @@ async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> 
 
 export const LEARNED_CORRECTIONS_EVENT = "charcha:learned-corrections";
 
+/** POSTs JSON and returns the binary response (audio). */
+async function apiPostBlob(path: string, body: unknown): Promise<Blob> {
+  const token = getToken();
+  const response = await fetchThroughRestarts(`${BACKEND_URL}${path}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+    body: JSON.stringify(body),
+  });
+  if (!response.ok) {
+    const detail = await response.json().catch(() => ({}));
+    throw new ApiError(response.status, detail.detail || `Request failed: ${response.status}`);
+  }
+  return response.blob();
+}
+
 async function apiBlobFetch(path: string): Promise<Blob> {
   const token = getToken();
   const response = await fetchThroughRestarts(`${BACKEND_URL}${path}`, {
@@ -1447,6 +1462,8 @@ export interface MeetingPrep {
 export type TranscriptExportFormat = "txt" | "md" | "json" | "srt" | "vtt";
 
 export const api = {
+  /** Text read aloud by Gnani Timbre, as MP3. */
+  speak: (text: string, language?: string) => apiPostBlob("/api/tts", { text, language }),
   loginWithGoogle: (googleAccessToken: string) =>
     apiFetch<AuthResponse>("/api/auth/google", {
       method: "POST",

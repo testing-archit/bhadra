@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Check, Copy, RotateCcw } from "lucide-react";
+import { SpeakButton } from "@/components/speak-button";
 
 export function ChatActions({ content, onRetry }: { content: string; onRetry: () => void }) {
   const [copied, setCopied] = useState(false);
@@ -19,6 +20,7 @@ export function ChatActions({ content, onRetry }: { content: string; onRetry: ()
 
   return (
     <div className="mt-2 flex items-center gap-1 text-muted-foreground">
+      <SpeakButton text={content} compact />
       <button
         type="button"
         onClick={copyAnswer}
