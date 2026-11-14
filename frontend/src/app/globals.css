@@ -52,90 +52,94 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
-/* Charcha palette: "neel" indigo ink on warm paper, with "genda" marigold
-   as the single bright accent (record, active nav, the bindi in the mark).
-   Every surface reads from these tokens; never hard-code hex colours in
-   components, or dark mode breaks.
-   Reference hexes: paper #FAF7F1, ink #1D1A3B, neel #2E2A8C,
-   genda #F0A020, mehendi #3F7D4E, sindoor #C8402F. */
+/* Charcha "night glow": a dark sky lit by soft neel-indigo, violet and
+   gulabi-pink glows, with a genda-marigold glow as the Indian accent.
+   Surfaces are frosted glass over that light. Light mode is the same idea
+   in pastel. Components read only these tokens, never raw hex values.
+   Reference: night #0E0C1F, neel #5B4CF0, violet #8B7CFF, gulabi #F06BB4,
+   genda #F0A020, mehendi #3F7D4E, sindoor #E5533D. */
 :root {
-  --background: oklch(0.978 0.008 85);
-  --foreground: oklch(0.24 0.06 285);
-  --card: oklch(0.996 0.003 85);
-  --card-foreground: oklch(0.24 0.06 285);
-  --popover: oklch(0.996 0.003 85);
-  --popover-foreground: oklch(0.24 0.06 285);
-  --primary: oklch(0.36 0.15 279);
-  --primary-foreground: oklch(0.98 0.01 85);
-  --secondary: oklch(0.94 0.025 285);
-  --secondary-foreground: oklch(0.32 0.12 280);
-  --muted: oklch(0.948 0.012 85);
-  --muted-foreground: oklch(0.5 0.03 285);
-  --accent: oklch(0.935 0.03 285);
-  --accent-foreground: oklch(0.3 0.13 280);
+  --background: oklch(0.975 0.012 300);
+  --foreground: oklch(0.22 0.05 285);
+  --card: oklch(1 0 0 / 62%);
+  --card-foreground: oklch(0.22 0.05 285);
+  --popover: oklch(0.995 0.004 300 / 96%);
+  --popover-foreground: oklch(0.22 0.05 285);
+  --primary: oklch(0.5 0.21 285);
+  --primary-foreground: oklch(0.99 0.005 300);
+  --secondary: oklch(0.5 0.21 285 / 8%);
+  --secondary-foreground: oklch(0.32 0.12 285);
+  --muted: oklch(0.4 0.08 285 / 6%);
+  --muted-foreground: oklch(0.48 0.04 285);
+  --accent: oklch(0.5 0.21 285 / 9%);
+  --accent-foreground: oklch(0.3 0.13 285);
   --marigold: oklch(0.78 0.16 72);
   --marigold-foreground: oklch(0.25 0.06 60);
-  --destructive: oklch(0.55 0.17 32);
+  --destructive: oklch(0.58 0.19 30);
   --warning: oklch(0.66 0.15 65);
-  --success: oklch(0.53 0.09 150);
-  --border: oklch(0.9 0.015 80);
-  --input: oklch(0.88 0.018 80);
-  --ring: oklch(0.36 0.15 279 / 0.45);
-  --chart-1: oklch(0.36 0.15 279);
-  --chart-2: oklch(0.78 0.16 72);
-  --chart-3: oklch(0.55 0.17 32);
-  --chart-4: oklch(0.53 0.09 150);
-  --chart-5: oklch(0.62 0.12 230);
-  --radius: 0.85rem;
-  /* The sidebar is deep neel in both themes: the one bold surface. */
-  --sidebar: oklch(0.27 0.11 280);
-  --sidebar-foreground: oklch(0.95 0.015 85);
-  --sidebar-primary: oklch(0.8 0.15 75);
+  --success: oklch(0.55 0.11 150);
+  --border: oklch(0.35 0.08 285 / 11%);
+  --input: oklch(0.35 0.08 285 / 16%);
+  --ring: oklch(0.5 0.21 285 / 40%);
+  --chart-1: oklch(0.5 0.21 285);
+  --chart-2: oklch(0.7 0.17 350);
+  --chart-3: oklch(0.78 0.16 72);
+  --chart-4: oklch(0.6 0.15 250);
+  --chart-5: oklch(0.6 0.12 160);
+  --radius: 0.95rem;
+  --sidebar: oklch(1 0 0 / 45%);
+  --sidebar-foreground: oklch(0.24 0.05 285);
+  --sidebar-primary: oklch(0.72 0.17 70);
   --sidebar-primary-foreground: oklch(0.25 0.06 60);
-  --sidebar-accent: oklch(0.34 0.12 280);
-  --sidebar-accent-foreground: oklch(0.99 0.005 85);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.8 0.15 75 / 0.6);
+  --sidebar-accent: oklch(0.5 0.21 285 / 10%);
+  --sidebar-accent-foreground: oklch(0.22 0.08 285);
+  --sidebar-border: oklch(0.35 0.08 285 / 10%);
+  --sidebar-ring: oklch(0.5 0.21 285 / 40%);
+  /* The glows behind every page. */
+  --glow-a: oklch(0.78 0.12 285 / 55%);
+  --glow-b: oklch(0.82 0.11 350 / 45%);
+  --glow-c: oklch(0.86 0.12 75 / 40%);
 }
 
 .dark {
-  /* Indigo night: surfaces keep a little of the neel hue; elevation reads
-     through lightness steps, sidebar < page < card < popover. */
-  --background: oklch(0.19 0.04 282);
-  --foreground: oklch(0.94 0.012 85);
-  --card: oklch(0.225 0.045 282);
-  --card-foreground: oklch(0.94 0.012 85);
-  --popover: oklch(0.25 0.048 282);
-  --popover-foreground: oklch(0.94 0.012 85);
-  --primary: oklch(0.74 0.12 280);
-  --primary-foreground: oklch(0.18 0.05 282);
-  --secondary: oklch(0.28 0.05 282);
-  --secondary-foreground: oklch(0.92 0.015 85);
-  --muted: oklch(0.26 0.04 282);
-  --muted-foreground: oklch(0.7 0.03 282);
-  --accent: oklch(0.29 0.06 282);
-  --accent-foreground: oklch(0.96 0.01 85);
+  --background: oklch(0.145 0.035 282);
+  --foreground: oklch(0.96 0.01 285);
+  --card: oklch(1 0 0 / 5%);
+  --card-foreground: oklch(0.96 0.01 285);
+  --popover: oklch(0.2 0.045 282 / 96%);
+  --popover-foreground: oklch(0.96 0.01 285);
+  --primary: oklch(0.74 0.15 285);
+  --primary-foreground: oklch(0.16 0.04 282);
+  --secondary: oklch(1 0 0 / 8%);
+  --secondary-foreground: oklch(0.94 0.01 285);
+  --muted: oklch(1 0 0 / 6%);
+  --muted-foreground: oklch(0.74 0.03 285);
+  --accent: oklch(1 0 0 / 9%);
+  --accent-foreground: oklch(0.98 0.005 285);
   --marigold: oklch(0.8 0.15 75);
   --marigold-foreground: oklch(0.22 0.05 60);
-  --destructive: oklch(0.68 0.16 30);
-  --warning: oklch(0.8 0.13 75);
-  --success: oklch(0.74 0.11 150);
-  --border: oklch(1 0 0 / 9%);
+  --destructive: oklch(0.7 0.17 28);
+  --warning: oklch(0.82 0.13 78);
+  --success: oklch(0.76 0.12 150);
+  --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 14%);
-  --ring: oklch(0.74 0.12 280 / 0.45);
-  --chart-1: oklch(0.74 0.12 280);
-  --chart-2: oklch(0.8 0.15 75);
-  --chart-3: oklch(0.68 0.16 30);
-  --chart-4: oklch(0.74 0.11 150);
-  --chart-5: oklch(0.72 0.1 230);
-  --sidebar: oklch(0.155 0.04 282);
-  --sidebar-foreground: oklch(0.93 0.012 85);
+  --ring: oklch(0.74 0.15 285 / 45%);
+  --chart-1: oklch(0.74 0.15 285);
+  --chart-2: oklch(0.74 0.16 350);
+  --chart-3: oklch(0.8 0.15 75);
+  --chart-4: oklch(0.72 0.12 245);
+  --chart-5: oklch(0.74 0.11 160);
+  --sidebar: oklch(0.12 0.03 282 / 55%);
+  --sidebar-foreground: oklch(0.93 0.01 285);
   --sidebar-primary: oklch(0.8 0.15 75);
   --sidebar-primary-foreground: oklch(0.22 0.05 60);
-  --sidebar-accent: oklch(0.23 0.05 282);
-  --sidebar-accent-foreground: oklch(0.98 0.005 85);
+  --sidebar-accent: oklch(1 0 0 / 8%);
+  --sidebar-accent-foreground: oklch(0.99 0.005 285);
   --sidebar-border: oklch(1 0 0 / 8%);
-  --sidebar-ring: oklch(0.8 0.15 75 / 0.5);
+  --sidebar-ring: oklch(0.8 0.15 75 / 50%);
+  --glow-a: oklch(0.5 0.2 280 / 55%);
+  --glow-b: oklch(0.55 0.2 345 / 40%);
+  --glow-c: oklch(0.7 0.16 70 / 22%);
 }
 
 @layer base {
@@ -144,6 +148,20 @@
   }
   body {
     @apply bg-background text-foreground;
+    isolation: isolate;
+  }
+  /* The night-sky glows: fixed behind everything, so glass surfaces always
+     have colour to frost. */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background:
+      radial-gradient(60rem 38rem at 50% -12%, var(--glow-a), transparent 70%),
+      radial-gradient(40rem 30rem at 100% 30%, var(--glow-b), transparent 70%),
+      radial-gradient(42rem 30rem at -5% 105%, var(--glow-c), transparent 70%);
   }
   html {
     @apply font-sans;
@@ -163,5 +181,21 @@
       animation-duration: 0.01ms !important;
       transition-duration: 0.01ms !important;
     }
+  }
+}
+
+@layer utilities {
+  /* Frosted glass for floating surfaces. */
+  .glass {
+    background: var(--card);
+    -webkit-backdrop-filter: blur(22px) saturate(140%);
+    backdrop-filter: blur(22px) saturate(140%);
+  }
+  /* The headline sweep: white into violet, gulabi and genda. */
+  .text-glow {
+    background: linear-gradient(100deg, var(--foreground) 0%, oklch(0.74 0.15 285) 45%, oklch(0.74 0.16 350) 72%, oklch(0.8 0.15 75) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
   }
 }

@@ -23,9 +23,10 @@ function readPreference(): ThemePreference {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored === "light" || stored === "dark" || stored === "system") return stored;
   } catch {
-    // Storage can be blocked (private mode, enterprise policy) — fall back to the OS setting.
+    // Storage can be blocked (private mode, enterprise policy).
   }
-  return "system";
+  // Charcha's look is designed dark-first.
+  return "dark";
 }
 
 function apply(preference: ThemePreference): "light" | "dark" {
@@ -37,7 +38,7 @@ function apply(preference: ThemePreference): "light" | "dark" {
 
 /** Runs before React hydrates (see app/layout.tsx) so a dark-mode user never
  * sees a white flash on load. Kept as a string because it is inlined. */
-export const themeBootScript = `(function(){try{var p=localStorage.getItem("${STORAGE_KEY}")||"system";var d=p==="dark"||(p==="system"&&matchMedia("(prefers-color-scheme: dark)").matches);var e=document.documentElement;e.classList.toggle("dark",d);e.style.colorScheme=d?"dark":"light";}catch(_){}})();`;
+export const themeBootScript = `(function(){try{var p=localStorage.getItem("${STORAGE_KEY}")||"dark";var d=p==="dark"||(p==="system"&&matchMedia("(prefers-color-scheme: dark)").matches);var e=document.documentElement;e.classList.toggle("dark",d);e.style.colorScheme=d?"dark":"light";}catch(_){}})();`;
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [preference, setPreferenceState] = useState<ThemePreference>("system");
