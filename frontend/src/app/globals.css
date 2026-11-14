@@ -176,6 +176,18 @@
   ::selection {
     background: color-mix(in oklch, var(--primary) 22%, transparent);
   }
+  /* Browser-drawn surfaces carry the palette too. */
+  html {
+    accent-color: var(--primary);
+    scrollbar-color: color-mix(in oklch, var(--primary) 32%, transparent) transparent;
+    scrollbar-width: thin;
+  }
+  input, textarea, [contenteditable="true"] {
+    caret-color: var(--marigold);
+  }
+  body {
+    font-variant-numeric: tabular-nums;
+  }
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after {
       animation-duration: 0.01ms !important;

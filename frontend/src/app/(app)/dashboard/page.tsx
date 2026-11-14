@@ -5,7 +5,6 @@ import Link from "next/link";
 import {
   AlertTriangle,
   ArrowUpRight,
-  Bot,
   ChevronLeft,
   ChevronRight,
   ListChecks,
@@ -69,20 +68,6 @@ export default function HomePage() {
   return (
     <div className="flex flex-col gap-8">
       <PromptHero firstName={firstName} onCapture={() => openNotetaker()} />
-
-      {live.length === 0 && (
-        <section className="relative overflow-hidden rounded-2xl border bg-card px-5 py-5 sm:px-6">
-          <div className="absolute inset-y-0 left-0 w-1 bg-primary" />
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <p className="text-sm font-medium text-primary">Your next meeting is one link away</p>
-              <h2 className="mt-1 text-xl font-semibold tracking-tight">Charcha captures what matters, then makes it useful.</h2>
-              <p className="mt-1 max-w-2xl text-sm text-muted-foreground">Invite the notetaker to any Meet or Teams call. Notes, owners and decisions arrive in one place for everyone who was there.</p>
-            </div>
-            <Button onClick={() => openNotetaker()} className="shrink-0"><Bot /> Capture meeting</Button>
-          </div>
-        </section>
-      )}
 
       {live.length > 0 && (
         <section className="flex flex-col gap-3 rounded-2xl border border-primary/25 bg-primary/5 p-4 sm:flex-row sm:items-center">

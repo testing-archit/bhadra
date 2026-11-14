@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowUp, Bot, Mic, Sparkles } from "lucide-react";
+import { ArrowUp, Bot, Sparkles, UsersRound } from "lucide-react";
 import { VoiceAskButton } from "@/components/voice-ask-button";
 import { cn } from "@/lib/utils";
 
@@ -13,12 +13,6 @@ const EXAMPLES = [
   "Vedant ke paas kaunse tasks pending hain?",
 ];
 
-function greeting() {
-  const hour = new Date().getHours();
-  if (hour < 12) return "Good morning";
-  if (hour < 17) return "Good afternoon";
-  return "Good evening";
-}
 
 /** Home's centrepiece: one glass prompt to ask company memory by typing or
  * speaking (Gnani Prisma). A spoken question's answer is read back aloud. */
@@ -35,12 +29,8 @@ export function PromptHero({ firstName, onCapture }: { firstName?: string; onCap
 
   return (
     <section className="flex flex-col items-center px-1 pt-4 pb-2 text-center sm:pt-10">
-      <p className="text-sm text-muted-foreground">
-        {greeting()}{firstName ? `, ${firstName}` : ""} ·{" "}
-        {new Date().toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })}
-      </p>
-      <h1 className="mt-3 max-w-3xl text-4xl leading-[1.05] font-bold sm:text-6xl">
-        <span className="text-glow bg-clip-text text-transparent">Bolo.</span> Charcha sun raha hai.
+      <h1 className="max-w-3xl text-4xl leading-[1.05] font-bold text-balance sm:text-6xl">
+        <span className="text-glow bg-clip-text text-transparent">Bolo{firstName ? `, ${firstName}` : ""}.</span> Charcha sun raha hai.
       </h1>
       <p className="mt-3 max-w-xl text-base text-muted-foreground">
         Ask anything your team said, in Hindi, English or both. Tap the mic and Charcha answers out loud.
@@ -71,15 +61,19 @@ export function PromptHero({ firstName, onCapture }: { firstName?: string; onCap
           <button
             type="button"
             onClick={onCapture}
-            className="inline-flex h-9 items-center gap-1.5 rounded-full border px-3 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+            aria-label="Capture a meeting"
+            title="Capture a meeting"
+            className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full border px-3 text-xs font-medium whitespace-nowrap text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
           >
-            <Bot className="size-3.5" /> Capture a meeting
+            <Bot className="size-3.5" /> <span className="hidden sm:inline">Capture a meeting</span>
           </button>
           <Link
             href="/record"
-            className="inline-flex h-9 items-center gap-1.5 rounded-full border px-3 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+            aria-label="Record in person"
+            title="Record in person"
+            className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full border px-3 text-xs font-medium whitespace-nowrap text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
           >
-            <Mic className="size-3.5" /> Record in person
+            <UsersRound className="size-3.5" /> <span className="hidden sm:inline">Record in person</span>
           </Link>
           <div className="ml-auto flex items-center gap-2">
             <VoiceAskButton onQuestion={(text) => ask(text, true)} onError={setError} />
