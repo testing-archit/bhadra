@@ -15,3 +15,4 @@ dist/
 *.pem
 .bug-hunter/
 .claude/
+nginx/ssl.conf

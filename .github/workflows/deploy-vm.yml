@@ -35,8 +35,49 @@ env:
 
 jobs:
   # Nothing reaches the VM unless this passes.
-  test:
+  # What this push touched, so each job below does only the work it needs.
+  changes:
     runs-on: ubuntu-latest
+    outputs:
+      backend: ${{ steps.diff.outputs.backend }}
+      bot: ${{ steps.diff.outputs.bot }}
+      frontend: ${{ steps.diff.outputs.frontend }}
+      extension: ${{ steps.diff.outputs.extension }}
+      images: ${{ steps.diff.outputs.images }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: diff
+        run: |
+          set -euo pipefail
+          before="${{ github.event.before }}"
+          if [ "${{ github.event_name }}" != "push" ] || [ -z "$before" ] || ! git cat-file -e "$before^{commit}" 2>/dev/null; then
+            changed="backend/ backend/bot/ frontend/ src/ docker-compose.prod.yml"
+          else
+            changed=$(git diff --name-only "$before" "$GITHUB_SHA")
+          fi
+          has() { printf "%s\n" $changed | grep -Eq "$1" && echo true || echo false; }
+          backend=$(printf "%s\n" $changed | grep -E "^backend/" | grep -Evq "^backend/bot/" && echo true || echo false)
+          bot=$(has "^backend/bot/")
+          frontend=$(has "^frontend/")
+          extension=$(has "^(src/|manifest.json|package(-lock)?.json|vite.config.js|tools/)")
+          compose=$(has "^docker-compose.prod.yml$")
+          images=""
+          [ "$backend" = true ] || [ "$compose" = true ] && images="$images backend"
+          [ "$frontend" = true ] || [ "$compose" = true ] && images="$images frontend"
+          [ "$bot" = true ] || [ "$compose" = true ] && images="$images notetaker"
+          images=$(echo $images | tr ' ' ',')
+          { echo "backend=$backend"; echo "bot=$bot"; echo "frontend=$frontend"; echo "extension=$extension"; echo "images=$images"; } >> "$GITHUB_OUTPUT"
+          echo "backend=$backend bot=$bot frontend=$frontend extension=$extension images=$images"
+
+  test:
+    needs: changes
+    runs-on: ubuntu-latest
+    # A newer push makes this one's checks pointless.
+    concurrency:
+      group: test-${{ github.ref }}
+      cancel-in-progress: true
     services:
       postgres:
         image: postgres:16
@@ -56,24 +97,32 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Install ffmpeg
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+        if: needs.changes.outputs.backend == 'true'
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq --no-install-recommends ffmpeg
       - uses: actions/setup-python@v5
+        if: needs.changes.outputs.backend == 'true'
         with:
           python-version: "3.12"
           cache: pip
           cache-dependency-path: backend/requirements*.txt
       - name: Backend tests
+        if: needs.changes.outputs.backend == 'true'
         working-directory: backend
         run: |
           pip install -q -r requirements-dev.txt
           python scripts/init_db.py
           python -m pytest tests -q --no-header -p no:warnings
       - uses: actions/setup-node@v4
+        if: needs.changes.outputs.extension == 'true' || needs.changes.outputs.frontend == 'true'
         with:
           node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
       - name: Extension checks
+        if: needs.changes.outputs.extension == 'true'
         run: npm test
       - name: Frontend type check
+        if: needs.changes.outputs.frontend == 'true'
         working-directory: frontend
         run: |
           npm ci --no-audit --no-fund
@@ -83,7 +132,12 @@ jobs:
   # tests, so the deploy job below only replays cached layers and ships them.
   # Unchanged services rebuild from cache in seconds.
   prebuild:
+    needs: changes
+    if: needs.changes.outputs.images != ''
     runs-on: ubuntu-latest
+    concurrency:
+      group: prebuild-${{ github.ref }}
+      cancel-in-progress: true
     steps:
       - uses: actions/checkout@v4
       - name: Set up Docker Buildx
@@ -100,9 +154,9 @@ jobs:
         with:
           source: .
           files: docker-compose.prod.yml
-          targets: backend,frontend,notetaker
+          targets: ${{ needs.changes.outputs.images }}
           push: false
-          pull: true
+          pull: false
           no-cache: ${{ inputs.no_cache == true }}
           set: |
             *.output=type=cacheonly
@@ -114,7 +168,10 @@ jobs:
             notetaker.cache-to=type=gha,scope=notetaker,mode=max
 
   deploy:
-    needs: [test, prebuild]
+    needs: [changes, test, prebuild]
+    if: >-
+      always() && needs.test.result == 'success' &&
+      (needs.prebuild.result == 'success' || needs.prebuild.result == 'skipped')
     runs-on: ubuntu-latest
     # One deploy at a time: a second push waits for the first instead of
     # racing it for the VM.
@@ -223,9 +280,9 @@ jobs:
           files: docker-compose.prod.yml
           targets: ${{ steps.plan.outputs.targets }}
           push: true
-          # Re-check base images, so cached layers still pick up their
-          # security updates.
-          pull: true
+          # Base images come from the layer cache; a rebuild with
+          # workflow_dispatch no_cache picks up their updates.
+          pull: false
           no-cache: ${{ inputs.no_cache == true }}
           set: ${{ steps.plan.outputs.bake_set }}
 
