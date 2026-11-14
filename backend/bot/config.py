@@ -65,6 +65,9 @@ TEAMS_LOGO_IMAGE = Path(_env("TEAMS_LOGO_IMAGE", str(Path(__file__).parent / "as
 # invited the notetaker, that it records, how to make it leave), like any
 # well-behaved notetaker. Off with ANNOUNCE_IN_CHAT=0.
 ANNOUNCE_IN_CHAT = _env("ANNOUNCE_IN_CHAT", "1").lower() not in {"0", "false", "no"}
+# Answer chat messages that start with "Charcha" from the call so far
+# (needs ANNOUNCE_IN_CHAT: the panel is opened by the notice).
+ANSWER_IN_CHAT = _env("ANSWER_IN_CHAT", "1").lower() not in {"0", "false", "no"}
 
 EXIT_PHRASES = [
     p.strip().lower()

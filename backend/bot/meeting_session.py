@@ -376,6 +376,8 @@ class MeetingSession:
         self.captions = CaptionLog()
         self.recorded_seconds = 0.0
         self.captions_enabled = False
+        self.chat = meet_chat.ChatWatcher()
+        self.chat_ready = False
         # Set only for "add the notetaker to this link" visits; calendar
         # visits have nobody waiting on a status.
         self.capture_request_id: str | None = job.get("capture_request_id")
@@ -569,10 +571,30 @@ class MeetingSession:
             self.job.get("app_url"),
             config.EXIT_PHRASES[0] if config.EXIT_PHRASES else "notetaker please leave",
         )
+        self.chat.remember_sent(notice)
         if await meet_chat.send(page, notice):
             log.info("Posted the join notice in chat")
+            self.chat_ready = True
         else:
             await self.shot(page, "05_chat_failed")
+
+    async def answer_chat(self, page: Page) -> None:
+        """Answers new "Charcha, ..." messages in the call's chat from what
+        was said so far. Never raises: chat must not cost the recording."""
+        if not self.chat_ready or not config.ANSWER_IN_CHAT:
+            return
+        for question in (await self.chat.new_questions(page))[:3]:
+            log.info("Chat question: %s", question[:120])
+            reply = await asyncio.to_thread(
+                uploader.live_answer,
+                question,
+                self.captions.export(),
+                self.capture_request_id,
+                self.job.get("title") or "",
+            )
+            if reply:
+                self.chat.remember_sent(reply)
+                await meet_chat.send(page, reply)
 
     async def stay(self, page: Page) -> str:
         """Blocks until the bot should leave; returns why."""
@@ -647,6 +669,7 @@ class MeetingSession:
                 limit = config.ALONE_TIMEOUT_SECONDS if others_seen else config.WAIT_FOR_OTHERS_SECONDS
                 if time.monotonic() - alone_since > limit:
                     return "everyone else left" if others_seen else "nobody joined"
+            await self.answer_chat(page)
             await asyncio.sleep(5)
 
     async def leave(self, page: Page) -> None:

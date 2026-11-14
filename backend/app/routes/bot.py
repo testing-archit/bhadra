@@ -8,6 +8,7 @@ files the meeting under the event's organizer — or, when the organizer has no
 Charcha account, the first invitee who does.
 """
 
+import asyncio
 import datetime
 import hmac
 import json
@@ -26,7 +27,7 @@ from app.database.db import get_db
 from app.database.models import CaptureEvent, CaptureRequest, Meeting, MeetingInsight, RecordingSession, ServiceHeartbeat, User
 from app.routes import meetings
 from app.routes.recordings import _session_dir, _speaker_activity
-from app.services import attendee_service, capture_service, notetaker_monitor, processing_service, series_service, usage_ledger, speaker_mapping, transcriber, transcript_service
+from app.services import attendee_service, capture_service, live_assist, notetaker_monitor, processing_service, series_service, usage_ledger, speaker_mapping, transcriber, transcript_service
 
 router = APIRouter(prefix="/api/bot", tags=["bot"])
 logger = logging.getLogger(__name__)
@@ -430,6 +431,37 @@ async def claim_capture_requests(body: ClaimRequest, db: AsyncSession = Depends(
             )
     await db.commit()
     return {"jobs": jobs}
+
+
+class LiveCaption(BaseModel):
+    speaker: str = Field(default="", max_length=200)
+    text: str = Field(default="", max_length=5000)
+    start: float = 0.0
+
+
+class LiveQuestion(BaseModel):
+    question: str = Field(min_length=1, max_length=1000)
+    captions: list[LiveCaption] = Field(default_factory=list, max_length=20_000)
+    capture_request_id: uuid.UUID | None = None
+    title: str = Field(default="", max_length=500)
+
+
+@router.post("/live-answer", dependencies=[Depends(require_bot)])
+async def live_answer(body: LiveQuestion, db: AsyncSession = Depends(get_db)) -> dict:
+    """A question typed in the call's chat, answered from that call's own
+    captions so far (never company memory: guests can ask too)."""
+    if body.capture_request_id:
+        capture = await db.get(CaptureRequest, body.capture_request_id)
+        if capture is not None:
+            usage_ledger.attribute(user_id=capture.user_id)
+    try:
+        text = await asyncio.to_thread(
+            live_assist.answer, body.question, [c.model_dump() for c in body.captions], body.title
+        )
+    except Exception:
+        logger.exception("Live answer failed")
+        text = "Sorry, I couldn't answer that just now. Try again in a moment."
+    return {"answer": text}
 
 
 @router.get("/capture-requests/{request_id}", dependencies=[Depends(require_bot)])

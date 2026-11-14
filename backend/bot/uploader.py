@@ -178,3 +178,19 @@ def queue_invite(meeting) -> dict:
     )
     response.raise_for_status()
     return response.json()
+
+
+def live_answer(question: str, captions: list[dict], capture_request_id: str | None, title: str = "") -> str | None:
+    """Asks Charcha a question from the call's chat; None if unreachable."""
+    try:
+        response = httpx.post(
+            f"{config.BACKEND_URL}/api/bot/live-answer",
+            headers=_bot_headers(),
+            json={"question": question, "captions": captions, "capture_request_id": capture_request_id, "title": title},
+            timeout=45,
+        )
+        response.raise_for_status()
+        return str(response.json().get("answer") or "").strip() or None
+    except Exception as error:
+        log.warning("Live answer failed: %s", error)
+        return None
