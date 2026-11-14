@@ -60,9 +60,9 @@ export default function SharedMeetingPage() {
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 px-4 py-10">
       <div className="flex items-center gap-2">
-        <img src="/charcha-mark.png" alt="Charcha" className="h-8 w-8 rounded-lg" />
+        <img src="/wilco-mark.png" alt="Wilco" className="h-8 w-8 rounded-lg" />
         <span className="text-sm font-semibold tracking-tight text-muted-foreground">
-          Shared via Charcha
+          Shared via Wilco
         </span>
       </div>
 
@@ -222,7 +222,7 @@ export default function SharedMeetingPage() {
           )}
 
           <p className="pt-2 text-center text-xs text-muted-foreground">
-            Notes written by Charcha from the meeting. They may contain mistakes.
+            Notes written by Wilco from the meeting. They may contain mistakes.
           </p>
         </>
       )}

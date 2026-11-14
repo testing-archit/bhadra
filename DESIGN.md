@@ -1,6 +1,6 @@
-# Charcha design system: "night glow"
+# Wilco design system: "night glow"
 
-Charcha is voice-first meeting memory for Indian teams. The look follows a pinned reference: a dark sky lit by soft colour, frosted glass surfaces, and one big prompt you can type into or speak to. It's blended with Charcha's own identity: neel indigo, a genda-marigold accent, Devanagari-ready type, and Hinglish copy.
+Wilco is voice-first meeting memory for Indian teams. The look follows a pinned reference: a dark sky lit by soft colour, frosted glass surfaces, and one big prompt you can type into or speak to. It's blended with Wilco's own identity: neel indigo, a genda-marigold accent, Devanagari-ready type, and Hinglish copy.
 
 ## Principles
 
@@ -43,7 +43,7 @@ Components use tokens only, never raw hex values.
 - **`VoiceAskButton`:** marigold rounded square. While recording it turns red with a pulse and a timer, then shows "Listening" while Gnani Prisma transcribes.
 - **`SpeakButton`:** "Listen" / "Stop", reads text aloud with Gnani Timbre. Compact under chat answers, outline on the meeting summary. One voice plays at a time.
 - **`Card`:** 2xl radius, glass (`bg-card` with backdrop blur), and a 1px ring. Never nest cards.
-- **Sidebar:** glass. The active item has a marigold bar on its left edge, and "New charcha" is a marigold pill.
+- **Sidebar:** glass. The active item has a marigold bar on its left edge, and "New meeting" is a marigold pill.
 - **Brand:** `BrandMark` is a speech bubble with a marigold bindi on neel, in `components/brand.tsx`. On sign-in the Devanagari wordmark चर्चा takes the gradient sweep.
 
 ## Motion
@@ -53,5 +53,5 @@ Components use tokens only, never raw hex values.
 
 ## Copy
 
-- Sentence case and plain verbs. Hinglish where users would speak it: "Bolo", "Kuch bhi poocho…", "Charcha sun raha hai".
-- Say "charcha" for a conversation: "New charcha", "Record a charcha".
+- Sentence case and plain verbs. Hinglish where users would speak it: "Bolo", "Kuch bhi poocho…", "Wilco sun raha hai".
+- Say "charcha" for a conversation: "New meeting", "Record a meeting".

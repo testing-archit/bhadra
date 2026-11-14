@@ -158,7 +158,7 @@ export function AdminJira() {
 
       {!connected && oauth && (
         <div className="flex flex-col items-start gap-3 rounded-xl border bg-card p-5">
-          <p className="text-sm">Sign in with the Atlassian account that should create the issues, and approve Charcha&apos;s access.</p>
+          <p className="text-sm">Sign in with the Atlassian account that should create the issues, and approve Wilco&apos;s access.</p>
           <Button disabled={busy !== null} onClick={() => void connectWithJira()}>
             {busy === "oauth" ? <RefreshCw className="animate-spin" /> : <LogIn />}
             Connect with Jira
@@ -212,7 +212,7 @@ export function AdminJira() {
           <div>
             <p className="text-sm font-medium">Projects</p>
             <p className="text-xs text-muted-foreground">
-              Tasks tagged with a Charcha project go to its Jira project; everything else goes to the default project.
+              Tasks tagged with a Wilco project go to its Jira project; everything else goes to the default project.
             </p>
           </div>
           <Field label="Default Jira project">
@@ -225,9 +225,9 @@ export function AdminJira() {
               ))}
             </select>
           </Field>
-          {projects.charcha.length > 0 && (
+          {projects.wilco.length > 0 && (
             <div className="divide-y rounded-lg border">
-              {projects.charcha.map((project) => (
+              {projects.wilco.map((project) => (
                 <div key={project.id} className="flex items-center justify-between gap-3 px-3 py-2">
                   <span className="flex items-center gap-2 text-sm">
                     <Link2 className="h-3.5 w-3.5 text-muted-foreground" />
@@ -256,7 +256,7 @@ export function AdminJira() {
               onChange={(e) => setAutoSend(e.target.value as "off" | "mapped" | "all")}
             >
               <option value="off">Off — people click Send to Jira</option>
-              <option value="mapped">Only tasks in a mapped Charcha project</option>
+              <option value="mapped">Only tasks in a mapped Wilco project</option>
               <option value="all">Every open task, when a meeting&apos;s notes are ready</option>
             </select>
           </Field>
@@ -301,7 +301,7 @@ export function AdminJira() {
             </Field>
             <Field label={connected && settings?.auth_type === "token" ? "API token (leave blank to keep)" : "API token"}>
               {/* new-password: browsers ignore autoComplete="off" on password
-                  fields and fill the saved Charcha login into it. */}
+                  fields and fill the saved Wilco login into it. */}
               <Input type="password" name="jira-api-token" autoComplete="new-password" placeholder="Starts with ATATT…" value={tokenForm.api_token} onChange={(e) => setTokenForm({ ...tokenForm, api_token: e.target.value })} />
             </Field>
             <Field label="Default Jira project key">
@@ -343,7 +343,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 
 const MATCH_LABELS: Record<string, string> = { email: "matched by email", name: "matched by name", manual: "set by an admin" };
 
-/** Who each Charcha person is in Jira. Drives assignee <-> owner and comment
+/** Who each Wilco person is in Jira. Drives assignee <-> owner and comment
  * authors; Jira Free hides most emails, so names do most of the matching. */
 function JiraPeopleSection() {
   const [data, setData] = useState<JiraPeople | null>(null);

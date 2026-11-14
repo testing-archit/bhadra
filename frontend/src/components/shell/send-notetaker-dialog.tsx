@@ -108,7 +108,7 @@ export function SendNotetakerDialog() {
               Get the meeting, not the busywork.
             </DialogTitle>
             <DialogDescription>
-              Paste a Google Meet or Teams link. {capture?.bot_name ?? "Charcha’s notetaker"} will ask to join; admit it once and your notes, decisions and tasks will be ready after the call.
+              Paste a Google Meet or Teams link. {capture?.bot_name ?? "Wilco’s notetaker"} will ask to join; admit it once and your notes, decisions and tasks will be ready after the call.
             </DialogDescription>
           </DialogHeader>
 
@@ -151,7 +151,7 @@ export function SendNotetakerDialog() {
             <Checkbox checked={consent} onCheckedChange={(value) => setConsent(value === true)} className="mt-0.5" />
             <span>
               <span className="flex items-center gap-1.5 font-medium"><ShieldCheck className="size-3.5 text-primary" /> Everyone knows it&apos;s recording</span>
-              <span className="mt-0.5 block text-xs text-muted-foreground">Anyone can ask it to leave, and you can stop it from Charcha at any time.</span>
+              <span className="mt-0.5 block text-xs text-muted-foreground">Anyone can ask it to leave, and you can stop it from Wilco at any time.</span>
             </span>
           </label>
           <div>

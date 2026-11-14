@@ -39,7 +39,7 @@ export default function ForgotPasswordPage() {
         <div className="flex flex-col items-center gap-3 text-center">
           <MailCheck className="size-8 text-primary" />
           <p className="text-sm text-muted-foreground">
-            If <span className="font-medium text-foreground">{email}</span> has a Charcha account, a link to choose a new password is on its way.
+            If <span className="font-medium text-foreground">{email}</span> has a Wilco account, a link to choose a new password is on its way.
             It works once and expires in an hour.
           </p>
           <p className="text-xs text-muted-foreground">Nothing after a few minutes? Check spam, or make sure you used your work address.</p>

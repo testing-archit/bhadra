@@ -1,4 +1,4 @@
-/** How each meeting got into Charcha, in the words people use. */
+/** How each meeting got into Wilco, in the words people use. */
 export const SOURCE_LABELS: Record<string, string> = {
   bot: "Calendar notetaker",
   capture: "Notetaker (meeting link)",

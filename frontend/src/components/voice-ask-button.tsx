@@ -80,7 +80,7 @@ export function VoiceAskButton({
       if (!question) throw new Error("empty");
       onQuestion(question);
     } catch {
-      onError("Charcha didn't catch that. Hold the mic a little closer and try again.");
+      onError("Wilco didn't catch that. Hold the mic a little closer and try again.");
     } finally {
       setState("idle");
     }

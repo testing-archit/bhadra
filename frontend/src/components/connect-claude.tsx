@@ -71,7 +71,7 @@ export function ConnectClaude() {
             <CopyField label="Token" value={result.token} />
             <CopyField
               label="Claude Code"
-              value={`claude mcp add --transport http charcha ${result.url} --header "Authorization: Bearer ${result.token}"`}
+              value={`claude mcp add --transport http wilco ${result.url} --header "Authorization: Bearer ${result.token}"`}
             />
             <p className="text-xs text-muted-foreground">
               In Claude Desktop or another MCP client, add a remote server with the URL above and the header{" "}

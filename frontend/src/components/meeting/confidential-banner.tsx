@@ -67,9 +67,9 @@ export function ConfidentialNotice({ meeting, onChanged }: { meeting: MeetingDet
         <span className="min-w-0 flex-1">
           <strong className="font-medium">Confidential.</strong>{" "}
           {byAi
-            ? `Charcha marked it because it discusses ${meeting.confidential_reason || "a sensitive matter"}. `
+            ? `Wilco marked it because it discusses ${meeting.confidential_reason || "a sensitive matter"}. `
             : ""}
-          Only the people in this meeting can open it, Charcha admins included. It isn&apos;t sent to Jira, and its tasks
+          Only the people in this meeting can open it, Wilco admins included. It isn&apos;t sent to Jira, and its tasks
           reach no one else unless you send them.
         </span>
         {meeting.can_unmark_confidential && (

@@ -50,7 +50,7 @@ export function AdminMeetings() {
       <div>
         <h2 className="text-xl font-semibold tracking-tight">All meetings</h2>
         <p className="text-sm text-muted-foreground">
-          Every meeting recorded in Charcha. Opening one here is an admin view; it doesn&apos;t add the meeting to your own workspace.
+          Every meeting recorded in Wilco. Opening one here is an admin view; it doesn&apos;t add the meeting to your own workspace.
         </p>
       </div>
       <div className="relative">

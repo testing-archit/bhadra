@@ -23,7 +23,7 @@ const storeUrl = process.env.NEXT_PUBLIC_CHROME_WEB_STORE_URL?.trim();
 const extensionVersion = "2.1.3";
 
 const features = [
-  { icon: Bot, title: "Invite the notetaker from the call", copy: "A small Charcha control sits in every Google Meet. One click sends the notetaker; it shows when it's waiting to be admitted, recording, or done." },
+  { icon: Bot, title: "Invite the notetaker from the call", copy: "A small Wilco control sits in every Google Meet. One click sends the notetaker; it shows when it's waiting to be admitted, recording, or done." },
   { icon: Bell, title: "Know when notes are ready", copy: "A notification links straight to the transcript, summary and tasks a few minutes after the call ends. The toolbar badge shows REC while it records." },
   { icon: ListChecks, title: "Your tasks, one click away", copy: "Open the toolbar popup to see what's assigned to you across every meeting, and tick things off without opening the workspace." },
   { icon: Sparkles, title: "Ask from anywhere", copy: "Type mem and a space in the address bar, or right-click any selected text, to ask company memory about it." },
@@ -34,7 +34,7 @@ const features = [
 const steps = [
   { title: "Download and unzip", detail: "Save the package, then extract the ZIP into a folder you'll keep on this computer." },
   { title: "Open Chrome extensions", detail: "Go to chrome://extensions in the address bar and turn on Developer mode." },
-  { title: "Load the Charcha folder", detail: "Choose Load unpacked, select the extracted folder, then pin Charcha from Chrome's puzzle menu." },
+  { title: "Load the Wilco folder", detail: "Choose Load unpacked, select the extracted folder, then pin Wilco from Chrome's puzzle menu." },
 ];
 
 export default function ExtensionPage() {
@@ -42,7 +42,7 @@ export default function ExtensionPage() {
     <main className="min-h-screen bg-background text-foreground">
       <header className="border-b bg-card/80 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-5 py-4 sm:px-8">
-          <Link href="/" className="flex items-center gap-2.5" aria-label="Charcha home">
+          <Link href="/" className="flex items-center gap-2.5" aria-label="Wilco home">
             <Wordmark />
           </Link>
           <Link href="/login" className="rounded-lg border bg-card px-3.5 py-2 text-sm font-medium transition-colors hover:bg-muted">
@@ -54,13 +54,13 @@ export default function ExtensionPage() {
       <section className="border-b bg-card">
         <div className="mx-auto grid grid-cols-1 max-w-6xl gap-12 px-5 py-16 sm:px-8 sm:py-20 lg:grid-cols-[1.1fr_.9fr] lg:items-center">
           <div>
-            <p className="text-sm font-medium text-primary">Charcha for Chrome, version {extensionVersion}</p>
+            <p className="text-sm font-medium text-primary">Wilco for Chrome, version {extensionVersion}</p>
             <h1 className="mt-3 max-w-2xl text-4xl font-semibold leading-[1.08] tracking-tight sm:text-5xl">
               Send the notetaker without leaving the call.
             </h1>
             <p className="mt-5 max-w-xl text-lg leading-8 text-muted-foreground">
-              Invite Charcha's notetaker into any Google Meet, follow it from the toolbar, and get the notes the moment they&apos;re
-              written — all on the same account as the Charcha workspace.
+              Invite Wilco's notetaker into any Google Meet, follow it from the toolbar, and get the notes the moment they&apos;re
+              written — all on the same account as the Wilco workspace.
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               {storeUrl ? (
@@ -68,7 +68,7 @@ export default function ExtensionPage() {
                   Add to Chrome <ExternalLink className="size-4" />
                 </a>
               ) : (
-                <a href={`/downloads/charcha-extension-v${extensionVersion}.zip`} download className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-primary px-5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90">
+                <a href={`/downloads/wilco-extension-v${extensionVersion}.zip`} download className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-primary px-5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90">
                   Download for Chrome <Download className="size-4" />
                 </a>
               )}
@@ -98,14 +98,14 @@ export default function ExtensionPage() {
                 ))}
                 <div className="absolute bottom-5 left-5 w-64 rounded-2xl border border-white/10 bg-[#1D1A3B]/95 p-3 text-[#FAF7F1] shadow-xl">
                   <div className="flex items-center gap-2">
-                    <span className="grid size-6 place-items-center rounded-lg bg-[#2E2A8C]"><img src="/charcha-mark.png" alt="" className="size-4 rounded" /></span>
-                    <span className="text-[13px] font-semibold">Charcha</span>
+                    <span className="grid size-6 place-items-center rounded-lg bg-[#2E2A8C]"><img src="/wilco-mark.png" alt="" className="size-4 rounded" /></span>
+                    <span className="text-[13px] font-semibold">Wilco</span>
                   </div>
                   <p className="mt-2.5 flex items-center gap-2 text-[13px] font-medium">
                     <span className="relative flex size-2"><span className="absolute inline-flex size-full animate-ping rounded-full bg-red-500/60 motion-reduce:animate-none" /><span className="relative size-2 rounded-full bg-red-500" /></span>
                     Recording this call
                   </p>
-                  <p className="mt-1 text-xs leading-5 text-[#C8C4EB]">Notes, tasks and decisions appear in Charcha a few minutes after the call ends.</p>
+                  <p className="mt-1 text-xs leading-5 text-[#C8C4EB]">Notes, tasks and decisions appear in Wilco a few minutes after the call ends.</p>
                   <div className="mt-3 rounded-lg bg-red-500/15 py-2 text-center text-xs font-semibold text-red-300">Stop notetaker</div>
                 </div>
               </div>
@@ -149,7 +149,7 @@ export default function ExtensionPage() {
 
       <footer className="border-t">
         <div className="mx-auto flex max-w-6xl flex-col gap-2 px-5 py-6 text-sm text-muted-foreground sm:flex-row sm:justify-between sm:px-8">
-          <span>Charcha, built by team Bhadra</span>
+          <span>Wilco, built by team Bhadra</span>
           <span>Works with Google Meet in Chrome</span>
         </div>
       </footer>

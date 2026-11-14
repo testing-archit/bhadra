@@ -152,7 +152,7 @@ export default function PolicyPage() {
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto px-2 py-3">
-          <p className="px-2 pb-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+          <p className="px-2 pb-2 text-xs font-semibold text-muted-foreground">
             Recent
           </p>
           {conversations.length === 0 && (
@@ -196,7 +196,7 @@ export default function PolicyPage() {
           <div>
             <div className="flex items-center gap-2">
               <h1 className="text-base font-semibold tracking-tight text-foreground">Ask Bhadra Policy</h1>
-              <span className="inline-flex items-center gap-1 rounded-full bg-accent px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-foreground">
+              <span className="inline-flex items-center gap-1 rounded-full bg-tint-mint px-2 py-0.5 text-xs font-medium text-tint-mint-foreground">
                 <FileCheck2 className="h-3 w-3" /> Grounded
               </span>
             </div>

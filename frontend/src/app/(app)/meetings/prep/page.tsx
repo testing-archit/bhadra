@@ -79,7 +79,7 @@ export default function MeetingPrepPage() {
         </Link>
         <h1 className="mt-2 text-2xl font-semibold tracking-tight">Prepare for a meeting</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Pick who you&apos;re meeting. Charcha pulls your earlier meetings with them, their open tasks and recent decisions, and drafts a cited brief.
+          Pick who you&apos;re meeting. Wilco pulls your earlier meetings with them, their open tasks and recent decisions, and drafts a cited brief.
         </p>
       </div>
 

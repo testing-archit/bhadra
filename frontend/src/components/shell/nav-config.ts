@@ -42,7 +42,7 @@ export const NAV_GROUPS: NavGroup[] = [
   {
     label: "Ask",
     items: [
-      { href: "/live", label: "Charcha Live", icon: AudioLines },
+      { href: "/live", label: "Wilco Live", icon: AudioLines },
       { href: "/memory", label: "Company memory", icon: Sparkles },
       { href: "/policy", label: "Policies", icon: BookOpenCheck },
     ],
@@ -72,5 +72,5 @@ export function pageTitleFor(pathname: string): string {
       if (isNavActive(item, pathname)) return item.label;
     }
   }
-  return "Charcha";
+  return "Wilco";
 }

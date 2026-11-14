@@ -39,8 +39,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <ShellProvider>
-      <div className={fullBleed ? "flex h-dvh flex-1 overflow-hidden" : "flex min-h-dvh flex-1"}>
-        <aside className="sticky top-0 hidden h-dvh w-64 shrink-0 border-r border-sidebar-border lg:block">
+      {/* The ink frame: the sidebar sits on it and every page is a sheet laid
+          inside it. The sheet scrolls, not the window. */}
+      <div className="flex h-dvh flex-1 overflow-hidden bg-sidebar">
+        <a href="#main" className="sr-only z-50 rounded-lg bg-marigold px-3 py-2 text-sm font-semibold text-marigold-foreground focus:not-sr-only focus:absolute focus:top-3 focus:left-3">
+          Skip to content
+        </a>
+        <aside className="hidden h-dvh w-60 shrink-0 lg:block">
           <Sidebar />
         </aside>
 
@@ -48,20 +53,20 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <div className="fixed inset-0 z-50 lg:hidden" role="dialog" aria-modal="true" aria-label="Navigation">
             <button
               type="button"
-              className="absolute inset-0 bg-black/30 animate-in fade-in-0"
+              className="absolute inset-0 bg-black/50 animate-in fade-in-0"
               onClick={() => setDrawerOpen(false)}
               aria-label="Close navigation"
             />
-            <div className="absolute inset-y-0 left-0 w-72 max-w-[85vw] border-r border-sidebar-border shadow-xl animate-in slide-in-from-left">
+            <div className="absolute inset-y-0 left-0 w-72 max-w-[85vw] shadow-2xl animate-in slide-in-from-left">
               <Sidebar onNavigate={() => setDrawerOpen(false)} />
             </div>
           </div>
         )}
 
-        <div className={fullBleed ? "flex min-h-0 min-w-0 flex-1 flex-col" : "flex min-w-0 flex-1 flex-col"}>
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-background lg:my-2 lg:mr-2 lg:rounded-[1.4rem]">
           <Topbar onOpenMenu={() => setDrawerOpen(true)} />
-          <main className={fullBleed ? "flex min-h-0 w-full flex-1" : "mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:px-8 sm:py-8"}>
-            {children}
+          <main id="main" className={fullBleed ? "flex min-h-0 w-full flex-1" : "min-h-0 flex-1 overflow-y-auto"}>
+            {fullBleed ? children : <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-8 sm:py-8">{children}</div>}
           </main>
         </div>
       </div>

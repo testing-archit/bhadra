@@ -63,14 +63,14 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
       <div className="flex h-14 shrink-0 items-center gap-2.5 px-4">
         <Link href="/dashboard" onClick={onNavigate} className="flex items-center gap-2.5 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring">
           <BrandMark className="size-8" />
-          <span className="font-heading text-lg leading-none font-bold tracking-tight">Charcha</span>
+          <span className="font-heading text-lg leading-none font-semibold tracking-tight">Wilco</span>
         </Link>
       </div>
 
       <div className="flex flex-col gap-1.5 px-3 pb-3">
         <Menu>
-          <MenuTrigger className="flex h-10 w-full items-center justify-center gap-2 rounded-full bg-sidebar-primary text-sm font-semibold text-sidebar-primary-foreground outline-none transition-colors hover:bg-sidebar-primary/90 focus-visible:ring-3 focus-visible:ring-sidebar-ring">
-            <Plus className="size-4" /> New charcha
+          <MenuTrigger className="flex h-10 w-full items-center justify-center gap-2 rounded-full bg-sidebar-primary text-sm font-semibold text-sidebar-primary-foreground outline-none transition-[background-color,transform] duration-150 hover:bg-sidebar-primary/90 active:scale-[0.98] focus-visible:ring-3 focus-visible:ring-sidebar-ring">
+            <Plus className="size-4" /> New meeting
           </MenuTrigger>
           <MenuContent className="w-64">
             <MenuItem onClick={() => { onNavigate?.(); openNotetaker(); }}>
@@ -125,7 +125,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
                     aria-current={active ? "page" : undefined}
                     className={cn(
                       "group relative flex h-9 items-center gap-2.5 rounded-lg px-2.5 text-sm text-sidebar-foreground/80 outline-none transition-colors hover:bg-sidebar-accent/70 hover:text-sidebar-foreground focus-visible:ring-2 focus-visible:ring-sidebar-ring",
-                      active && "bg-sidebar-accent font-medium text-sidebar-accent-foreground before:absolute before:inset-y-2 before:-left-3 before:w-1 before:rounded-r-full before:bg-sidebar-primary hover:bg-sidebar-accent",
+                      active && "bg-sidebar-accent font-medium text-sidebar-accent-foreground before:absolute before:inset-y-2.5 before:-left-3 before:w-[3px] before:rounded-r-full before:bg-sidebar-primary hover:bg-sidebar-accent",
                     )}
                   >
                     <item.icon className={cn("size-4 shrink-0 text-sidebar-foreground/55", active && "text-sidebar-primary")} />

@@ -22,7 +22,7 @@ function whatsappText(result: RecapResult): string {
     result.summary,
     items.length ? `\nKarna hai:\n${items.join("\n")}` : "",
     amounts.length ? `\nAmounts:\n${amounts.join("\n")}` : "",
-    "\n— Charcha",
+    "\n— Wilco",
   ].filter(Boolean).join("\n");
 }
 
@@ -68,7 +68,7 @@ export default function RecapPage() {
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Call & voice note recap"
-        description="Drop in a phone call recording or a WhatsApp voice note. Charcha recaps it in the language it was spoken in, reads the recap aloud, and saves the action items."
+        description="Drop in a phone call recording or a WhatsApp voice note. Wilco recaps it in the language it was spoken in, reads the recap aloud, and saves the action items."
       />
 
       <div className="flex gap-2" role="radiogroup" aria-label="What is it?">
@@ -148,7 +148,7 @@ export default function RecapPage() {
               </a>
               {result.meeting_id && (
                 <Link href={`/meetings/${result.meeting_id}`} className="inline-flex h-9 items-center gap-1.5 rounded-lg border px-3 text-sm font-medium transition-colors hover:bg-muted">
-                  Open in Charcha <ArrowUpRight className="size-4" />
+                  Open in Wilco <ArrowUpRight className="size-4" />
                 </Link>
               )}
             </div>

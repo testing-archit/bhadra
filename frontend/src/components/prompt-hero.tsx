@@ -30,10 +30,10 @@ export function PromptHero({ firstName, onCapture }: { firstName?: string; onCap
   return (
     <section className="flex flex-col items-center px-1 pt-4 pb-2 text-center sm:pt-10">
       <h1 className="max-w-3xl text-4xl leading-[1.05] font-bold text-balance sm:text-6xl">
-        <span className="text-glow bg-clip-text text-transparent">Bolo{firstName ? `, ${firstName}` : ""}.</span> Charcha sun raha hai.
+        <span className="text-glow bg-clip-text text-transparent">Bolo{firstName ? `, ${firstName}` : ""}.</span> Wilco sun raha hai.
       </h1>
       <p className="mt-3 max-w-xl text-base text-muted-foreground">
-        Ask anything your team said, in Hindi, English or both. Tap the mic and Charcha answers out loud.
+        Ask anything your team said, in Hindi, English or both. Tap the mic and Wilco answers out loud.
       </p>
 
       <form
@@ -98,7 +98,7 @@ export function PromptHero({ firstName, onCapture }: { firstName?: string; onCap
           href="/live"
           className="inline-flex items-center gap-1.5 rounded-full bg-marigold px-3 py-1.5 text-xs font-semibold text-marigold-foreground transition-colors hover:bg-marigold/90"
         >
-          <AudioLines className="size-3" /> Talk with Charcha Live
+          <AudioLines className="size-3" /> Talk with Wilco Live
         </Link>
         {EXAMPLES.map((example) => (
           <button

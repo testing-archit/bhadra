@@ -116,7 +116,7 @@ export function AdminNotetaker() {
             <h3 className="flex items-center gap-2 font-semibold"><Bot className="size-4 text-primary" /> Adding capacity</h3>
             <p className="mt-1 text-muted-foreground">
               Each meeting is a full browser (about 700 MB of memory), so one notetaker holds a few meetings at most. To record more at
-              once, run another notetaker container anywhere that can reach Charcha — a second VM or a spot instance — with the same{" "}
+              once, run another notetaker container anywhere that can reach Wilco — a second VM or a spot instance — with the same{" "}
               <code className="rounded bg-muted px-1 font-mono text-xs">BOT_API_SECRET</code>,{" "}
               <code className="rounded bg-muted px-1 font-mono text-xs">BACKEND_URL</code> and Google sign-in. Visits are claimed with{" "}
               <code className="rounded bg-muted px-1 font-mono text-xs">SKIP LOCKED</code>, so two notetakers never take the same meeting. Give

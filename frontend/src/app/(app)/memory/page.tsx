@@ -243,7 +243,7 @@ export default function MemoryPage() {
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto px-2 py-3">
-          <p className="px-2 pb-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+          <p className="px-2 pb-2 text-xs font-semibold text-muted-foreground">
             Recent chats
           </p>
           {conversations.length === 0 && (
@@ -274,7 +274,7 @@ export default function MemoryPage() {
               </button>
             ))}
           </div>
-          <p className="px-2 pb-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+          <p className="px-2 pb-2 text-xs font-semibold text-muted-foreground">
             Search scope
           </p>
           <button
@@ -338,7 +338,7 @@ export default function MemoryPage() {
               <h1 className="truncate text-base font-semibold tracking-tight text-foreground">
                 {scopedMeeting ? scopedMeeting.title : scope.length > 1 ? `${scope.length} selected meetings` : "Ask Company Memory"}
               </h1>
-              <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-accent px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-foreground">
+              <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-tint-mint px-2 py-0.5 text-xs font-medium text-tint-mint-foreground">
                 <Sparkles className="h-3 w-3" /> Grounded
               </span>
             </div>
@@ -472,7 +472,7 @@ export default function MemoryPage() {
             </Button>
           </form>
           <p className="mx-auto mt-2 max-w-[760px] text-center text-[10px] text-muted-foreground">
-            Type or tap the mic and ask in Hindi, English or both. Charcha answers from captured meeting records and reads spoken questions' answers aloud.
+            Type or tap the mic and ask in Hindi, English or both. Wilco answers from captured meeting records and reads spoken questions' answers aloud.
           </p>
         </div>
       </section>

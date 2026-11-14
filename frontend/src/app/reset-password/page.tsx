@@ -57,7 +57,7 @@ export default function ResetPasswordPage() {
 
   return (
     <AuthShell
-      title={invite ? "Welcome to Charcha" : "Choose a new password"}
+      title={invite ? "Welcome to Wilco" : "Choose a new password"}
       description={invite ? "Set a password for your new account. You can also sign in with Google using the same address." : "You'll be signed out everywhere else."}
     >
       <form onSubmit={submit} className="flex flex-col gap-3">

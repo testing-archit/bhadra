@@ -44,7 +44,7 @@ export default function MeetingsPage() {
   const [source, setSource] = useState("");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
-  // "recorded": meetings in Charcha; "calendar": the person's Google Calendar.
+  // "recorded": meetings in Wilco; "calendar": the person's Google Calendar.
   const [view, setView] = useState<"recorded" | "calendar">("recorded");
 
   useEffect(() => {

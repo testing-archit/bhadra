@@ -54,7 +54,7 @@ function Switch({ on, busy, disabled, label, small, onChange }: {
   );
 }
 
-/** Which emails Charcha sends this person, and when the scheduled ones
+/** Which emails Wilco sends this person, and when the scheduled ones
  * arrive. A group's switch turns all its emails off; inside a group each
  * email has its own. Security email can't be turned off; everything else
  * can, here or from any email's unsubscribe link (which turns off the group). */
@@ -125,7 +125,7 @@ export function EmailSettings() {
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-base"><Mail className="h-4 w-4 text-primary" /> Email</CardTitle>
         <CardDescription>
-          {prefs ? <>Sent to <span className="font-medium text-foreground">{prefs.address}</span> from charcha@example.com. Choose which emails you get and when. In-app notifications don&apos;t change.</> : "Loading…"}
+          {prefs ? <>Sent to <span className="font-medium text-foreground">{prefs.address}</span> from wilco@example.com. Choose which emails you get and when. In-app notifications don&apos;t change.</> : "Loading…"}
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-1">
@@ -257,7 +257,7 @@ export function EmailSettings() {
   );
 }
 
-/** Set or change the Charcha password. Changing it signs out every other
+/** Set or change the Wilco password. Changing it signs out every other
  * session and emails a confirmation. */
 export function PasswordSettings() {
   const { user, login } = useAuth();

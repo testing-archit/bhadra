@@ -28,7 +28,7 @@ const SOURCE_LABELS: Record<MeetingAttendee["source"], string> = {
  * Access follows the invite: the recorder, calendar invitees and colleagues
  * who asked for the notetaker can read it. People the notetaker heard in the
  * call who weren't invited wait in "pending" until the organizer, the person
- * who recorded it, or a Charcha admin shares it with them.
+ * who recorded it, or a Wilco admin shares it with them.
  */
 export function MeetingAttendees({
   meetingId,
@@ -238,7 +238,7 @@ export function MeetingAttendees({
                 <p className="mt-0.5 text-xs text-muted-foreground">
                   {canManage
                     ? "They can't read the notes until you share them."
-                    : "The organizer or a Charcha admin decides whether to share the notes with them."}
+                    : "The organizer or a Wilco admin decides whether to share the notes with them."}
                 </p>
                 <ul className="mt-2 flex flex-col gap-1">
                   {pending.map((person) => (
@@ -258,7 +258,7 @@ export function MeetingAttendees({
 
             {external.length > 0 && (
               <section>
-                <p className="mb-2 text-xs font-medium text-muted-foreground">Guests outside Charcha</p>
+                <p className="mb-2 text-xs font-medium text-muted-foreground">Guests outside Wilco</p>
                 <div className="flex flex-wrap gap-1.5">
                   {external.map((person) => (
                     <span key={person.id} className={cn("rounded-full border border-dashed px-2.5 py-0.5 text-xs text-muted-foreground")} title={person.email ?? undefined}>
@@ -297,7 +297,7 @@ export function MeetingAttendees({
             </div>
 
             <div className="grid gap-2 rounded-md border border-dashed p-3">
-              <Label className="text-sm">Guests outside Charcha</Label>
+              <Label className="text-sm">Guests outside Wilco</Label>
               <div className="flex flex-wrap gap-2">
                 <Input
                   value={externalName}

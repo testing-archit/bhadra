@@ -40,7 +40,7 @@ export default function UnsubscribePage() {
           <CheckCircle2 className="size-8 text-primary" />
           <p className="text-sm text-muted-foreground">
             <span className="font-medium text-foreground">{done.email}</span> won&apos;t get &ldquo;{done.label}&rdquo; emails any more. You still see them in
-            Charcha&apos;s notifications.
+            Wilco&apos;s notifications.
           </p>
         </div>
         <Link href="/settings#email" className="text-center text-sm font-medium text-primary hover:underline">Change email preferences</Link>
@@ -49,7 +49,7 @@ export default function UnsubscribePage() {
   }
 
   return (
-    <AuthShell title="Unsubscribe from these emails?" description="You'll stop getting this kind of email from Charcha. Security emails, like password resets, always come through.">
+    <AuthShell title="Unsubscribe from these emails?" description="You'll stop getting this kind of email from Wilco. Security emails, like password resets, always come through.">
       {error && <p className="text-sm text-destructive">{error}</p>}
       <Button onClick={() => void confirm()} disabled={busy || !token}>{busy ? "Unsubscribing…" : "Unsubscribe"}</Button>
       <Link href="/settings#email" className="text-center text-sm text-muted-foreground hover:text-foreground hover:underline">Choose which emails instead</Link>

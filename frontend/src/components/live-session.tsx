@@ -32,9 +32,9 @@ const END_SILENCE_MS = 900;
 const MIN_UTTERANCE_MS = 450;
 const MAX_UTTERANCE_MS = 30_000;
 
-/** Charcha Live: a hands-free spoken conversation, like Gemini Live, built
+/** Wilco Live: a hands-free spoken conversation, like Gemini Live, built
  * on Gnani. Prisma hears each utterance, Gemini answers from your meetings,
- * Timbre says it; talking over Charcha stops it and it listens. */
+ * Timbre says it; talking over Wilco stops it and it listens. */
 export function LiveSession() {
   const [phase, setPhase] = useState<Phase>("idle");
   const [turns, setTurns] = useState<Turn[]>([]);
@@ -93,7 +93,7 @@ export function LiveSession() {
       go("speaking");
       await audio.play().catch(() => go("listening"));
     } catch (cause) {
-      setError(cause instanceof ApiError ? cause.message : "Charcha couldn't answer that. Say it again?");
+      setError(cause instanceof ApiError ? cause.message : "Wilco couldn't answer that. Say it again?");
       go("listening");
     }
   }, [go]);
@@ -151,7 +151,7 @@ export function LiveSession() {
     try {
       stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
     } catch {
-      setError("Allow microphone access to talk with Charcha.");
+      setError("Allow microphone access to talk with Wilco.");
       return;
     }
     streamRef.current = stream;
@@ -176,7 +176,7 @@ export function LiveSession() {
       setLevel(Math.min(1, rms * 12));
       const current = phaseRef.current;
       if (mutedRef.current) return;
-      // Charcha's own voice leaks into the mic despite echo cancellation, so
+      // Wilco's own voice leaks into the mic despite echo cancellation, so
       // interrupting while it speaks needs to be clearly louder.
       const threshold = Math.max(0.012, noise * 3) * (current === "speaking" ? 2.6 : 1);
       if (current === "listening" || current === "speaking") {
@@ -218,17 +218,17 @@ export function LiveSession() {
     <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-between gap-6 px-4 py-8 sm:py-12">
       <div className="text-center">
         <h1 className="text-3xl font-bold sm:text-4xl">
-          <span className="text-glow bg-clip-text text-transparent">Charcha Live</span>
+          <span className="text-glow bg-clip-text text-transparent">Wilco Live</span>
         </h1>
         <p className="mt-2 max-w-md text-sm text-muted-foreground">
-          Just talk, in Hindi, English, Hinglish, Tamil, Marathi or any Indian language. Charcha answers from your meetings, out loud. Interrupt anytime.
+          Just talk, in Hindi, English, Hinglish, Tamil, Marathi or any Indian language. Wilco answers from your meetings, out loud. Interrupt anytime.
         </p>
       </div>
 
       <button
         type="button"
         onClick={() => (active ? undefined : void start())}
-        aria-label={active ? PHASE_LABEL[phase] : "Start Charcha Live"}
+        aria-label={active ? PHASE_LABEL[phase] : "Start Wilco Live"}
         className={cn("relative grid size-56 place-items-center rounded-full outline-none sm:size-64", !active && "cursor-pointer")}
       >
         <span

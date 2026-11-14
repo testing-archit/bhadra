@@ -1,7 +1,0 @@
-<svg width="200" height="56" viewBox="0 0 200 56" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Charcha">
-  <rect width="56" height="56" rx="13" fill="#2E2A8C"/>
-  <rect x="11" y="13.7" width="34" height="24.6" rx="10.4" fill="#FAF7F1"/>
-  <path d="M16.4 35 L25.7 37.2 L13.7 46.5 Z" fill="#FAF7F1"/>
-  <circle cx="28" cy="26" r="5.3" fill="#F0A020"/>
-  <text x="68" y="38" font-family="'Baloo 2', 'Mukta', system-ui, sans-serif" font-size="30" font-weight="700" fill="#1D1A3B">Charcha</text>
-</svg>

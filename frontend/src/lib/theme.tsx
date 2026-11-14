@@ -25,7 +25,7 @@ function readPreference(): ThemePreference {
   } catch {
     // Storage can be blocked (private mode, enterprise policy).
   }
-  // Charcha's look is designed dark-first.
+  // Wilco's look is designed dark-first.
   return "dark";
 }
 

@@ -93,14 +93,14 @@ export default function VoiceSetupPage() {
 
   return <div className="mx-auto max-w-2xl pb-12">
     <Link href="/dashboard" className="text-xs font-semibold text-primary hover:underline">← Back to briefing</Link>
-    <p className="mt-10 text-xs font-semibold uppercase tracking-[0.2em] text-primary">One-time setup</p>
-    <h1 className="mt-2 font-heading text-4xl font-semibold tracking-tight">Let Charcha learn your voice</h1>
-    <p className="mt-3 max-w-xl text-sm leading-6 text-muted-foreground">A short recording helps Charcha tell when you spoke in a meeting, even when Meet captions miss your name.</p>
+    <p className="mt-10 inline-flex rounded-full bg-tint-sky px-3 py-1 text-xs font-semibold text-tint-sky-foreground">One-time setup</p>
+    <h1 className="mt-2 font-heading text-4xl font-semibold tracking-tight">Let Wilco learn your voice</h1>
+    <p className="mt-3 max-w-xl text-sm leading-6 text-muted-foreground">A short recording helps Wilco tell when you spoke in a meeting, even when Meet captions miss your name.</p>
     <div className="mt-8 rounded-3xl border bg-card p-6 shadow-sm sm:p-8">
       {profile?.enrolled ? <div>
         <span className="grid size-12 place-items-center rounded-2xl bg-success/10 text-success"><Check className="size-6" /></span>
         <h2 className="mt-5 font-heading text-xl font-semibold">Your voice is set up</h2>
-        <p className="mt-2 text-sm text-muted-foreground">Charcha will use your profile to identify your speech when the match is clear. You can replace or remove it at any time.</p>
+        <p className="mt-2 text-sm text-muted-foreground">Wilco will use your profile to identify your speech when the match is clear. You can replace or remove it at any time.</p>
         <div className="mt-6 flex flex-wrap gap-3"><Button variant="outline" onClick={() => setProfile({ ...profile, enrolled: false })}><RotateCcw className="size-4" /> Record again</Button><Button variant="outline" onClick={() => void remove()} disabled={busy}><Trash2 className="size-4" /> Remove profile</Button><Link href="/dashboard" className="inline-flex h-9 items-center gap-2 px-3 text-sm font-semibold text-primary">Open briefing <ArrowRight className="size-4" /></Link></div>
       </div> : !profile ? <p className="text-sm text-muted-foreground">Checking voice setup…</p> : !profile.available ? <p className="text-sm text-muted-foreground">Voice matching is being prepared on this server. Your meetings and notes still work.</p> : <>
         <div className="flex items-start gap-4"><span className="grid size-12 shrink-0 place-items-center rounded-2xl bg-primary/10 text-primary"><Mic className="size-6" /></span><div><h2 className="font-heading text-xl font-semibold">Speak for 15 seconds</h2><p className="mt-1 text-sm leading-6 text-muted-foreground">Use your normal speaking voice. You can speak in English, Hindi, or another language you use at work. A quiet room helps.</p></div></div>
@@ -114,7 +114,7 @@ export default function VoiceSetupPage() {
         {clip && <Button className="mt-5" disabled={!consent || busy} onClick={() => void save()}>{busy ? "Saving…" : "Save my voice"}</Button>}
       </>}
     </div>
-    <p className="mt-5 flex items-start gap-2 text-xs leading-5 text-muted-foreground"><ShieldCheck className="mt-0.5 size-4 shrink-0" /> Charcha stores an encrypted voice pattern, not this raw setup recording. Uncertain meeting speakers stay unnamed until someone corrects them.</p>
+    <p className="mt-5 flex items-start gap-2 text-xs leading-5 text-muted-foreground"><ShieldCheck className="mt-0.5 size-4 shrink-0" /> Wilco stores an encrypted voice pattern, not this raw setup recording. Uncertain meeting speakers stay unnamed until someone corrects them.</p>
     {error && <p className="mt-4 text-sm text-destructive" role="alert">{error}</p>}
   </div>;
 }

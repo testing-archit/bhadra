@@ -132,7 +132,7 @@ export default function SettingsPage() {
 
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-6">
-      <PageHeader title="Settings" description="Your profile, how Charcha looks, and the integrations shared with the Chrome extension." />
+      <PageHeader title="Settings" description="Your profile, how Wilco looks, and the integrations shared with the Chrome extension." />
 
       {user && (
         <Card>
@@ -227,7 +227,7 @@ export default function SettingsPage() {
             <div>
               <CardTitle className="flex items-center gap-2 text-base"><Sheet className="h-4 w-4 text-success" /> Google Sheets export</CardTitle>
               <CardDescription className="mt-1">
-                When a notetaker meeting finishes, the Charcha Chrome extension adds its tasks and summary to this spreadsheet using your Google sign-in.
+                When a notetaker meeting finishes, the Wilco Chrome extension adds its tasks and summary to this spreadsheet using your Google sign-in.
               </CardDescription>
             </div>
             <span className="rounded-full bg-muted px-2.5 py-1 text-xs text-muted-foreground">Optional</span>
@@ -238,14 +238,14 @@ export default function SettingsPage() {
             <div className="grid gap-2">
               <Label htmlFor="spreadsheet-id">Spreadsheet URL or ID</Label>
               <Input id="spreadsheet-id" value={spreadsheetId} onChange={(event) => setSpreadsheetId(event.target.value)} disabled={sheetsLoading} placeholder="https://docs.google.com/spreadsheets/d/..." />
-              <p className="text-xs text-muted-foreground">Leave empty to keep all data in Charcha without exporting to Sheets.</p>
+              <p className="text-xs text-muted-foreground">Leave empty to keep all data in Wilco without exporting to Sheets.</p>
             </div>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="grid gap-2"><Label htmlFor="tasks-tab">Tasks tab</Label><Input id="tasks-tab" value={tasksTab} onChange={(event) => setTasksTab(event.target.value)} disabled={sheetsLoading} /></div>
               <div className="grid gap-2"><Label htmlFor="notes-tab">Meeting notes tab</Label><Input id="notes-tab" value={notesTab} onChange={(event) => setNotesTab(event.target.value)} disabled={sheetsLoading} /></div>
             </div>
             <div className="rounded-md border bg-muted/40 p-3 text-xs leading-5 text-muted-foreground">
-              Turn the copy on or off from the extension's settings. Charcha stays the source of truth; the spreadsheet is a copy for people who live in Sheets.
+              Turn the copy on or off from the extension's settings. Wilco stays the source of truth; the spreadsheet is a copy for people who live in Sheets.
             </div>
             {sheetsError && <p className="text-sm text-destructive">{sheetsError}</p>}
             {sheetsSaved && <p className="flex items-center gap-1.5 text-sm text-foreground"><CheckCircle2 className="h-4 w-4" /> Shared integration settings saved.</p>}

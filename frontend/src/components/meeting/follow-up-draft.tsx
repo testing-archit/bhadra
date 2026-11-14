@@ -48,7 +48,7 @@ export function liveDraft(draft: string, tasks: MeetingTask[], decisions: Meetin
   return lines.join("\n").replace(/\n{3,}/g, "\n\n").trim();
 }
 
-/** The AI follow-up email, addressed to the meeting's invitees. Charcha never
+/** The AI follow-up email, addressed to the meeting's invitees. Wilco never
  * sends it: it opens in Gmail (or the default mail app) for the person to
  * review and send from their own account. */
 export function FollowUpDraft({ draft: aiDraft, title, attendees, tasks, decisions }: { draft: string; title: string; attendees: MeetingAttendee[]; tasks: MeetingTask[]; decisions: MeetingDecision[] }) {
@@ -84,7 +84,7 @@ export function FollowUpDraft({ draft: aiDraft, title, attendees, tasks, decisio
             {recipients.length > 0
               ? `To ${recipients.length} invitee${recipients.length === 1 ? "" : "s"}. `
               : "No invitee email addresses on this meeting. "}
-            Review it and send it yourself — Charcha never emails attendees.
+            Review it and send it yourself — Wilco never emails attendees.
           </p>
         </div>
         <div className="flex shrink-0 flex-wrap gap-2">

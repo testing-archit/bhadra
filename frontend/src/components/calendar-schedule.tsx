@@ -25,9 +25,9 @@ function dayLabel(date: Date) {
 
 const time = (value: string) => new Date(value).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
 
-/** The person's Google Calendar inside Charcha: what's coming up (with the
+/** The person's Google Calendar inside Wilco: what's coming up (with the
  * notetaker switch) and what already happened (with its notes, when it was
- * recorded). Read-only — Charcha never changes the calendar. */
+ * recorded). Read-only — Wilco never changes the calendar. */
 export function CalendarSchedule() {
   const [schedule, setSchedule] = useState<Schedule | null>(null);
   const [configured, setConfigured] = useState<boolean | null>(null);
@@ -147,7 +147,7 @@ export function CalendarSchedule() {
       {error && <p className="text-sm text-destructive">{error}</p>}
       {range === "past" && totalPast > 0 && (
         <p className="px-1 text-xs text-muted-foreground">
-          {recordedPast} of {totalPast} meetings in the last two weeks have notes in Charcha.
+          {recordedPast} of {totalPast} meetings in the last two weeks have notes in Wilco.
         </p>
       )}
 

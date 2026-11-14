@@ -73,7 +73,7 @@ export function CalendarSettings() {
         {state?.configured && !connection && (
           <div className="flex flex-col items-start gap-3">
             <p className="text-sm text-muted-foreground">
-              Charcha only reads your events (title, time, Meet link and who&apos;s invited). It never changes your calendar.
+              Wilco only reads your events (title, time, Meet link and who&apos;s invited). It never changes your calendar.
             </p>
             <Button onClick={() => void run("connect", api.connectCalendar, ({ url }) => (window.location.href = url))} disabled={busy === "connect"}>
               {busy === "connect" ? <Loader2 className="animate-spin" /> : <CalendarDays />} Link Google Calendar
@@ -94,7 +94,7 @@ export function CalendarSettings() {
                       : "Syncing…"}
                   {connection.status !== "error" &&
                     (connection.live_updates ? (
-                      <span title="Google tells Charcha the moment your calendar changes, so meetings added at the last minute are still joined."> · Live updates on</span>
+                      <span title="Google tells Wilco the moment your calendar changes, so meetings added at the last minute are still joined."> · Live updates on</span>
                     ) : (
                       <span title={connection.live_updates_error ?? undefined}> · Checked every minute</span>
                     ))}
@@ -120,7 +120,7 @@ export function CalendarSettings() {
               <div className="flex items-start gap-2 rounded-lg border border-warning/40 bg-warning/10 px-3 py-2.5 text-sm">
                 <AlertTriangle className="mt-0.5 size-4 shrink-0 text-warning" />
                 <div className="flex-1">
-                  <p>{connection.last_error || "Google stopped sharing your calendar with Charcha."}</p>
+                  <p>{connection.last_error || "Google stopped sharing your calendar with Wilco."}</p>
                   <Button size="sm" className="mt-2" onClick={() => void run("connect", api.connectCalendar, ({ url }) => (window.location.href = url))}>
                     Reconnect
                   </Button>

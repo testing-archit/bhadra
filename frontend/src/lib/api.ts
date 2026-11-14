@@ -242,7 +242,7 @@ export interface MeetingTask {
   jira_error?: string | null;
   /** How the owner sees it: "meeting" (they were in it), "shared" (sent to
    * them, task only), "private" (kept from them), "held" (waiting for the
-   * recorder or organizer to decide), null (no Charcha account). */
+   * recorder or organizer to decide), null (no Wilco account). */
   owner_access?: OwnerAccess | null;
 }
 
@@ -284,7 +284,7 @@ export interface DirectoryUser {
 }
 
 /** Someone who was in the meeting. `user_id` is set for a colleague with a
- * Charcha account — that is what grants them access to the meeting. External
+ * Wilco account — that is what grants them access to the meeting. External
  * guests have `user_id: null` and are recorded for the meeting record only. */
 export interface MeetingAttendee {
   id: string;
@@ -338,9 +338,9 @@ export interface MeetingDetail {
   transcript_revision: number;
   insights_revision: number | null;
   insights_stale: boolean;
-  /** The recorder, the calendar organizer and Charcha admins decide who else may read it. */
+  /** The recorder, the calendar organizer and Wilco admins decide who else may read it. */
   can_manage_access: boolean;
-  /** True when the viewer can only see this because they're a Charcha admin. */
+  /** True when the viewer can only see this because they're a Wilco admin. */
   viewing_as_admin: boolean;
   /** Only the people in it can open it — no admin exemption, Jira or public link. */
   confidential?: boolean;
@@ -573,7 +573,7 @@ export interface JiraActivity {
 
 export interface JiraProjects {
   jira: { key: string; name: string }[];
-  charcha: { id: string; name: string }[];
+  wilco: { id: string; name: string }[];
 }
 
 /** Link to a Jira issue, or null when there's nothing to link to. */
@@ -665,7 +665,7 @@ export interface VocabularyEntry {
   term: string;
   kind: "keyword" | "correction";
   /** "learned" from someone's edit, "manual" from this page, "suggested"
-   * (a Charcha suggestion confirmed or applied after enough meetings), or
+   * (a Wilco suggestion confirmed or applied after enough meetings), or
    * "auto" (a keyword picked up from projects, Jira or meeting titles). */
   source: "learned" | "manual" | "suggested" | "auto";
   /** Where an auto/suggested entry came from. */
@@ -694,7 +694,7 @@ export interface VocabularyPerson {
   heard_as: { id: string; heard_as: string; enabled: boolean; source: string }[];
 }
 
-/** A mishearing Charcha noticed by itself, waiting for someone to decide. */
+/** A mishearing Wilco noticed by itself, waiting for someone to decide. */
 export interface VocabularySuggestion {
   id: string;
   heard_as: string;
@@ -841,7 +841,7 @@ export interface Me {
   team_name: string | null;
   job_title: string | null;
   auth_method: string;
-  /** False for Google accounts that never set a Charcha password. */
+  /** False for Google accounts that never set a Wilco password. */
   has_password?: boolean;
   created_at: string;
 }
@@ -1327,7 +1327,7 @@ export interface ScheduleEvent {
   will_record: boolean;
   record_override: boolean | null;
   capture: CaptureRequestItem | null;
-  /** The Charcha notes for this meeting, when it was recorded and you can open them. */
+  /** The Wilco notes for this meeting, when it was recorded and you can open them. */
   notes: { id: string; title: string } | null;
   brief_ready: boolean;
 }
@@ -1494,7 +1494,7 @@ export const api = {
   /** A 90-day token for connecting Claude or another MCP client. */
   createConnectorToken: () =>
     apiFetch<{ token: string; url: string; expires_at: string }>("/api/auth/connector-token", { method: "POST" }),
-  /** One spoken turn of Charcha Live: Prisma hears, Gemini answers, Timbre speaks. */
+  /** One spoken turn of Wilco Live: Prisma hears, Gemini answers, Timbre speaks. */
   liveTurn: (audio: Blob, history: { role: string; content: string }[]) => {
     const form = new FormData();
     form.append("audio", audio, audio.type.includes("mp4") ? "turn.m4a" : "turn.webm");

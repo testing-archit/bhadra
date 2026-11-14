@@ -136,7 +136,7 @@ export default function AdminPage() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Admin</h1>
-          <p className="mt-1 max-w-2xl text-sm text-muted-foreground">People, teams, usage and the audit trail for your Charcha workspace.</p>
+          <p className="mt-1 max-w-2xl text-sm text-muted-foreground">People, teams, usage and the audit trail for your Wilco workspace.</p>
         </div>
         <div className="flex items-center gap-2.5 rounded-lg border bg-card px-3 py-2">
           <span className="size-2 rounded-full bg-success" />
@@ -167,7 +167,7 @@ export default function AdminPage() {
                 <Pulse label="Admin exposure" value={`${accounts.filter(a => ["admin","super_admin"].includes(a.role)).length} admins`} state="Review quarterly"/>
                 <Pulse label="Decision stability" value={`${Math.round((churn?.churn_rate ?? 0) * 100)}% churn`} state={`${churn?.conflicted_decisions ?? 0} conflicts detected`}/>
               </CardContent></Card>
-              <Card><CardHeader><CardTitle className="text-base">Service health</CardTitle><p className="text-xs text-muted-foreground">Core dependencies used by Charcha.</p></CardHeader><CardContent className="space-y-1">{overview.services.map(service => <div key={service.name} className="flex items-center justify-between border-b py-3 last:border-0"><span className="text-sm font-medium">{service.name}</span><span className="flex items-center gap-2 text-xs text-success"><CheckCircle2 className="h-3.5 w-3.5"/> Operational</span></div>)}</CardContent></Card>
+              <Card><CardHeader><CardTitle className="text-base">Service health</CardTitle><p className="text-xs text-muted-foreground">Core dependencies used by Wilco.</p></CardHeader><CardContent className="space-y-1">{overview.services.map(service => <div key={service.name} className="flex items-center justify-between border-b py-3 last:border-0"><span className="text-sm font-medium">{service.name}</span><span className="flex items-center gap-2 text-xs text-success"><CheckCircle2 className="h-3.5 w-3.5"/> Operational</span></div>)}</CardContent></Card>
             </div>
           </>}
         </TabsContent>

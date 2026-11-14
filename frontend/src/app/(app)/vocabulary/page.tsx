@@ -19,7 +19,7 @@ import { Skeleton } from "@/components/ui/skeleton";
  * keywords, teammates' names (the meeting's people first) and the right
  * spelling of every correction are sent to Prisma so they're heard right.
  * Fixing a misheard name in any meeting adds it here automatically, and
- * Charcha suggests ones it noticed itself. */
+ * Wilco suggests ones it noticed itself. */
 export default function VocabularyPage() {
   const { user } = useAuth();
   const [entries, setEntries] = useState<VocabularyEntry[] | null>(null);
@@ -107,7 +107,7 @@ export default function VocabularyPage() {
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Vocabulary"
-        description="Names and terms that transcription gets wrong. Charcha fixes them in every new meeting and its notes, and tells the transcriber to listen for them, starting with the people invited to the meeting. When you correct a misheard name in a meeting, it's learned here automatically."
+        description="Names and terms that transcription gets wrong. Wilco fixes them in every new meeting and its notes, and tells the transcriber to listen for them, starting with the people invited to the meeting. When you correct a misheard name in a meeting, it's learned here automatically."
       />
 
       {suggestions.length > 0 && (
@@ -247,7 +247,7 @@ function EntryOrigin({ entry }: { entry: VocabularyEntry }) {
   if (entry.source === "suggested") {
     return (
       <>
-        {entry.note ?? "Suggested by Charcha"}
+        {entry.note ?? "Suggested by Wilco"}
         {entry.source_meeting_id && (
           <>
             {" · first noticed in "}
@@ -278,7 +278,7 @@ function EntryOrigin({ entry }: { entry: VocabularyEntry }) {
   return <>Added by {entry.created_by ?? "a former teammate"}</>;
 }
 
-/** Mishearings Charcha noticed on its own: a word that sounds like an
+/** Mishearings Wilco noticed on its own: a word that sounds like an
  * invitee's name but isn't spelled like it, backed by Meet's captions when
  * the notetaker recorded them. */
 function SuggestionsCard({
@@ -357,7 +357,7 @@ function SuggestionsCard({
 }
 
 const KIND_LABEL: Record<VocabularyPerson["kind"], string> = {
-  account: "Charcha account",
+  account: "Wilco account",
   added: "Guest",
   roster: "Server roster",
   guest: "Regular guest",
@@ -457,7 +457,7 @@ function TeammatesCard({
           <Users className="h-4 w-4" /> Teammates ({total})
         </CardTitle>
         <CardDescription>
-          Everyone with a Charcha account is listened for automatically, with the people invited to a meeting first. Add clients, vendors and other regular guests, and teach Charcha how a name tends to be misheard, for example “Arshit, Orchid” for Archit. Notes use these spellings too.
+          Everyone with a Wilco account is listened for automatically, with the people invited to a meeting first. Add clients, vendors and other regular guests, and teach Wilco how a name tends to be misheard, for example “Arshit, Orchid” for Archit. Notes use these spellings too.
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">

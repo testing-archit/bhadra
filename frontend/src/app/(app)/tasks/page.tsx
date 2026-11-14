@@ -84,10 +84,12 @@ function priorityTone(priority: string | null) {
   return "bg-muted text-muted-foreground";
 }
 
-function priorityEdge(priority: string | null) {
-  if (priority === "High") return "border-l-destructive";
-  if (priority === "Medium") return "border-l-warning";
-  return "border-l-border";
+/** Priority as a tinted pill with a dot and its word, so colour is never
+ * the only cue. Low priority shows nothing. */
+function priorityPill(priority: string | null) {
+  if (priority === "High") return "bg-tint-rose text-tint-rose-foreground";
+  if (priority === "Medium") return "bg-tint-peach text-tint-peach-foreground";
+  return null;
 }
 
 function statusTone(status: string) {
@@ -438,7 +440,7 @@ export default function TasksPage() {
 
   function exportCsv() {
     if (!filtered) return;
-    downloadBlob(new Blob([tasksToCsv(filtered)], { type: "text/csv;charset=utf-8" }), `charcha-tasks-${new Date().toISOString().slice(0, 10)}.csv`);
+    downloadBlob(new Blob([tasksToCsv(filtered)], { type: "text/csv;charset=utf-8" }), `wilco-tasks-${new Date().toISOString().slice(0, 10)}.csv`);
   }
 
   const allSelected = !!filtered?.length && filtered.every((task) => selectedIds.has(task.id));
@@ -614,7 +616,7 @@ export default function TasksPage() {
       {view === "list" && filtered && filtered.length > 0 && (
         <>
           {selectedIds.size > 0 && (
-            <div className="sticky top-16 z-10 flex flex-wrap items-center gap-2 rounded-xl border bg-popover px-3 py-2 shadow-md">
+            <div className="sticky top-3 z-10 flex flex-wrap items-center gap-2 rounded-xl border bg-popover px-3 py-2 shadow-md">
               <span className="text-sm font-medium">{selectedIds.size} selected</span>
               <select
                 value=""
@@ -774,7 +776,7 @@ function FocusPanel({
               <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
                 <Icon className={cn("size-3.5", tile.value > 0 && tile.tone)} /> {tile.label}
               </span>
-              <span className={cn("text-2xl font-semibold tabular-nums", tile.value > 0 && tile.tone)}>{tile.value}</span>
+              <span className={cn("font-dots text-[2.6rem] leading-none", tile.value > 0 && tile.tone)}>{tile.value}</span>
             </>
           );
           return tile.bucket ? (
@@ -783,12 +785,12 @@ function FocusPanel({
               type="button"
               onClick={() => onDueFilter(tile.bucket!)}
               aria-pressed={active}
-              className={cn("flex flex-col items-start gap-1 rounded-xl border bg-card p-3 text-left transition-colors hover:bg-muted/40", active && "border-primary ring-2 ring-primary/20")}
+              className={cn("flex flex-col items-start gap-2 rounded-xl border bg-card p-3.5 text-left transition-colors hover:bg-muted/40", active && "border-foreground/40 ring-2 ring-ring/30")}
             >
               {body}
             </button>
           ) : (
-            <div key={tile.label} className="flex flex-col items-start gap-1 rounded-xl border bg-card p-3">{body}</div>
+            <div key={tile.label} className="flex flex-col items-start gap-2 rounded-xl border bg-card p-3.5">{body}</div>
           );
         })}
       </div>
@@ -876,7 +878,7 @@ function WaitingPanel({
   );
 }
 
-/** Housekeeping Charcha noticed: tasks nobody has touched in weeks, and
+/** Housekeeping Wilco noticed: tasks nobody has touched in weeks, and
  * tasks that look like the same follow-up twice. */
 function NudgesPanel({
   tasks,
@@ -1183,8 +1185,7 @@ function BoardCard({
       }}
       aria-label={task.description}
       className={cn(
-        "group relative flex w-full cursor-pointer flex-col items-start gap-2 rounded-lg border border-l-4 bg-card p-3 text-left text-sm shadow-xs transition-shadow hover:shadow-md focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
-        priorityEdge(task.priority),
+        "group relative flex w-full cursor-pointer flex-col items-start gap-2 rounded-xl border bg-card p-3.5 text-left text-sm transition-colors hover:border-foreground/20 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
         dragging && "opacity-40",
       )}
     >
@@ -1224,6 +1225,12 @@ function BoardCard({
         {task.meeting_title}
       </span>
       <span className="flex w-full flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
+        {!done && priorityPill(task.priority) && (
+          <span className={cn("inline-flex items-center gap-1 rounded-full px-2 py-px font-medium", priorityPill(task.priority))}>
+            <span className="size-1.5 rounded-full bg-current" aria-hidden="true" />
+            {task.priority}
+          </span>
+        )}
         <span className="flex items-center gap-1.5" title={ownerLabel}>
           <span className="flex size-5 items-center justify-center rounded-full bg-muted text-[10px] font-medium">{task.owner?.trim() ? initials(task.owner) : "?"}</span>
           {ownerLabel}

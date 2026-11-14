@@ -33,7 +33,7 @@ import { Label } from "@/components/ui/label";
 type Phase = "setup" | "recording" | "paused" | "processing" | "error";
 type MeetingType = "physical" | "online";
 
-/** A guest with no Charcha account. Named on the meeting record, but never
+/** A guest with no Wilco account. Named on the meeting record, but never
  * granted access to it — only colleagues picked from the directory are. */
 type ExternalMember = { name: string; email: string };
 
@@ -463,7 +463,7 @@ export default function RecordMeetingPage() {
                         ))}
                       {directory.length === 0 && (
                         <p className="text-sm text-muted-foreground">
-                          No other Charcha accounts yet.
+                          No other Wilco accounts yet.
                         </p>
                       )}
                     </div>
@@ -473,7 +473,7 @@ export default function RecordMeetingPage() {
                 <div className="grid gap-2 rounded-md border border-dashed p-3">
                   <Label className="text-sm">External members</Label>
                   <p className="text-xs text-muted-foreground">
-                    Clients, vendors, or candidates without a Charcha account.
+                    Clients, vendors, or candidates without a Wilco account.
                   </p>
                   <div className="flex flex-wrap gap-2">
                     <Input

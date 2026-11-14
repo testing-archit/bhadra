@@ -16,11 +16,11 @@ export function Topbar({ onOpenMenu }: { onOpenMenu: () => void }) {
   const { resolved, setPreference } = useTheme();
 
   return (
-    <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-2 border-b bg-background/85 px-4 backdrop-blur-md sm:px-6">
+    <header className="z-30 flex h-14 shrink-0 items-center gap-2 border-b bg-background px-4 sm:px-8">
       <button type="button" className={`${iconButton} -ml-1 lg:hidden`} onClick={onOpenMenu} aria-label="Open navigation">
         <MenuIcon className="size-5" />
       </button>
-      <p className="truncate text-sm font-medium" aria-hidden="true">{pageTitleFor(pathname)}</p>
+      <p className="truncate text-sm font-semibold tracking-tight" aria-hidden="true">{pageTitleFor(pathname)}</p>
       <div className="ml-auto flex items-center gap-1">
         <button type="button" className={`${iconButton} lg:hidden`} onClick={() => setCommandOpen(true)} aria-label="Search">
           <Search className="size-4" />

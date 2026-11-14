@@ -231,11 +231,11 @@ export default function MeetingDetailPage() {
   }, []);
 
   // Fixing a misheard name in any item fixes it across the meeting (and
-  // teaches Charcha for next time): show everything with the fix applied.
+  // teaches Wilco for next time): show everything with the fix applied.
   useEffect(() => {
     function onLearned(event: Event) {
       const fixes = (event as CustomEvent<LearnedCorrection[]>).detail;
-      setLearnedNotice(`Also fixed ${fixes.map((fix) => `“${fix.wrong}” → “${fix.right}”`).join(", ")} everywhere in this meeting. Charcha will get it right in future meetings too.`);
+      setLearnedNotice(`Also fixed ${fixes.map((fix) => `“${fix.wrong}” → “${fix.right}”`).join(", ")} everywhere in this meeting. Wilco will get it right in future meetings too.`);
       setTranscriptKey((key) => key + 1);
       void reloadMeeting();
     }
@@ -597,7 +597,7 @@ export default function MeetingDetailPage() {
           {meeting.viewing_as_admin && (
             <p className="mt-3 flex items-center gap-2 rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-sm">
               <ShieldCheck className="size-4 shrink-0 text-primary" />
-              You weren&apos;t in this meeting. You can see it because you&apos;re a Charcha admin.
+              You weren&apos;t in this meeting. You can see it because you&apos;re a Wilco admin.
             </p>
           )}
           <ConfidentialNotice meeting={meeting} onChanged={() => void reloadMeeting()} />
@@ -656,7 +656,7 @@ export default function MeetingDetailPage() {
       <ProcessingPanel meetingId={id} onSettled={() => void reloadMeeting()} />
 
       {meeting.recording && (
-        <div className="sticky top-16 z-30 -mx-1 rounded-lg border bg-background/95 px-3 py-2 shadow-sm backdrop-blur">
+        <div className="sticky top-3 z-30 -mx-1 rounded-lg border bg-background/95 px-3 py-2 shadow-sm backdrop-blur">
           {audioUrl ? (
             <div className="flex flex-wrap items-center gap-3">
               <AudioLines className="h-4 w-4 shrink-0 text-primary" />
@@ -755,7 +755,7 @@ export default function MeetingDetailPage() {
             <p className="rounded-lg bg-muted/40 px-4 py-3 text-sm leading-relaxed">{insights.overview}</p>
           )}
 
-          <Card className="border-primary/20 bg-accent/40">
+          <Card>
               <CardHeader className="flex-row items-center justify-between gap-3">
                 <div className="flex flex-wrap items-center gap-2"><CardTitle className="flex items-center gap-2 text-base"><NotebookText className="h-4 w-4 text-primary" /> Detailed summary</CardTitle><VerificationBadge verifiedAt={meeting.summary_verified_at} /></div>
                 <div className="flex gap-2">{meeting.summary && <SpeakButton text={meeting.summary} />}<Button size="sm" variant="outline" onClick={() => setSummaryEditing(true)}><Pencil className="h-3.5 w-3.5" /> Review</Button><Button size="sm" variant="outline" onClick={() => void regenerateSummary()} disabled={summaryBusy} title="Generate detailed summary again"><RefreshCw className={`h-3.5 w-3.5 ${summaryBusy ? "animate-spin" : ""}`} /> {summaryBusy ? "Generating" : "Regenerate"}</Button></div>
