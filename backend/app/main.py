@@ -11,7 +11,7 @@ from slowapi.middleware import SlowAPIMiddleware
 
 from app.config import settings
 from app.rate_limit import limiter
-from app.routes import admin, auth, bot, calendar, capture, chat, decisions, digest, email, jira, meeting_workspace, meetings, notifications, policy_chat, projects, recordings, recycle_bin, tasks, transcribe, tts, vocabulary
+from app.routes import admin, auth, bot, calendar, capture, chat, decisions, digest, email, jira, meeting_workspace, meetings, notifications, policy_chat, projects, recordings, recycle_bin, tasks, transcribe, tts, live, vocabulary
 from app import mcp_server
 from app.services import calendar_service, email_service, jira_service, processing_service, usage_ledger
 
@@ -78,6 +78,7 @@ app.include_router(bot.router)
 app.include_router(email.router)
 app.include_router(vocabulary.router)
 app.include_router(tts.router)
+app.include_router(live.router)
 # Charcha as an MCP server for Claude and other assistants (connector token).
 app.mount(mcp_server.MCP_PATH, mcp_server.http_app())
 
