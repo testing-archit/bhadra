@@ -117,4 +117,31 @@ async def test_hinglish_uses_prismas_auto_lid():
     with patch.object(httpx.AsyncClient, "post", fake_post):
         await transcriber.transcribe_audio_detailed(b"audio", "audio/webm", "hinglish")
 
-    assert captured["data"]["language_code"] == "auto"
+    assert captured["data"]["language_code"] == "indic-auto"
+
+
+async def test_webm_is_repackaged_as_ogg_for_prisma(tmp_path):
+    """Prisma rejects WebM; Charcha records WebM/Opus, so it goes up as Ogg."""
+    import shutil
+    import subprocess
+
+    from app.services.transcriber import _prisma_upload
+
+    if not shutil.which("ffmpeg"):
+        pytest.skip("ffmpeg not installed")
+    webm = tmp_path / "tone.webm"
+    subprocess.run(
+        ["ffmpeg", "-nostdin", "-v", "error", "-f", "lavfi", "-i", "sine=frequency=440:duration=1",
+         "-c:a", "libopus", str(webm)],
+        check=True,
+    )
+    name, data, content_type = await _prisma_upload(webm.read_bytes(), "audio/webm;codecs=opus")
+    assert (name, content_type) == ("meeting.ogg", "audio/ogg")
+    assert data[:4] == b"OggS"
+
+
+async def test_supported_formats_are_sent_unchanged():
+    from app.services.transcriber import _prisma_upload
+
+    assert await _prisma_upload(b"m4a-bytes", "audio/mp4") == ("meeting.m4a", b"m4a-bytes", "audio/mp4")
+    assert await _prisma_upload(b"wav-bytes", "audio/wav") == ("meeting.wav", b"wav-bytes", "audio/wav")

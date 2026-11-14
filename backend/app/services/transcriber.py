@@ -1,5 +1,8 @@
+import asyncio
 import json
+import logging
 import re
+import subprocess
 from collections import Counter
 from typing import Any
 
@@ -8,10 +11,57 @@ import httpx
 from app.config import settings
 from app.services import usage_ledger, vocabulary_service
 
+logger = logging.getLogger(__name__)
+
 # Prisma v3.0 accepts recorded media through the Gnani REST endpoint. The
 # product's language selector maps to BCP-47 where a person chooses a single
 # language; Hinglish and Auto deliberately use Prisma's Auto-LID instead.
-_LANGUAGE_MAP = {"en": "en-IN", "hi": "hi-IN", "hinglish": "auto", "auto": "auto"}
+# Prisma's Auto-LID code is "indic-auto"; a bare "auto" is rejected with
+# INVALID_LANGUAGE_CODE.
+_AUTO_LID = "indic-auto"
+_LANGUAGE_MAP = {"en": "en-IN", "hi": "hi-IN", "hinglish": _AUTO_LID, "auto": _AUTO_LID}
+
+# Prisma accepts only these containers (UNSUPPORTED_AUDIO_FORMAT otherwise).
+# Everything Charcha records is WebM (Opus), so it is repackaged as Ogg:
+# the same Opus audio in a container Prisma takes, copied, not re-encoded.
+_SUPPORTED_UPLOADS = {
+    "audio/ogg": "ogg", "audio/opus": "ogg", "audio/mpeg": "mp3", "audio/mp3": "mp3",
+    "audio/wav": "wav", "audio/x-wav": "wav", "audio/wave": "wav", "audio/flac": "flac",
+    "audio/x-flac": "flac", "audio/aac": "aac", "audio/mp4": "m4a", "audio/x-m4a": "m4a",
+    "audio/m4a": "m4a",
+}
+_CONVERT_TIMEOUT_SECONDS = 300
+
+
+def _ffmpeg_to_ogg(audio_bytes: bytes, reencode: bool) -> bytes:
+    codec = ["-c:a", "libopus", "-b:a", "48k", "-ac", "1"] if reencode else ["-c:a", "copy"]
+    result = subprocess.run(
+        ["ffmpeg", "-nostdin", "-v", "error", "-i", "pipe:0", "-vn", *codec, "-f", "ogg", "pipe:1"],
+        input=audio_bytes, capture_output=True, timeout=_CONVERT_TIMEOUT_SECONDS, check=True,
+    )
+    if not result.stdout:
+        raise RuntimeError("ffmpeg produced no audio")
+    return result.stdout
+
+
+async def _prisma_upload(audio_bytes: bytes, mime_type: str) -> tuple[str, bytes, str]:
+    """(filename, bytes, content type) in a container Prisma accepts. WebM and
+    anything unknown become Ogg: a stream copy first (milliseconds, lossless),
+    then a re-encode to Opus if the codec can't go into Ogg as-is. If ffmpeg
+    can't read the audio at all, the original is sent and Prisma's own error
+    explains the problem."""
+    base = (mime_type or "").split(";")[0].strip().lower()
+    extension = _SUPPORTED_UPLOADS.get(base)
+    if extension:
+        return f"meeting.{extension}", audio_bytes, base
+    for reencode in (False, True):
+        try:
+            converted = await asyncio.to_thread(_ffmpeg_to_ogg, audio_bytes, reencode)
+            return "meeting.ogg", converted, "audio/ogg"
+        except (OSError, RuntimeError, subprocess.SubprocessError) as error:
+            logger.info("Converting %s audio to Ogg (reencode=%s) failed: %s", base or "unknown", reencode, error)
+    logger.warning("Sending %s audio to Prisma unconverted", base or "unknown")
+    return "meeting.webm", audio_bytes, mime_type or "audio/webm"
 _LOW_SPEAKER_CONFIDENCE = 0.62
 
 
@@ -216,18 +266,19 @@ async def transcribe_audio_detailed(
         "model": settings.gnani_stt_model,
         "mode": settings.gnani_stt_mode,
         "format": "transcribe",
-        "language_code": _LANGUAGE_MAP.get(meeting_language, "auto"),
-        "preferred_language": _LANGUAGE_MAP.get(meeting_language, "auto"),
+        "language_code": _LANGUAGE_MAP.get(meeting_language, _AUTO_LID),
+        "preferred_language": _LANGUAGE_MAP.get(meeting_language, _AUTO_LID),
     }
     if terms:
         data["key_terms"] = json.dumps(terms, ensure_ascii=False)
 
+    upload = await _prisma_upload(audio_bytes, mime_type)
     timeout = httpx.Timeout(timeout_seconds, connect=20.0)
     async with httpx.AsyncClient(timeout=timeout) as client:
         response = await client.post(
             settings.gnani_stt_url,
             headers={"X-API-Key-ID": settings.gnani_api_key},
-            files={"audio_file": ("meeting.webm", audio_bytes, mime_type)},
+            files={"audio_file": upload},
             data=data,
         )
 
