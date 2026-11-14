@@ -77,6 +77,7 @@ def join_notice(display_name: str, requested_by: str | None, app_url: str | None
         f"Hi, I'm {display_name}{invited}. I'm recording this call so Charcha can write up the notes, tasks and decisions.",
         f'To stop me, say "{leave_phrase}" or remove me from the call.',
         'Ask me about this call here: start your message with "Charcha", e.g. "Charcha recap" or "Charcha, what did we decide?"',
+        'Add a task the same way: "Charcha, add task: Vedant to send the invoice by Friday".',
     ]
     if app_url:
         lines.append(f"Notes appear at {app_url}/meetings after the call.")
@@ -97,6 +98,16 @@ PANEL_LINES_JS = """
   return (panel.innerText || "").split("\\n").map((line) => line.trim()).filter(Boolean);
 }
 """
+
+_TASK_RE = re.compile(r"^(?:please\s+)?(?:add|create|note|make)\s+(?:a\s+|an\s+)?(?:task|action item|todo|to-do)\b[\s:,.-]*(.+)$", re.IGNORECASE)
+
+
+def task_text(question: str) -> str | None:
+    """The task in "add task: Vedant to send the invoice by Friday", or None
+    when the message is a question rather than a task to add."""
+    match = _TASK_RE.match(question.strip())
+    return match.group(1).strip() if match and len(match.group(1).strip()) >= 2 else None
+
 
 _QUESTION_RE = re.compile(r"^\s*@?charcha\b[\s,:;.!-]*(.+)$", re.IGNORECASE)
 

@@ -194,3 +194,20 @@ def live_answer(question: str, captions: list[dict], capture_request_id: str | N
     except Exception as error:
         log.warning("Live answer failed: %s", error)
         return None
+
+
+def live_task(text: str, capture_request_id: str) -> str | None:
+    """Holds a task typed in the call's chat ("Charcha, add task: ...") for
+    the meeting's notes; returns the confirmation to post, None on failure."""
+    try:
+        response = httpx.post(
+            f"{config.BACKEND_URL}/api/bot/live-task",
+            headers=_bot_headers(),
+            json={"capture_request_id": capture_request_id, "text": text},
+            timeout=30,
+        )
+        response.raise_for_status()
+        return str(response.json().get("reply") or "").strip() or None
+    except Exception as error:
+        log.warning("Live task failed: %s", error)
+        return None

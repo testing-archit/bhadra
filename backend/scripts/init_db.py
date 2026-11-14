@@ -72,6 +72,7 @@ async def main() -> None:
         await conn.execute(text("ALTER TABLE capture_requests ADD COLUMN IF NOT EXISTS organizer_email VARCHAR"))
         await conn.execute(text("ALTER TABLE capture_requests ADD COLUMN IF NOT EXISTS scheduled_start TIMESTAMPTZ"))
         await conn.execute(text("ALTER TABLE capture_requests ADD COLUMN IF NOT EXISTS scheduled_end TIMESTAMPTZ"))
+        await conn.execute(text("ALTER TABLE capture_requests ADD COLUMN IF NOT EXISTS live_tasks JSONB"))
         # Every existing request's requester becomes its first subscriber.
         await conn.execute(text(
             "INSERT INTO capture_subscribers (capture_request_id, user_id, source) "

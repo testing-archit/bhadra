@@ -5,6 +5,9 @@ Only the call itself is used, never company memory: anyone in the call,
 guests included, can ask, so the answer must not reveal anything they
 couldn't have heard. The reply is plain text short enough for a chat bubble.
 """
+import json
+import re
+
 from app.config import settings
 from app.services import gemini_service
 
@@ -62,3 +65,37 @@ def answer(question: str, captions: list[dict], meeting_title: str = "") -> str:
         SYSTEM_PROMPT, prompt, max_output_tokens=500, temperature=0.2, thinking_budget=0, feature="live_answer"
     )
     return _clean(text) or "I couldn't put an answer together for that. Try asking another way."
+
+
+TASK_PROMPT = """Turn a task someone typed in a meeting chat into JSON with keys "owner" (person's name or ""), "description" (the task as a short imperative sentence in the language it was written in), and "deadline" (as stated, e.g. "Friday", or ""). Reply with the JSON object only."""
+
+
+def parse_task(text: str) -> dict:
+    """{"owner", "description", "deadline"} for a task typed in chat. Falls
+    back to the text itself when AI notes aren't set up or the reply isn't
+    usable, so a task is never lost."""
+    fallback = {"owner": "", "description": text.strip()[:500], "deadline": ""}
+    if not settings.gemini_api_key:
+        return fallback
+    try:
+        reply, _usage = gemini_service.generate_text(
+            TASK_PROMPT, text, max_output_tokens=200, temperature=0.0, thinking_budget=0, feature="live_task"
+        )
+        match = re.search(r"\{.*\}", reply, re.S)
+        data = json.loads(match.group(0)) if match else {}
+        description = str(data.get("description") or "").strip()
+        if not description:
+            return fallback
+        return {
+            "owner": str(data.get("owner") or "").strip()[:200],
+            "description": description[:500],
+            "deadline": str(data.get("deadline") or "").strip()[:100],
+        }
+    except Exception:
+        return fallback
+
+
+def task_confirmation(task: dict) -> str:
+    who = f" for {task['owner']}" if task.get("owner") else ""
+    when = f" (by {task['deadline']})" if task.get("deadline") else ""
+    return f"Added{who}: {task['description']}{when}. It'll be in the notes as a task."

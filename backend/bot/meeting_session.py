@@ -585,6 +585,13 @@ class MeetingSession:
             return
         for question in (await self.chat.new_questions(page))[:3]:
             log.info("Chat question: %s", question[:120])
+            task = meet_chat.task_text(question)
+            if task and self.capture_request_id:
+                reply = await asyncio.to_thread(uploader.live_task, task, self.capture_request_id)
+                if reply:
+                    self.chat.remember_sent(reply)
+                    await meet_chat.send(page, reply)
+                continue
             reply = await asyncio.to_thread(
                 uploader.live_answer,
                 question,

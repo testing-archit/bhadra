@@ -44,3 +44,56 @@ async def _ask_route(client):
     assert response.json()["answer"] == "- Vedant: read-back by Friday"
     prompt = generate.call_args.args[1]
     assert "Friday tak read-back" in prompt and "Question from the chat: recap" in prompt
+
+
+def test_task_parsing_falls_back_to_the_typed_text_without_ai():
+    with patch.object(settings, "gemini_api_key", ""):
+        task = live_assist.parse_task("Vedant to send the invoice by Friday")
+    assert task == {"owner": "", "description": "Vedant to send the invoice by Friday", "deadline": ""}
+    assert live_assist.task_confirmation(task).startswith("Added: Vedant to send the invoice")
+
+
+def test_task_parsing_reads_owner_and_deadline():
+    reply = '{"owner": "Vedant", "description": "Send the invoice", "deadline": "Friday"}'
+    with patch.object(settings, "gemini_api_key", "test"), patch("app.services.gemini_service.generate_text", return_value=(reply, {})):
+        task = live_assist.parse_task("Vedant to send the invoice by Friday")
+    assert task == {"owner": "Vedant", "description": "Send the invoice", "deadline": "Friday"}
+    assert live_assist.task_confirmation(task) == "Added for Vedant: Send the invoice (by Friday). It'll be in the notes as a task."
+
+
+async def test_live_tasks_are_held_then_created_on_the_meeting(client, member_user, make_meeting):
+    import datetime
+    import uuid
+
+    from sqlalchemy import select
+
+    from app.database.db import async_session
+    from app.database.models import CaptureRequest, MeetingTask
+    from app.routes.bot import _attach_live_tasks
+
+    async with async_session() as db:
+        capture = CaptureRequest(
+            user_id=member_user.id, platform="google_meet", meeting_url=f"https://meet.google.com/{uuid.uuid4().hex[:3]}-test-abc",
+            meeting_code=f"live-{uuid.uuid4().hex[:8]}", consent_acknowledged_at=datetime.datetime.now(datetime.UTC),
+        )
+        db.add(capture)
+        await db.commit()
+        capture_id = capture.id
+    try:
+        with patch.object(settings, "bot_api_secret", BOT_SECRET), patch.object(settings, "gemini_api_key", ""):
+            response = await client.post("/api/bot/live-task", headers=BOT, json={"capture_request_id": str(capture_id), "text": "Priya to call the supplier"})
+        assert response.status_code == 200
+        assert response.json()["reply"].startswith("Added: Priya to call the supplier")
+
+        meeting = await make_meeting(member_user, "Supplier sync", None)
+        async with async_session() as db:
+            capture = await db.get(CaptureRequest, capture_id)
+            await _attach_live_tasks(db, capture, meeting.id)
+            await db.commit()
+            tasks = (await db.scalars(select(MeetingTask).where(MeetingTask.meeting_id == meeting.id))).all()
+            assert [(t.description, t.origin) for t in tasks] == [("Priya to call the supplier", "live")]
+            assert (await db.get(CaptureRequest, capture_id)).live_tasks is None
+    finally:
+        async with async_session() as db:
+            await db.delete(await db.get(CaptureRequest, capture_id))
+            await db.commit()

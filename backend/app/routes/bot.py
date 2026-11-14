@@ -240,6 +240,8 @@ async def bot_ingest(
     if capture is not None:
         capture = await db.get(CaptureRequest, capture.id)
         capture.meeting_id = uuid.UUID(result["meeting_id"])
+        if capture.live_tasks and not result.get("deduplicated"):
+            await _attach_live_tasks(db, capture, capture.meeting_id)
         if capture_service.can_transition(capture.status, "completed"):
             capture.status = "completed"
             capture.status_detail = None
@@ -462,6 +464,49 @@ async def live_answer(body: LiveQuestion, db: AsyncSession = Depends(get_db)) ->
         logger.exception("Live answer failed")
         text = "Sorry, I couldn't answer that just now. Try again in a moment."
     return {"answer": text}
+
+
+class LiveTask(BaseModel):
+    capture_request_id: uuid.UUID
+    text: str = Field(min_length=2, max_length=1000)
+
+
+@router.post("/live-task", dependencies=[Depends(require_bot)])
+async def live_task(body: LiveTask, db: AsyncSession = Depends(get_db)) -> dict:
+    """"Charcha, add task: ..." from the call's chat. Held on the visit until
+    the meeting exists, then created as a real task (origin "live")."""
+    capture = await db.get(CaptureRequest, body.capture_request_id)
+    if capture is None:
+        raise HTTPException(status_code=404, detail="Unknown capture request")
+    usage_ledger.attribute(user_id=capture.user_id)
+    task = await asyncio.to_thread(live_assist.parse_task, body.text)
+    task["said_at"] = datetime.datetime.now(datetime.UTC).isoformat()
+    capture.live_tasks = [*(capture.live_tasks or []), task]
+    await db.commit()
+    return {"reply": live_assist.task_confirmation(task), "task": task}
+
+
+async def _attach_live_tasks(db: AsyncSession, capture: CaptureRequest, meeting_id: uuid.UUID) -> None:
+    """Creates the tasks people added from the call's chat on its meeting."""
+    from app.database.models import MeetingTask
+    from app.services import insight_service
+
+    for item in capture.live_tasks or []:
+        description = str(item.get("description") or "").strip()
+        if not description:
+            continue
+        owner = str(item.get("owner") or "").strip() or None
+        db.add(
+            MeetingTask(
+                meeting_id=meeting_id,
+                owner=owner,
+                description=description,
+                deadline=str(item.get("deadline") or "").strip() or None,
+                origin="live",
+                owner_user_id=await insight_service.resolve_owner_user_id(db, meeting_id, owner),
+            )
+        )
+    capture.live_tasks = None
 
 
 @router.get("/capture-requests/{request_id}", dependencies=[Depends(require_bot)])
