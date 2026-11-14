@@ -15,9 +15,11 @@ import asyncio
 
 from playwright.async_api import async_playwright
 
+# Sign in with whichever Google account the notetaker should be; its
+# profile name is the name people see in Meet.
 LOGIN_URL = (
     "https://accounts.google.com/ServiceLogin"
-    "?service=wise&passive=true&Email=charchanotetaker%40gmail.com"
+    "?service=wise&passive=true"
     "&continue=https%3A%2F%2Fmeet.google.com%2F"
 )
 
