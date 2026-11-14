@@ -31,11 +31,11 @@ const meeting = {
     { description: "Write the doc", owner: null, due_date: null, deadline: "next week", priority: null, status: "pending", project: null },
   ],
 };
-const context = { appUrl: "https://charcha.example.com", jiraSiteUrl: "https://acme.atlassian.net" };
+const context = { appUrl: "https://34-58-54-115.sslip.io", jiraSiteUrl: "https://acme.atlassian.net" };
 const [first, second] = taskRows(meeting, context);
 assert.equal(first.length, TASK_COLUMNS.length);
 assert.deepEqual(first.slice(0, 8), ["Check SIP AUM", "Archit", "2026-10-10", "High", "In progress", "MIS", "'=Weekly sync", "2026-10-07"]);
-assert.equal(first[8], '=HYPERLINK("https://charcha.example.com/meetings/m1?tab=actions","Open")');
+assert.equal(first[8], '=HYPERLINK("https://34-58-54-115.sslip.io/meetings/m1?tab=actions","Open")');
 assert.equal(first[9], '=HYPERLINK("https://acme.atlassian.net/browse/MT-1","MT-1")');
 assert.equal(second[2], "next week"); // no real date: the phrase as said
 assert.equal(second[4], "To do");

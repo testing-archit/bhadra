@@ -32,8 +32,8 @@ jobs:
       - name: Verify production endpoints
         run: |
           set -euo pipefail
-          grep -R "https://charcha.example.com" dist >/dev/null
-          if grep -R "charcha.example.com" dist; then
+          grep -R "https://34-58-54-115.sslip.io" dist >/dev/null
+          if grep -R "34-58-54-115.sslip.io" dist; then
             echo "Legacy production domain found in release bundle"
             exit 1
           fi

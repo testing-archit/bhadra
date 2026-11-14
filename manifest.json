@@ -18,7 +18,7 @@
     "https://sheets.googleapis.com/*",
     "http://localhost:8080/*",
     "http://localhost:3001/*",
-    "https://charcha.example.com/*"
+    "https://34-58-54-115.sslip.io/*"
   ],
   "oauth2": {
     "client_id": "35439757502-0j977sdah63dqka6se7gli3oavk2kfu2.apps.googleusercontent.com",
@@ -45,7 +45,7 @@
     {
       "matches": [
         "http://localhost:3001/*",
-        "https://charcha.example.com/*"
+        "https://34-58-54-115.sslip.io/*"
       ],
       "js": [
         "src/auth-bridge.js"

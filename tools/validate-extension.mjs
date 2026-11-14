@@ -33,13 +33,13 @@ for (const permission of ["storage", "identity", "notifications", "alarms", "con
 for (const permission of ["tabCapture", "offscreen", "unlimitedStorage", "scripting"]) {
   assert(!manifest.permissions.includes(permission), `Unused permission must be removed: ${permission}`);
 }
-for (const origin of ["https://meet.google.com/*", "http://localhost:8080/*", "https://charcha.example.com/*", "https://sheets.googleapis.com/*"]) {
+for (const origin of ["https://meet.google.com/*", "http://localhost:8080/*", "https://34-58-54-115.sslip.io/*", "https://sheets.googleapis.com/*"]) {
   assert(manifest.host_permissions.includes(origin), `Required host permission missing: ${origin}`);
 }
 assert(manifest.oauth2.scopes.includes("https://www.googleapis.com/auth/spreadsheets"), "Sheets export needs the spreadsheets scope");
 assert.equal(manifest.omnibox?.keyword, "mem", "Address-bar keyword is missing");
 assert.equal(manifest.version, pkg.version, "manifest.json and package.json versions must match");
-assert(manifest.content_scripts.some((entry) => entry.matches?.includes("https://charcha.example.com/*")), "Auth bridge must run on the hosted dashboard");
+assert(manifest.content_scripts.some((entry) => entry.matches?.includes("https://34-58-54-115.sslip.io/*")), "Auth bridge must run on the hosted dashboard");
 
 for (const removed of ["src/offscreen.html", "src/offscreen.js", "src/storage.js"]) {
   assert(!existsSync(resolve(root, removed)), `Recording code should be gone: ${removed}`);
@@ -49,11 +49,11 @@ assert(!/tabCapture|getUserMedia|MediaRecorder|offscreen/.test(backgroundJs + co
 // --- Environments -------------------------------------------------------------
 assert.equal(backendUrlForDashboardOrigin("http://localhost:3000"), null);
 assert.equal(backendUrlForDashboardOrigin("http://localhost:3001"), "http://localhost:8080");
-assert.equal(backendUrlForDashboardOrigin("https://charcha.example.com"), null);
+assert.equal(backendUrlForDashboardOrigin("https://34-58-54-115.sslip.io"), null);
 assert.equal(BACKEND_URL, "http://localhost:8080");
 assert.equal(DASHBOARD_URL, "http://localhost:3001");
 assert(DASHBOARD_URL_PATTERNS.includes("http://localhost:3001/*"));
-assert(DASHBOARD_URL_PATTERNS.includes("https://charcha.example.com/*"));
+assert(DASHBOARD_URL_PATTERNS.includes("https://34-58-54-115.sslip.io/*"));
 
 // --- Popup --------------------------------------------------------------------
 const htmlIds = [...popupHtml.matchAll(/\bid="([^"]+)"/g)].map((match) => match[1]);

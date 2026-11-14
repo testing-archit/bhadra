@@ -1,33 +1,33 @@
 :root {
-  color-scheme: light dark;
-  /* Charcha: neel indigo on warm paper, genda marigold accent. */
-  --bg: #faf7f1;
-  --surface: #ffffff;
-  --ink: #1d1a3b;
-  --muted: #6b6889;
-  --line: #ebe5da;
-  --primary: #2e2a8c;
-  --primary-ink: #faf7f1;
-  --primary-soft: #ecebfa;
+  color-scheme: dark light;
+  /* Charcha "night glow": neel-violet on a night sky, genda marigold accent. */
+  --bg: #0e0c1f;
+  --surface: #191731;
+  --ink: #f1eefb;
+  --muted: #a7a3c8;
+  --line: #2c2950;
+  --primary: #8b7cff;
+  --primary-ink: #0e0c1f;
+  --primary-soft: #26224d;
   --accent: #f0a020;
   --accent-ink: #3a2606;
-  --live: #c8402f;
-  --warn: #b7791f;
-  --done: #3f7d4e;
-  --danger-soft: #fbe9e5;
+  --live: #ef5b47;
+  --warn: #e0a43a;
+  --done: #5fae74;
+  --danger-soft: #3a1e26;
   --radius: 14px;
 }
-@media (prefers-color-scheme: dark) {
+@media (prefers-color-scheme: light) {
   :root {
-    --bg: #17152c;
-    --surface: #1f1d39;
-    --ink: #f1eee6;
-    --muted: #a6a3c4;
-    --line: #2e2b4d;
-    --primary: #a7a3ff;
-    --primary-ink: #17152c;
-    --primary-soft: #2a2754;
-    --danger-soft: #3a1e22;
+    --bg: #f7f5ff;
+    --surface: #ffffff;
+    --ink: #1d1a3b;
+    --muted: #6b6889;
+    --line: #e6e2f5;
+    --primary: #5b4cf0;
+    --primary-ink: #ffffff;
+    --primary-soft: #ecebfa;
+    --danger-soft: #fbe9e5;
   }
 }
 
@@ -50,7 +50,7 @@ svg { display: block; }
 .divider::before, .divider::after { content: ""; flex: 1; height: 1px; background: var(--line); }
 .google { width: 16px; height: 16px; }
 
-.mark { position: relative; width: 26px; height: 26px; border-radius: 8px; background: #2e2a8c; color: #faf7f1; display: grid; place-items: center; }
+.mark { position: relative; width: 26px; height: 26px; border-radius: 8px; background: linear-gradient(135deg, #5b4cf0, #8b7cff); color: #faf7f1; display: grid; place-items: center; }
 .mark svg { width: 17px; height: 17px; stroke: currentColor; stroke-width: 1.8; stroke-linejoin: round; }
 .mark--large { width: 48px; height: 48px; border-radius: 14px; margin: 0 auto; }
 .mark--large svg { width: 30px; height: 30px; }

@@ -2,15 +2,15 @@ const buildEnv = import.meta.env || {};
 const production = buildEnv.PROD && buildEnv.VITE_DEPLOY_TARGET === "production";
 
 export const BACKEND_URL = production
-  ? "https://charcha.example.com"
+  ? "https://34-58-54-115.sslip.io"
   : "http://localhost:8080";
 export const DASHBOARD_URL = production
-  ? "https://charcha.example.com"
+  ? "https://34-58-54-115.sslip.io"
   : "http://localhost:3001";
 
 export const DASHBOARD_URL_PATTERNS = [
   "http://localhost:3001/*",
-  "https://charcha.example.com/*",
+  "https://34-58-54-115.sslip.io/*",
 ];
 
 export function backendUrlForDashboardOrigin(origin) {
