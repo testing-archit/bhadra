@@ -7,7 +7,7 @@ import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 
-/** One tap into a private workspace filled with sample Hinglish meetings. */
+/** One tap into a private workspace filled with sample software-team meetings. */
 export function TryDemoButton() {
   const { login } = useAuth();
   const router = useRouter();
@@ -32,7 +32,7 @@ export function TryDemoButton() {
         {busy ? <Loader2 className="animate-spin" aria-hidden="true" /> : <Sparkles aria-hidden="true" />}
         {busy ? "Setting up your demo" : "Try the demo, no sign-up"}
       </Button>
-      <p className="text-center text-xs text-muted-foreground">A private workspace with sample Hinglish meetings.</p>
+      <p className="text-center text-xs text-muted-foreground">A private workspace with sample engineering meetings.</p>
       {error && <p role="alert" className="text-center text-sm text-destructive">{error}</p>}
     </div>
   );

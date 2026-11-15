@@ -38,8 +38,6 @@ export const NAV_GROUPS: NavGroup[] = [
       { href: "/tasks", label: "Tasks", icon: ListChecks },
       { href: "/memory", label: "Memory", icon: Sparkles },
       { href: "/live", label: "Talk to Wilco", icon: AudioLines },
-      { href: "/khata", label: "Voice khata", icon: NotebookPen },
-      { href: "/gnani", label: "Built on Gnani", icon: Cpu },
     ],
   },
   {
@@ -50,6 +48,8 @@ export const NAV_GROUPS: NavGroup[] = [
       { href: "/projects", label: "Projects", icon: FolderKanban },
       { href: "/policy", label: "Policies", icon: BookOpenCheck },
       { href: "/vocabulary", label: "Vocabulary", icon: SpellCheck },
+      { href: "/gnani", label: "Built on Gnani", icon: Cpu },
+      { href: "/khata", label: "Voice ledger", icon: NotebookPen },
       { href: "/admin", label: "Admin", icon: ShieldCheck, adminOnly: true },
     ],
   },

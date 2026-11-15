@@ -2,13 +2,13 @@
 
 ## Context
 
-The user does not like the current Wilco UI and asked for more online UI skills on a separate branch while other agents work. This branch adds review and React implementation guidance only; it does not change the deployed interface. A visual preference has not been supplied, so the current teal/orange mascot treatment is a baseline to inspect, not a direction to preserve or discard automatically.
+The user does not like the current Wilco UI and asked for more online UI skills on a separate branch while other agents work. They then asked for an ambitious hackathon interface aimed at software companies, using a shared reel of design-resource libraries as inspiration. See [the signal-room direction](hackathon-ui-direction.md). The earlier teal/orange mascot treatment is a baseline to inspect, not a direction to preserve.
 
 The current design contract is `DESIGN.md`. Use `docs/screenshots/wilco-followthrough-home-desktop.png`, `wilco-followthrough-home-mobile.png`, and the corresponding task, review, Memory, and Live screenshots as evidence. The older `wilco-violet-*` screenshots and `docs/ui-reference.md` document a prior version.
 
 ## First design pass
 
-Review one complete flow before broad restyling: **Home → invite notetaker → live meeting → review notes → act on a task**. The user's dissatisfaction may concern visual taste, task clarity, density, or both; do not claim a cause from screenshots alone. Run a short review with `better-interface` and its domain skills, then show two materially different full-screen concepts at desktop and mobile size. Use real Wilco content and preserve the existing consent, access, and error flows.
+Review one complete flow before broad restyling: **Home → invite notetaker → live meeting → review notes → act on a task**. The user's dissatisfaction may concern visual taste, task clarity, density, or both; do not claim a cause from screenshots alone. Use `better-interface` and its domain skills against the implementation. The chosen first concept is the signal room; refine it against real Wilco content and preserve the existing consent, access, and error flows.
 
 For each concept, make these decisions explicit:
 
@@ -17,7 +17,7 @@ For each concept, make these decisions explicit:
 - How do meeting details and a whiteboard fit on smaller screens without hiding source evidence?
 - Which typography, colors, spacing, and component shapes make Wilco recognizable without decorative repetition?
 
-Only after selecting a concept should the owner change `DESIGN.md` and shared theme tokens. Keep the existing Next.js, Tailwind, Base UI, and Lucide stack. Verify desktop and mobile screenshots, keyboard focus, 200% zoom, empty/error/loading states, reduced motion, and the production build. A screenshot concept is useful for visual judgment; it is not evidence that interactions work.
+The user selected an ambitious direction and `DESIGN.md` now points to the signal-room concept. Keep the existing Next.js, Tailwind, Base UI, and Lucide stack. Verify desktop and mobile screenshots, keyboard focus, 200% zoom, empty/error/loading states, reduced motion, and the production build. A screenshot concept is useful for visual judgment; it is not evidence that interactions work.
 
 ## Skill sources added on this branch
 

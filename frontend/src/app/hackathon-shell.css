@@ -1,0 +1,414 @@
+/* Signal room chrome. Scoped to the app shell so public and auth pages keep
+   their own surfaces. The sidebar also styles its portalled mobile drawer. */
+.hackathon-shell,
+.signal-sidebar {
+  --signal-void: #071126;
+  --signal-navy: #0a1732;
+  --signal-panel: #102142;
+  --signal-line: #244268;
+  --signal-text: #f5f8ff;
+  --signal-muted: #a8bbd5;
+  --signal-cyan: #58e3ff;
+  --signal-violet: #9282ff;
+  --signal-orange: #ff8c37;
+  --signal-orange-hover: #ffac62;
+  --signal-orange-ink: #201006;
+}
+
+.signal-sidebar {
+  --sidebar: var(--signal-void);
+  --sidebar-foreground: var(--signal-text);
+  --sidebar-primary: var(--signal-orange);
+  --sidebar-primary-foreground: var(--signal-orange-ink);
+  --sidebar-accent: var(--signal-panel);
+  --sidebar-accent-foreground: var(--signal-text);
+  --sidebar-border: var(--signal-line);
+  --sidebar-ring: var(--signal-cyan);
+}
+
+.hackathon-shell {
+  background: var(--signal-void);
+}
+
+.signal-desktop-rail {
+  width: 258px;
+}
+
+.signal-sidebar {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  border-color: var(--signal-line);
+  background:
+    radial-gradient(ellipse 125% 38% at 100% 3%, color-mix(in srgb, var(--signal-violet) 14%, transparent), transparent 68%),
+    radial-gradient(ellipse 90% 40% at -20% 100%, color-mix(in srgb, var(--signal-cyan) 9%, transparent), transparent 76%),
+    var(--signal-void);
+  color: var(--signal-text);
+}
+
+.signal-sidebar::before {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  background-image: linear-gradient(to bottom, color-mix(in srgb, var(--signal-cyan) 5%, transparent) 1px, transparent 1px);
+  background-size: 100% 48px;
+  content: "";
+  mask-image: linear-gradient(to bottom, transparent, black 25%, black 74%, transparent);
+  pointer-events: none;
+}
+
+.signal-brand {
+  position: relative;
+  height: 104px;
+  padding-inline: 20px;
+}
+
+.signal-brand::after {
+  position: absolute;
+  right: 20px;
+  bottom: 12px;
+  left: 20px;
+  height: 1px;
+  background: linear-gradient(90deg, var(--signal-cyan), color-mix(in srgb, var(--signal-violet) 65%, transparent), transparent);
+  content: "";
+  opacity: .42;
+}
+
+.signal-brand a {
+  gap: 11px;
+}
+
+.signal-brand img {
+  width: 48px;
+  height: 48px;
+  padding: 3px;
+  border: 1px solid color-mix(in srgb, var(--signal-cyan) 26%, transparent);
+  border-radius: 13px;
+  background: color-mix(in srgb, var(--signal-cyan) 9%, var(--signal-panel));
+  box-shadow: 0 0 24px color-mix(in srgb, var(--signal-cyan) 11%, transparent);
+}
+
+.signal-brand-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.signal-brand-copy > span:first-child {
+  color: var(--signal-text);
+  font-size: 23px;
+  letter-spacing: -.05em;
+}
+
+.signal-brand-subtitle {
+  color: var(--signal-muted);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: .015em;
+}
+
+.signal-sidebar .signal-new-meeting {
+  min-height: 46px;
+  border: 1px solid color-mix(in srgb, var(--signal-orange) 90%, white);
+  border-radius: 11px;
+  background: linear-gradient(125deg, var(--signal-orange-hover), var(--signal-orange) 70%);
+  color: var(--signal-orange-ink);
+  box-shadow: 0 5px 20px color-mix(in srgb, var(--signal-orange) 20%, transparent);
+}
+
+.signal-sidebar .signal-new-meeting:hover {
+  background: var(--signal-orange-hover);
+  box-shadow: 0 7px 28px color-mix(in srgb, var(--signal-orange) 28%, transparent);
+}
+
+.signal-sidebar .signal-search {
+  min-height: 42px;
+  border-color: var(--signal-line);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--signal-panel) 68%, transparent);
+  color: var(--signal-muted);
+}
+
+.signal-sidebar .signal-search:hover {
+  border-color: color-mix(in srgb, var(--signal-cyan) 45%, var(--signal-line));
+  background: var(--signal-panel);
+  color: var(--signal-text);
+}
+
+.signal-sidebar .signal-search kbd {
+  border-color: var(--signal-line);
+  background: var(--signal-void);
+  color: var(--signal-muted);
+}
+
+.signal-sidebar :is(.signal-new-meeting, .signal-search, a, summary, button):focus-visible {
+  outline: 2px solid var(--signal-cyan);
+  outline-offset: 3px;
+  box-shadow: none;
+}
+
+.signal-sidebar .signal-nav {
+  gap: 13px;
+  padding-block: 10px;
+  scrollbar-color: var(--signal-line) transparent;
+}
+
+.signal-sidebar .signal-nav a,
+.signal-sidebar .signal-nav summary {
+  position: relative;
+  min-height: 44px;
+  color: var(--signal-muted);
+  font-weight: 500;
+}
+
+.signal-sidebar .signal-nav a:hover,
+.signal-sidebar .signal-nav summary:hover {
+  background: color-mix(in srgb, var(--signal-cyan) 8%, transparent);
+  color: var(--signal-text);
+}
+
+.signal-sidebar .signal-nav a[aria-current="page"] {
+  background: linear-gradient(90deg, color-mix(in srgb, var(--signal-cyan) 15%, var(--signal-panel)), color-mix(in srgb, var(--signal-violet) 9%, var(--signal-panel)));
+  color: var(--signal-text);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--signal-cyan) 13%, transparent);
+}
+
+.signal-sidebar .signal-nav a[aria-current="page"]::before {
+  position: absolute;
+  top: 8px;
+  bottom: 8px;
+  left: 0;
+  width: 3px;
+  border-radius: 4px;
+  background: var(--signal-orange);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--signal-orange) 70%, transparent);
+  content: "";
+}
+
+.signal-sidebar .signal-nav a[aria-current="page"] svg {
+  color: var(--signal-cyan);
+}
+
+.signal-sidebar > div:last-child {
+  border-color: var(--signal-line);
+  background: color-mix(in srgb, var(--signal-panel) 26%, transparent);
+}
+
+.signal-sidebar > div:last-child a,
+.signal-sidebar > div:last-child button {
+  color: var(--signal-muted);
+}
+
+.signal-sidebar > div:last-child a:hover,
+.signal-sidebar > div:last-child button:hover,
+.signal-sidebar > div:last-child a[aria-current="page"] {
+  background: color-mix(in srgb, var(--signal-cyan) 9%, transparent);
+  color: var(--signal-text);
+}
+
+.signal-sidebar > div:last-child button > span:first-child {
+  background: var(--signal-panel);
+  color: var(--signal-cyan);
+  box-shadow: inset 0 0 0 1px var(--signal-line);
+}
+
+.signal-sidebar > div:last-child :is(a, button) svg {
+  color: inherit;
+}
+
+.signal-sidebar .sidebar-mascot {
+  opacity: .78;
+}
+
+.signal-sidebar .sidebar-mascot img {
+  filter: drop-shadow(0 0 22px color-mix(in srgb, var(--signal-violet) 30%, transparent));
+}
+
+.signal-sidebar .mx-3.mb-3 {
+  border-color: var(--signal-line);
+  background: var(--signal-panel);
+}
+
+.signal-content {
+  background: var(--background);
+}
+
+.signal-topbar {
+  position: relative;
+  min-height: 80px;
+  border-bottom: 1px solid var(--signal-line);
+  background:
+    radial-gradient(ellipse 36% 140% at 82% -24%, color-mix(in srgb, var(--signal-violet) 19%, transparent), transparent 80%),
+    var(--signal-navy);
+  color: var(--signal-text);
+}
+
+.signal-topbar::after {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent 4%, var(--signal-cyan) 38%, var(--signal-violet) 72%, transparent 96%);
+  content: "";
+  opacity: .36;
+  pointer-events: none;
+}
+
+.signal-topbar .header-greeting,
+.signal-page-heading {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.signal-topbar-kicker {
+  color: var(--signal-muted);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: .025em;
+}
+
+.signal-topbar-kicker > span {
+  margin-right: 4px;
+  color: var(--signal-orange);
+  font-weight: 800;
+}
+
+.signal-topbar .header-greeting strong,
+.signal-page-heading p {
+  overflow: hidden;
+  color: var(--signal-text);
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -.025em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.signal-topbar .header-icon-button,
+.signal-topbar .profile-avatar,
+.signal-topbar [aria-label="Notifications"] {
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--signal-line);
+  border-radius: 11px;
+  background: color-mix(in srgb, var(--signal-panel) 68%, transparent);
+  color: var(--signal-text);
+  box-shadow: none;
+}
+
+.signal-topbar .header-icon-button:hover,
+.signal-topbar .profile-avatar:hover,
+.signal-topbar [aria-label="Notifications"]:hover {
+  border-color: color-mix(in srgb, var(--signal-cyan) 55%, var(--signal-line));
+  background: var(--signal-panel);
+  color: var(--signal-cyan);
+}
+
+.signal-topbar .signal-topbar-search > span,
+.signal-topbar .signal-topbar-search kbd {
+  display: none;
+}
+
+@media (min-width: 1200px) {
+  .signal-topbar .signal-topbar-search {
+    display: flex;
+    width: min(27vw, 310px);
+    justify-content: flex-start;
+    gap: 10px;
+    padding-inline: 12px;
+    color: var(--signal-muted);
+  }
+
+  .signal-topbar .signal-topbar-search > span {
+    display: block;
+    overflow: hidden;
+    flex: 1;
+    font-size: 11px;
+    text-align: left;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .signal-topbar .signal-topbar-search kbd {
+    display: block;
+    border: 1px solid var(--signal-line);
+    border-radius: 4px;
+    padding: 2px 4px;
+    color: var(--signal-muted);
+    font-family: inherit;
+    font-size: 10px;
+  }
+}
+
+.signal-topbar :is(button, a):focus-visible {
+  outline: 2px solid var(--signal-cyan);
+  outline-offset: 3px;
+}
+
+@media (min-width: 1024px) {
+  .signal-content {
+    margin: 9px 9px 9px 0;
+    border: 1px solid var(--signal-line);
+    border-radius: 16px;
+    box-shadow: -8px 0 40px color-mix(in srgb, black 23%, transparent);
+  }
+}
+
+@media (max-width: 1023px) {
+  .signal-sidebar {
+    min-height: 100%;
+  }
+
+  .hackathon-shell .mobile-bottom-nav {
+    border-top: 1px solid var(--signal-line);
+    background: var(--signal-void);
+    box-shadow: 0 -12px 28px color-mix(in srgb, var(--signal-void) 30%, transparent);
+  }
+
+  .hackathon-shell .bottom-nav-item {
+    color: var(--signal-muted);
+  }
+
+  .hackathon-shell .bottom-nav-item.is-active {
+    color: var(--signal-cyan);
+  }
+
+  .hackathon-shell .bottom-nav-item.is-active svg {
+    fill: color-mix(in srgb, var(--signal-cyan) 13%, transparent);
+  }
+
+  .hackathon-shell .mobile-create {
+    border-color: var(--signal-void);
+    background: linear-gradient(125deg, var(--signal-orange-hover), var(--signal-orange));
+    color: var(--signal-orange-ink);
+    box-shadow: 0 5px 21px color-mix(in srgb, var(--signal-orange) 25%, transparent);
+  }
+}
+
+@media (max-width: 767px) {
+  .signal-topbar {
+    min-height: 72px;
+    padding: 10px 16px;
+  }
+
+  .signal-topbar .header-greeting strong,
+  .signal-page-heading p {
+    font-size: 15px;
+  }
+
+  .signal-topbar .profile-avatar {
+    flex-shrink: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .signal-sidebar *,
+  .signal-topbar *,
+  .hackathon-shell .mobile-bottom-nav * {
+    animation-duration: .01ms !important;
+    transition-duration: .01ms !important;
+  }
+}

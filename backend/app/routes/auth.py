@@ -429,7 +429,7 @@ DEMO_KEEP_HOURS = 48
 @limiter.limit("3/minute")
 async def start_demo(request: Request, db: AsyncSession = Depends(get_db)) -> LoginResponse:
     """A private, pre-filled workspace with no sign-up: synthetic Hinglish
-    meetings (a kirana store, ASHA workers, a sprint) to explore. Demo
+    software-team meetings (incidents, launches, design reviews) to explore. Demo
     accounts can't send the notetaker, link calendars or clone voices, get
     no email, and are deleted after two days."""
     import secrets

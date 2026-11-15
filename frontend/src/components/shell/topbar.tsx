@@ -28,7 +28,7 @@ export function Topbar({ onOpenMenu }: { onOpenMenu: () => void }) {
     .join("")
     .toUpperCase();
   return (
-    <header className="workspace-topbar">
+    <header className="workspace-topbar signal-topbar">
       <button
         type="button"
         className={
@@ -43,22 +43,25 @@ export function Topbar({ onOpenMenu }: { onOpenMenu: () => void }) {
       </button>
       {home ? (
         <div className="header-greeting">
-          <span>
-            {greeting} <span aria-hidden="true">☀</span>
-          </span>
-          <strong>{name}</strong>
+          <span className="signal-topbar-kicker"><span aria-hidden="true">//</span> Signal room</span>
+          <strong>{greeting}, {name}</strong>
         </div>
       ) : (
-        <p className="text-sm font-semibold">{calendar ? "Calendar" : pageTitleFor(pathname)}</p>
+        <div className="signal-page-heading">
+          <span className="signal-topbar-kicker"><span aria-hidden="true">//</span> Workspace</span>
+          <p className="text-sm font-semibold">{calendar ? "Calendar" : pageTitleFor(pathname)}</p>
+        </div>
       )}
       <div className="ml-auto flex items-center gap-1.5">
         <button
           type="button"
-          className={iconButton}
+          className={`${iconButton} signal-topbar-search`}
           onClick={() => setCommandOpen(true)}
           aria-label="Search"
         >
           <Search className="size-5" />
+          <span aria-hidden="true">Search meetings, decisions, actions</span>
+          <kbd aria-hidden="true">⌘K</kbd>
         </button>
         <button
           type="button"

@@ -20,8 +20,7 @@ import {
   type TaskUpdateResponse,
   type VoiceProfileStatus,
 } from "@/lib/api";
-import { WilcoMascot } from "@/components/brand";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { HomeFollowUps } from "@/components/home-follow-ups";
@@ -29,6 +28,7 @@ import { DemoTour } from "@/components/demo-tour";
 import { MeetingAgenda } from "@/components/meeting-agenda";
 import { MeetingPeople } from "@/components/meeting-people";
 import { isCaptureLive, useShell } from "@/components/shell/shell-context";
+import "../../hackathon-home.css";
 
 const questionHref = (question: string) =>
   `/memory?q=${encodeURIComponent(question)}`;
@@ -120,8 +120,8 @@ export default function HomePage() {
   }
 
   return (
-    <div className="meeting-dashboard home-return-workspace">
-      <h1 className="sr-only">Your next steps</h1>
+    <div className="meeting-dashboard home-return-workspace signal-room">
+      <h1 className="sr-only">Meeting signal room</h1>
       <DemoTour />
       {error && (
         <div className="dashboard-error" role="alert">
@@ -131,57 +131,58 @@ export default function HomePage() {
           </button>
         </div>
       )}
-      <section
-        className="mascot-welcome home-review-banner"
-        aria-label="Meet Wilco"
-      >
-        <div className="mascot-welcome-copy">
-          <span className="home-review-label">
-            {recent
-              ? "Your latest meeting"
-              : meetings?.length === 0
-                ? "Start with a meeting"
-                : "Your meetings"}
-          </span>
-          {loading && meetings === null ? (
-            <Skeleton className="h-8 w-64 max-w-full" />
-          ) : (
-            <h2>
-              {recent?.title ??
-                (meetings === null
-                  ? "Your meeting notes"
-                  : "Bring Wilco to your next meeting.")}
-            </h2>
-          )}
-          {recent && (
-            <p>
-              {reviewCount === null
-                ? "Open the notes and follow-ups."
-                : reviewCount > 0
-                  ? `${reviewCount} details to confirm`
-                  : "Meeting details confirmed"}
-            </p>
-          )}
-          <div className="home-review-actions">
-            {recent && reviewHref && (
-              <Link
-                href={reviewHref}
-                className={buttonVariants({ variant: "brand" })}
-              >
-                <FileText data-icon="inline-start" aria-hidden="true" />
-                {reviewCount ? "Review notes" : "Open notes"}
+      <section className="signal-hero" aria-labelledby="signal-hero-title">
+        <div className="signal-hero-copy">
+          <span className="signal-kicker"><span aria-hidden="true">//</span> Your team’s meeting intelligence</span>
+          <h2 id="signal-hero-title">Turn meetings<br />into <em>shipped work.</em></h2>
+          <p>Capture the conversation. Keep the decisions, context, and follow-ups your software team needs to move.</p>
+          <div className="signal-hero-actions">
+            <Button className="signal-primary-action" onClick={() => openNotetaker()}>
+              <Video data-icon="inline-start" aria-hidden="true" />
+              Join or start a meeting
+              <ArrowRight aria-hidden="true" />
+            </Button>
+            {reviewHref && (
+              <Link href={reviewHref} className="signal-secondary-action">
+                <FileText aria-hidden="true" />
+                {reviewCount ? "Review latest notes" : "Open latest notes"}
               </Link>
             )}
-            <Button
-              variant={recent ? "outline" : "brand"}
-              onClick={() => openNotetaker()}
-            >
-              <Video data-icon="inline-start" aria-hidden="true" />
-              Invite Wilco
-            </Button>
+          </div>
+          <div className="signal-hero-foot">
+            {loading && meetings === null ? (
+              <Skeleton className="h-9 w-64 max-w-full" />
+            ) : recent ? (
+              <Link href={reviewHref ?? `/meetings/${recent.id}`} className="signal-latest-link">
+                <span className="signal-latest-icon"><FileText aria-hidden="true" /></span>
+                <span><small>Latest meeting</small><strong>{recent.title}</strong></span>
+                <span className="signal-latest-review">{reviewCount === null ? "Open notes" : reviewCount > 0 ? `${reviewCount} to confirm` : "Confirmed"}</span>
+                <ArrowRight aria-hidden="true" />
+              </Link>
+            ) : (
+              <span className="signal-hero-empty">{meetings === null ? "Meeting notes unavailable right now." : "Your first meeting will appear here."}</span>
+            )}
           </div>
         </div>
-        <WilcoMascot className="welcome-mascot" />
+        <div className="signal-art" aria-hidden="true">
+          <div className="signal-art-grid" />
+          <svg className="signal-wave" viewBox="0 0 780 480" preserveAspectRatio="xMidYMid meet">
+            <defs>
+              <linearGradient id="signal-wave-a" x1="0" y1="1" x2="1" y2="0"><stop offset="0"/><stop offset=".48"/><stop offset="1"/></linearGradient>
+              <linearGradient id="signal-wave-b" x1="0" y1="1" x2="1" y2="0"><stop offset="0"/><stop offset=".65"/><stop offset="1"/></linearGradient>
+              <filter id="signal-glow"><feGaussianBlur stdDeviation="13" /></filter>
+            </defs>
+            <path className="signal-wave-glow" d="M0 333 C65 334 80 276 133 306 S225 367 276 270 S365 236 400 280 S473 360 522 191 S607 278 651 178 S718 175 780 158" stroke="url(#signal-wave-a)" filter="url(#signal-glow)" />
+            <path className="signal-wave-fill" d="M0 333 C65 334 80 276 133 306 S225 367 276 270 S365 236 400 280 S473 360 522 191 S607 278 651 178 S718 175 780 158 L780 435 L0 435 Z" fill="url(#signal-wave-b)" />
+            <path className="signal-wave-main" d="M0 333 C65 334 80 276 133 306 S225 367 276 270 S365 236 400 280 S473 360 522 191 S607 278 651 178 S718 175 780 158" stroke="url(#signal-wave-a)" />
+            <path className="signal-wave-secondary" d="M0 360 C90 340 133 359 211 340 S333 300 402 320 S514 326 581 247 S690 246 780 223" />
+            <g className="signal-node"><circle cx="276" cy="270" r="7"/><circle cx="522" cy="191" r="7"/><circle cx="651" cy="178" r="7"/></g>
+          </svg>
+          <span className="signal-stage signal-stage-one"><i />Discussion</span>
+          <span className="signal-stage signal-stage-two"><i />Decision</span>
+          <span className="signal-stage signal-stage-three"><i />Action</span>
+          <span className="signal-art-caption">From discussion to decisions to action</span>
+        </div>
       </section>
 
       {live.length > 0 && (
@@ -207,6 +208,7 @@ export default function HomePage() {
         </section>
       )}
 
+      <div className="signal-section-heading"><span>What needs your attention</span><Link href="/tasks">Open all tasks <ArrowRight aria-hidden="true" /></Link></div>
       <div className="home-action-grid">
         <HomeFollowUps
           tasks={tasks}
@@ -223,7 +225,7 @@ export default function HomePage() {
             <header className="home-panel-heading">
               <h2 id="home-memory-heading">
                 <MessageSquareText aria-hidden="true" />
-                Find it in your meetings
+                Ask your meeting memory
               </h2>
             </header>
             <form
@@ -241,7 +243,7 @@ export default function HomePage() {
                 id="home-memory-question"
                 value={question}
                 onChange={(event) => setQuestion(event.target.value)}
-                placeholder="What do you want to know?"
+                placeholder="Why did we choose that approach?"
               />
               <Button
                 type="submit"

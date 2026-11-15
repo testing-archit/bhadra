@@ -1,5 +1,9 @@
 # Wilco design system
 
+## Hackathon software-team direction (15 November 2026)
+
+The user rejected the prior workspace UI and now wants a visually ambitious hackathon demo aimed at software companies. This direction supersedes the mascot-led palette and Home composition below where they conflict. Keep the existing product actions, permission rules, recording consent, and honest data states. See [the signal-room design direction](docs/hackathon-ui-direction.md) and its concept image for the new visual target. The image is a concept with invented data; the implementation must use actual application state.
+
 The approved v1 browser mascot now governs Wilco’s identity: soft pink, lilac and sky blue, charcoal linework, teal shorts, and orange cap/shoes. Use these colours with the existing components and live meeting/task flows. The image-model references in `docs/design-references/` guide the visual direction; they are not application data.
 
 ## Layout

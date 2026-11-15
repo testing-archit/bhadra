@@ -6,7 +6,7 @@ from datetime import date, datetime, timedelta, timezone
 
 from sqlalchemy import select
 
-from app.database.models import Decision, KhataEntry, Meeting, MeetingAttendee, MeetingTask, Project, Risk, User
+from app.database.models import Decision, Meeting, MeetingAttendee, MeetingTask, Project, Risk, User
 
 SEED_PREFIX = "demo-seed-"
 
@@ -19,273 +19,239 @@ def days(n: int) -> date:
 # owner_key "me"/"mate" maps to the first/second account; anything else is a name.
 MEETINGS = [
     {
-        "title": "Weekly product sync",
-        "ago": 5, "minutes": 42, "source": "bot", "project": "Wilco app",
+        "title": "API incident review",
+        "ago": 0, "minutes": 31, "source": "bot", "project": "API platform",
         "transcript": (
-            "Archit: Chalo shuru karte hain. Recorder ka Hindi accuracy ab kaisa hai?\n"
-            "Vedant: Pichle hafte se better hai, Hinglish mein 92 percent words sahi aa rahe hain.\n"
-            "Priya: Lekin naam galat aa rahe hain, jaise 'Moghe' ko 'Mogey' likh deta hai.\n"
-            "Archit: Vocabulary page mein team ke naam daal dete hain. Vedant, Friday tak kar doge?\n"
-            "Vedant: Haan, Friday tak ho jayega.\n"
-            "Priya: Aur onboarding mein Hindi option pehle dikhana chahiye.\n"
-            "Archit: Agreed, Hindi default rahega jab browser language hi ho."
+            "Archit: Kal raat auth requests mein 5xx spike kyun aaya?\n"
+            "Vedant: Token cache deploy ke baad stale keys read kar raha tha. Rollback 21:40 pe kiya.\n"
+            "Priya: Customer logins 18 minutes impact hue. Enterprise tenant sabse zyada affected tha.\n"
+            "Archit: Root cause likho, cache invalidation test add karo, aur staged rollout ke bina redeploy mat karna.\n"
+            "Vedant: Haan, main Friday tak regression test aur postmortem dono kar dunga.\n"
+            "Priya: Status page pe impact window clearly publish karna hai."
         ),
         "summary": (
-            "The team reviewed Hindi/Hinglish transcription quality, which is now around 92% word accuracy. "
-            "Name spellings are still the main error, so team names go into the vocabulary list. "
-            "Onboarding will default to Hindi when the browser language is Hindi."
+            "A stale token cache caused an 18-minute authentication outage after deployment. "
+            "The team rolled back at 21:40 and agreed to require a cache invalidation test and staged rollout "
+            "before redeploying. Customer impact and a postmortem still need publication."
         ),
         "tasks": [
-            ("mate", "Add every team member's name to the vocabulary list", 2, "High", "in_progress"),
-            ("Priya", "Draft Hindi copy for the onboarding screens", 4, "Medium", "pending"),
-            ("me", "Measure word accuracy on 20 new Hinglish recordings", 6, "Medium", "pending"),
+            ("mate", "Add a regression test for token-cache invalidation", 2, "High", "in_progress"),
+            ("mate", "Publish the authentication incident postmortem", 2, "High", "pending"),
+            ("Priya", "Publish the 18-minute customer impact window on the status page", 1, "High", "pending"),
         ],
         "decisions": [
-            ("Onboarding defaults to Hindi when the browser language is Hindi", "Most pilot users read Hindi first; English stays one tap away"),
-            ("Ship transcription accuracy fixes before any new feature this sprint", "Wrong words in notes cost more trust than missing features",
-             ["Build WhatsApp sharing first", "Split the sprint half and half"], None),
-            ("Store recordings for 30 days, then keep only the transcript", "Cuts storage cost and limits how much audio we hold",
-             ["Keep audio forever", "Delete audio right after transcription"], None),
+            ("Roll back the authentication deployment", "Stale cache keys caused a spike in 5xx responses", ["Patch the cache in production"], None),
+            ("Redeploy authentication behind a staged rollout", "A small tenant cohort limits the blast radius", ["Roll out to all tenants at once"], None),
         ],
-        "risks": [("Name spellings in transcripts erode trust in the notes", "Medium")],
+        "risks": [("A second cache invalidation bug could block enterprise logins", "High")],
     },
     {
-        "title": "Kirana pilot review with Pune shopkeepers",
-        "ago": 3, "minutes": 35, "source": "record", "project": "Kirana voice bookkeeping",
+        "title": "Release readiness: team workspace",
+        "ago": 1, "minutes": 38, "source": "bot", "project": "Wilco app",
         "transcript": (
-            "Archit: Sunil ji, aap din mein kitni baar udhaar likhte ho?\n"
-            "Sunil (shopkeeper): Bees-pachees baar. Haath gande hote hain, phone touch nahi kar sakte.\n"
-            "Vedant: Toh aap bas bolo, 'Ramesh ko do kilo chawal, 120 rupaye udhaar'. App likh lega.\n"
-            "Sunil: Marathi mein bolun toh chalega?\n"
-            "Archit: Haan, Marathi aur Hindi dono. Mahine ke end mein WhatsApp pe hisaab bhej denge.\n"
-            "Sunil: Bas galat amount mat likhna, warna jhagda ho jayega."
+            "Archit: Thursday launch ke blockers kya hain?\n"
+            "Vedant: SSO callback ka redirect loop fix ho gaya, lekin mobile Safari test pending hai.\n"
+            "Priya: Invite email copy ready hai. QA sign-off Wednesday tak chahiye.\n"
+            "Archit: Enterprise tenants ko pehle feature flag se enable karenge. Agar error rate badha toh flag off.\n"
+            "Vedant: Main Safari aur SSO smoke test kal tak complete karunga."
         ),
         "summary": (
-            "Shopkeepers record 20–25 credit (udhaar) entries a day and cannot touch the phone while serving. "
-            "Voice entries in Marathi or Hindi worked in the demo. They want a monthly WhatsApp statement and "
-            "are worried about wrong amounts causing disputes with customers."
+            "The team is preparing the team workspace launch for Thursday. SSO redirect fixes are in, "
+            "but mobile Safari and QA sign-off remain blockers. Enterprise tenants will receive the feature "
+            "through a reversible flag first."
         ),
         "tasks": [
-            ("me", "Add a spoken read-back of every amount before it is saved", 1, "High", "pending"),
-            ("mate", "Build the month-end WhatsApp statement for each customer", 8, "Medium", "pending"),
-            ("Sunil", "Use the app for one week and keep the paper register in parallel", 7, "Low", "pending"),
+            ("mate", "Complete mobile Safari and SSO smoke tests", 1, "High", "pending"),
+            ("Priya", "Get QA sign-off for workspace invites", 2, "High", "pending"),
+            ("me", "Prepare the enterprise feature-flag rollout checklist", 2, "Medium", "pending"),
         ],
         "decisions": [
-            ("Every voice entry is read back aloud before saving", "A wrong udhaar amount causes a dispute with the customer"),
-            ("Support Marathi and Hindi in the first pilot", "All five Pune shops speak one or both"),
-            ("Pilot with 5 shops in Pune before expanding", "Small enough to visit every shop each week",
-             ["Launch in 20 shops across two cities"], None),
-            ("Month-end statements go out on WhatsApp, not SMS", "Every shopkeeper and most customers already use WhatsApp daily",
-             ["SMS", "Printed slips at the counter"], None),
+            ("Launch team workspaces to enterprise tenants behind a feature flag", "The flag allows a quick rollback if errors rise", ["Enable the feature for every tenant"], None),
+            ("Hold the launch if SSO or mobile Safari smoke tests fail", "Both are primary paths for customer access"),
         ],
-        "risks": [
-            ("Background noise in the shop lowers transcription accuracy", "High"),
-            ("Shopkeepers may stop using it if one amount is wrong", "High"),
-        ],
+        "risks": [("Mobile Safari sign-in may delay Thursday's launch", "Medium")],
     },
     {
-        "title": "Chennai distributor call (Tanglish)",
-        "ago": 1, "minutes": 22, "source": "record", "project": "Kirana voice bookkeeping",
+        "title": "Engineering sync: multilingual meeting notes",
+        "ago": 3, "minutes": 42, "source": "extension", "project": "Wilco app",
         "transcript": (
-            "Karthik (distributor): Archit, indha week order konjam late aagum, truck Tuesday dhaan varum.\n"
-            "Archit: Okay Karthik, but Sharma ji's Diwali stock Wednesday-kulla venum. Possible-aa?\n"
-            "Karthik: Sugar and oil first truck-la anuppuren, mattha items Friday.\n"
-            "Vedant: Payment UPI-la pannalaama? Last time cash-la confusion aachu.\n"
-            "Karthik: Seri, UPI fine. Invoice WhatsApp-la anuppuren, Tamil-la.\n"
-            "Archit: Super. Naan Tuesday evening confirm panren."
+            "Archit: Hinglish transcripts mein speaker names ab kaise aa rahe hain?\n"
+            "Vedant: Word accuracy improve hui hai, par 'Moghe' kabhi 'Mogey' aa raha hai.\n"
+            "Priya: Tamil customer call mein action items sahi the, but summary English mein hi chahiye.\n"
+            "Archit: Vocabulary mein team names add karo. Original-language transcript bhi preserve karenge.\n"
+            "Vedant: Main 20 mixed-language calls par benchmark run karunga."
         ),
         "summary": (
-            "Karthik's truck arrives Tuesday, so sugar and oil for Sharma ji's Diwali stock go on the first truck and "
-            "the rest follows on Friday. Payment moves to UPI after last month's cash confusion, and Karthik will send a "
-            "Tamil invoice on WhatsApp. Archit confirms on Tuesday evening."
+            "Hinglish transcription improved, but proper names still need correction. The team will add "
+            "names to vocabulary and benchmark 20 multilingual calls. Summaries can be in English while the "
+            "original-language transcript remains available."
         ),
         "tasks": [
-            ("Karthik", "Send sugar and oil on Tuesday's first truck", 2, "High", "pending"),
-            ("Karthik", "Send the invoice in Tamil on WhatsApp", 2, "Medium", "pending"),
-            ("me", "Confirm the delivery with Karthik on Tuesday evening", 2, "Medium", "pending"),
-            ("mate", "Pay Karthik by UPI once the invoice arrives", 4, "Medium", "pending"),
+            ("mate", "Add team names and product terms to the transcription vocabulary", 2, "High", "in_progress"),
+            ("mate", "Benchmark 20 Hindi, English, and Tamil customer calls", 5, "Medium", "pending"),
+            ("Priya", "Review English summaries against the original Tamil transcript", 4, "Medium", "pending"),
         ],
         "decisions": [
-            ("Pay the distributor by UPI, not cash", "Cash payments caused confusion last month", ["Cash on delivery"], None),
-            ("Sugar and oil ship first; other items on Friday", "Sharma ji's Diwali stock is needed by Wednesday", None, None),
+            ("Preserve original-language transcripts alongside English summaries", "Engineers need to verify names and technical terms in context"),
+            ("Prioritize speaker and product-name accuracy this sprint", "Wrong names weaken trust in generated follow-ups", ["Add another export format first"], None),
         ],
-        "risks": [("Only one truck reaches before Wednesday; a delay misses the Diwali rush", "High")],
+        "risks": [("Misheard speaker names may assign work to the wrong engineer", "High")],
     },
     {
-        "title": "ASHA worker symptom-intake interview",
-        "ago": 6, "minutes": 51, "source": "record", "project": "Swasthya intake",
+        "title": "Architecture review: search at scale",
+        "ago": 5, "minutes": 47, "source": "record", "project": "API platform",
         "transcript": (
-            "Meera (ASHA worker): Gaon mein har ghar jaake form bharna padta hai, bahut time lagta hai.\n"
-            "Archit: Agar aap bolke symptoms likhwa sakein toh?\n"
-            "Meera: Haan, lekin network nahi hota kai jagah.\n"
-            "Vedant: Offline record karke baad mein upload kar sakte hain.\n"
-            "Meera: Bukhar, khansi, kitne din se, yeh sab poochna hota hai. Form wahi rehna chahiye."
+            "Archit: Memory search latency p95 ab 1.8 seconds hai. Enterprise target one second hai.\n"
+            "Vedant: Pinecone query fast hai; metadata filtering aur Postgres join slow hai.\n"
+            "Priya: Tenant isolation ko compromise nahi kar sakte.\n"
+            "Archit: Pehle query plan measure karo, phir meeting metadata denormalize karenge. Cache only after profiling.\n"
+            "Vedant: Main benchmark dashboard aur query plan Thursday tak bhejta hoon."
         ),
         "summary": (
-            "ASHA workers fill paper symptom forms door to door and often have no network. Voice intake that "
-            "records offline and uploads later fits their day, as long as the structured form fields stay the same."
+            "Memory search p95 latency is 1.8 seconds against a one-second enterprise target. The team "
+            "will profile the Postgres metadata join before changing the data model, while preserving tenant "
+            "isolation. Caching remains an option after measurement."
         ),
         "tasks": [
-            ("mate", "Map the paper intake form to structured fields", -2, "High", "pending"),
-            ("me", "Test offline recording on a low-end Android phone", 3, "Medium", "pending"),
+            ("mate", "Capture query plans for slow memory searches", 2, "High", "pending"),
+            ("mate", "Build a p95 search latency dashboard by tenant size", 3, "Medium", "pending"),
+            ("me", "Review tenant isolation tests before any search schema change", 4, "High", "pending"),
         ],
         "decisions": [
-            ("Recordings save offline first and upload when the network returns", "Many villages have no coverage"),
-            ("Ask for spoken consent at the start of every health recording", "Health data needs explicit consent, and many users cannot sign a form",
-             ["Written consent form"], None),
+            ("Profile the metadata join before denormalizing search records", "The vector query is already fast; the database join is the likely bottleneck", ["Add a cache immediately", "Change vector providers"], None),
+            ("Keep tenant isolation checks on every search path", "Latency work must not expose another team's meetings"),
         ],
-        "risks": [("Health data needs explicit consent before recording", "High")],
+        "risks": [("Search optimization could accidentally bypass tenant visibility rules", "High")],
     },
     {
-        "title": "Investor prep call",
-        "ago": 9, "minutes": 33, "source": "extension", "project": "Wilco app",
+        "title": "Design review: developer onboarding",
+        "ago": 7, "minutes": 29, "source": "paste", "project": "Wilco app",
         "transcript": (
-            "Rohan (mentor): Pitch mein pehle problem dikhao, phir product.\n"
-            "Archit: Problem: Indian teams Hinglish mein baat karte hain, aur notes tools English-only hain.\n"
-            "Rohan: Numbers chahiye. Kitne meetings record hue pilot mein?\n"
-            "Vedant: 140 meetings, 9 teams, average 38 minute.\n"
-            "Rohan: Badhiya. Retention ka graph bhi daalo."
+            "Priya: Pehli screen pe meeting URL aur sample question saath dikh rahe hain; users confused hain.\n"
+            "Archit: Let's separate connecting a meeting from exploring sample data.\n"
+            "Vedant: OAuth scopes ko just-in-time explain karna hoga, especially calendar access.\n"
+            "Priya: Keyboard flow and contrast checks Friday tak kar lungi.\n"
+            "Archit: Demo workspace sign-up ke bina open hona chahiye."
         ),
         "summary": (
-            "The mentor advised opening with the problem: Indian teams speak Hinglish while note tools assume English. "
-            "Pilot numbers so far are 140 meetings across 9 teams, averaging 38 minutes. Add a retention chart."
+            "Developer onboarding mixed meeting setup with sample exploration. The team will give these "
+            "paths distinct entry points, explain OAuth scopes when requested, and keep the demo available "
+            "without sign-up. Keyboard and contrast reviews are pending."
         ),
         "tasks": [
-            ("me", "Add the pilot numbers slide (140 meetings, 9 teams)", -4, "Medium", "done"),
-            ("mate", "Make a weekly retention chart for the pilot teams", 2, "Medium", "pending"),
+            ("Priya", "Prototype separate connect-meeting and explore-demo entry points", 2, "Medium", "in_progress"),
+            ("Priya", "Run keyboard navigation and contrast checks", 3, "Medium", "pending"),
+            ("mate", "Add a just-in-time explanation for calendar OAuth scopes", 4, "Medium", "pending"),
         ],
         "decisions": [
-            ("The pitch opens with the Hinglish problem, then the product", "Mentor feedback"),
-            ("Free for teams under 10 people during the pilot", "Removes the purchase decision while we prove retention",
-             ["₹199 per user per month from day one"], None),
+            ("Separate live meeting setup from sample workspace exploration", "The combined first screen confused first-time users", ["Keep both actions in one form"], None),
+            ("Keep the demo available without sign-up", "Developers can verify the value before connecting accounts"),
         ],
-        "risks": [],
+        "risks": [("Unclear OAuth permissions may reduce setup completion", "Medium")],
     },
     {
-        "title": "Design review: Hindi onboarding",
-        "ago": 12, "minutes": 25, "source": "paste", "project": "Wilco app",
+        "title": "Code review: webhook retry policy",
+        "ago": 9, "minutes": 26, "source": "bot", "project": "API platform",
         "transcript": (
-            "Priya: Pehli screen pe sirf ek bada mic button hai, aur neeche 'Boliye' likha hai.\n"
-            "Archit: Accha hai. Marigold colour dikh raha hai, contrast theek hai?\n"
-            "Priya: Haan, AA pass karta hai. Font Baloo hai, Devanagari bhi saaf dikhta hai.\n"
-            "Vedant: Sign-up form chhota karo, sirf naam aur phone."
+            "Vedant: PR 284 exponential backoff add karta hai, but same event do baar deliver ho sakta hai.\n"
+            "Archit: Idempotency key ke bina merge mat karo. Retries five attempts tak cap karo.\n"
+            "Priya: Customer-facing delivery log mein last failure reason visible hona chahiye.\n"
+            "Vedant: Theek hai, main integration test add karke PR update karta hoon."
         ),
         "summary": (
-            "The first onboarding screen is a single large mic button labelled 'Boliye'. The marigold colour passes "
-            "AA contrast and Baloo renders Devanagari cleanly. Sign-up shrinks to name and phone number."
+            "The team reviewed webhook retry behavior in PR 284. They will cap retries at five attempts "
+            "and require an idempotency key before merging. Customer-facing logs should show the last "
+            "failure reason."
         ),
         "tasks": [
-            ("Priya", "Shrink the sign-up form to name and phone number", -6, "Low", "done"),
-            ("me", "Check every onboarding string in Hindi with two native speakers", 10, "Low", "pending"),
+            ("mate", "Add idempotency-key validation and duplicate-delivery tests to PR 284", -2, "High", "done"),
+            ("mate", "Cap webhook retries at five attempts", 1, "Medium", "pending"),
+            ("Priya", "Design the delivery log failure-state copy", 3, "Low", "pending"),
         ],
         "decisions": [
-            ("Onboarding starts with one large mic button", "Voice is the main way in for our users"),
-            ("Sign-up asks only for name and phone number", "Every extra field lost users in the paper prototype test",
-             ["Email and password", "Google sign-in only"], None),
-            ("Use Baloo 2 and Mukta for all app text", "Both render Devanagari cleanly and match in weight", None,
-             "Replaces the earlier choice of a Latin-only font with a system fallback for Hindi"),
+            ("Block the webhook retry merge until idempotency tests pass", "Backoff alone can still deliver the same event twice", ["Merge and monitor duplicates"], None),
+            ("Cap delivery retries at five attempts", "Unbounded retries amplify incidents and cost"),
         ],
-        "risks": [],
+        "risks": [("Duplicate webhooks could trigger customer workflows twice", "High")],
     },
     {
-        "title": "Sharma Kirana wholesale order call",
-        "ago": 0, "minutes": 18, "source": "record", "project": "Kirana voice bookkeeping",
+        "title": "Roadmap planning: enterprise controls",
+        "ago": 12, "minutes": 36, "source": "record", "project": "Enterprise readiness",
         "transcript": (
-            "Archit: Sharma ji, aapka is mahine ka hisaab dekh lete hain.\n"
-            "Sharma ji (shopkeeper): Haan, Ramesh supplier ko 1,240 rupaye dene baaki hain, aur Meena ji ka 380 udhaar hai.\n"
-            "Vedant: Aur Sharma ji, aapke apne customers ka total udhaar kitna hai?\n"
-            "Sharma ji: 6,750 rupaye, 14 logon ka. Sabse zyada Gupta ji ka, 1,100.\n"
-            "Archit: Theek hai, Monday ko sabko WhatsApp pe reminder chala jayega.\n"
-            "Sharma ji: Aur Diwali ka maal, 20 kilo cheeni aur 10 litre tel, Wednesday tak chahiye."
+            "Archit: Next quarter mein SSO, audit log aur retention controls mein priority kya hai?\n"
+            "Priya: Customer interviews mein SSO sabse bada blocker hai. Audit export second.\n"
+            "Vedant: Retention policy backend already supports 30 days; UI missing hai.\n"
+            "Archit: SSO first, audit export second. Retention UI can follow after security review.\n"
+            "Priya: Main three design partners se priority validate karungi."
         ),
         "summary": (
-            "Sharma ji owes the supplier Ramesh Rs 1,240 and Meena ji Rs 380. His own customers owe him Rs 6,750 across "
-            "14 people, the largest being Gupta ji at Rs 1,100. WhatsApp reminders go out on Monday, and he needs 20 kg sugar "
-            "and 10 litres of oil by Wednesday."
+            "Enterprise customers identify SSO as the largest adoption blocker, followed by audit export. "
+            "The roadmap prioritizes SSO, then audit export; retention controls follow security review. "
+            "The ordering will be validated with three design partners."
         ),
         "tasks": [
-            ("me", "Send WhatsApp udhaar reminders to Sharma ji's 14 customers", 1, "High", "pending"),
-            ("Sharma ji", "Pay Ramesh supplier Rs 1,240", 3, "Medium", "pending"),
-            ("mate", "Place the order for 20 kg sugar and 10 litres oil", 2, "High", "pending"),
+            ("me", "Write the SSO milestone and acceptance criteria", -4, "High", "done"),
+            ("Priya", "Validate enterprise priorities with three design partners", 4, "Medium", "pending"),
+            ("mate", "Scope the audit export API", 7, "Medium", "pending"),
         ],
         "decisions": [
-            ("Udhaar reminders go out every Monday on WhatsApp", "Customers pay faster after a polite weekly nudge", ["Daily SMS", "No reminders"], None),
+            ("Prioritize enterprise SSO before audit export", "SSO is the largest adoption blocker in customer interviews", ["Build audit export first"], None),
+            ("Ship retention controls after a security review", "The backend supports the policy but the user-facing controls need validation"),
         ],
-        "risks": [("Gupta ji's Rs 1,100 udhaar is 45 days old", "Medium")],
+        "risks": [("Enterprise pilots may slip if SSO misses the quarter", "Medium")],
     },
     {
-        "title": "Gram sabha minutes: Hadapsar ward water supply",
-        "ago": 4, "minutes": 64, "source": "record", "project": "Civic voice minutes",
+        "title": "Customer engineering: SSO rollout",
+        "ago": 2, "minutes": 34, "source": "bot", "project": "Enterprise readiness",
         "transcript": (
-            "Sarpanch: Aaj ka mudda paani hai. Ward 7 mein teen din se nal nahi aaya.\n"
-            "Resident (Sunita tai): Hamare yahan tanker bhi late aata hai, subah 11 baje.\n"
-            "Ward officer: Pipeline repair ka kaam Friday tak khatam hoga, tab tak tanker subah 7 baje aayega.\n"
-            "Sarpanch: Theek hai. Complaint register bhi voice se bharenge, Wilco se.\n"
-            "Resident: Aur street light ka kya? Gali number 4 mein andhera hai."
+            "Priya: Acme's security team needs a SAML metadata URL before their pilot.\n"
+            "Vedant: Staging setup works, but cert rotation needs a test.\n"
+            "Archit: We should document the rollback and have support join the cutover.\n"
+            "Priya: I will confirm the pilot window with Acme by Friday."
         ),
-        "summary": (
-            "Ward 7 has had no tap water for three days. Pipeline repairs finish by Friday; until then the tanker comes at 7 am "
-            "instead of 11 am. Complaints will be logged by voice. Residents also raised the broken street light in lane 4."
-        ),
+        "summary": "Acme's SSO pilot needs SAML metadata, certificate rotation coverage, and a support-backed cutover plan. Priya will confirm the pilot window.",
         "tasks": [
-            ("Ward officer", "Finish the Ward 7 pipeline repair", 5, "High", "in_progress"),
-            ("Ward officer", "Move the water tanker to 7 am until the repair is done", 0, "High", "pending"),
-            ("Sarpanch", "Raise the lane 4 street light complaint with the electricity board", 7, "Medium", "pending"),
+            ("mate", "Test SAML certificate rotation in staging", 2, "High", "pending"),
+            ("Priya", "Confirm Acme's SSO pilot window", 2, "Medium", "pending"),
         ],
-        "decisions": [
-            ("Complaints at the gram sabha are logged by voice", "Most residents prefer speaking to filling forms", ["Paper complaint register"], None),
-            ("Tanker arrives at 7 am until the pipeline is fixed", "Families need water before work and school", ["Keep 11 am"], None),
-        ],
-        "risks": [("Pipeline repair may slip past Friday if parts are late", "High")],
+        "decisions": [("Run the SSO cutover with support on call", "Acme needs a clear rollback path during the pilot")],
+        "risks": [("Certificate rotation could interrupt enterprise sign-in", "High")],
     },
     {
-        "title": "Class 8 PTM: spoken Hindi quiz pilot",
-        "ago": 7, "minutes": 40, "source": "bot", "project": "Bolke seekho",
+        "title": "Sprint planning: analytics dashboard",
+        "ago": 6, "minutes": 39, "source": "extension", "project": "Wilco app",
         "transcript": (
-            "Teacher (Kavita ma'am): Bacche voice quiz mein 20 mein se average 14 la rahe hain.\n"
-            "Parent (Mr Iyer): Mera beta Tamil bolta hai ghar pe, kya quiz Tamil mein ho sakta hai?\n"
-            "Archit: Haan, Gnani Tamil support karta hai, next week se Tamil option denge.\n"
-            "Teacher: Aur weekly report parents ko WhatsApp pe chahiye.\n"
-            "Parent: Quiz raat 9 baje ke baad nahi hona chahiye."
+            "Archit: Usage dashboard ka first version kya show karega?\n"
+            "Priya: Meeting volume, active teams, and AI spend. No vanity chart.\n"
+            "Vedant: Events already exist, but per-tenant aggregation needs an index.\n"
+            "Archit: Let's ship a read-only beta and review numbers with design partners."
         ),
-        "summary": (
-            "Class 8 students average 14/20 on the spoken Hindi quiz. Parents asked for a Tamil option, which starts next week, "
-            "a weekly WhatsApp report, and no quizzes after 9 pm."
-        ),
+        "summary": "The analytics dashboard beta will show meeting volume, active teams, and AI spend. It will be read-only while the team validates metrics with design partners.",
         "tasks": [
-            ("me", "Add the Tamil option to the spoken quiz", 6, "High", "pending"),
-            ("Kavita ma'am", "Send the first weekly WhatsApp report to parents", 4, "Medium", "pending"),
+            ("mate", "Add an index for per-tenant usage aggregation", 3, "Medium", "pending"),
+            ("Priya", "Review dashboard metrics with two design partners", 6, "Medium", "pending"),
         ],
-        "decisions": [
-            ("No quizzes after 9 pm", "Parents want evenings free for sleep", None, None),
-            ("Weekly progress goes to parents on WhatsApp", "Parents check WhatsApp, not email", ["Email report"], None),
-        ],
-        "risks": [("Tamil accuracy is untested with children's voices", "Medium")],
+        "decisions": [("Launch analytics as a read-only beta", "Metric definitions need customer validation before adding controls", ["Ship billing controls in the first release"], None)],
+        "risks": [("Slow aggregation queries could affect dashboard load time", "Medium")],
     },
     {
-        "title": "Accessibility review with older users",
-        "ago": 10, "minutes": 30, "source": "record", "project": "Wilco app",
+        "title": "Security review: meeting access",
+        "ago": 11, "minutes": 45, "source": "record", "project": "Enterprise readiness",
         "transcript": (
-            "Shanti ji (72): Chhote button dikhte nahi. Bas bolne ka button bada ho.\n"
-            "Vedant: Aap bolke poochhengi toh Wilco jawab bolke sunayega.\n"
-            "Shanti ji: Haan, yeh accha hai. Awaaz thodi dheemi ho.\n"
-            "Archit: Hum speech speed slow kar denge aur text bada.\n"
-            "Ramesh ji (68): Mujhe Marathi mein sunna hai."
+            "Archit: Shared meetings mein admin access ka behavior clear hona chahiye.\n"
+            "Vedant: Admin list is separate; normal Home only shows invited meetings.\n"
+            "Priya: Speaker names alone cannot grant access. Reviewers need explicit invites.\n"
+            "Archit: Add a test for pending attendees before release."
         ),
-        "summary": (
-            "Older users want one large speak button, answers read aloud more slowly, bigger text, and Marathi speech."
-        ),
+        "summary": "The security review confirmed invite-based meeting access. Admin browsing remains separate, and speakers do not gain access without an explicit invite. A pending-attendee regression test is required.",
         "tasks": [
-            ("mate", "Add a slower speech option for spoken answers", 5, "Medium", "pending"),
-            ("me", "Test Marathi read-aloud with Ramesh ji", 8, "Low", "pending"),
+            ("mate", "Add a pending-attendee visibility regression test", -3, "High", "done"),
+            ("me", "Document the meeting sharing model for enterprise reviewers", 5, "Medium", "pending"),
         ],
-        "decisions": [
-            ("Spoken answers get a slow speed for older users", "Shanti ji found normal speed too fast", None, None),
-        ],
-        "risks": [],
+        "decisions": [("Keep meeting access invite-based", "A speaker name alone does not prove account ownership", ["Grant access to every recognized speaker"], None)],
+        "risks": [("Accidental access grants could expose private meeting notes", "High")],
     },
 ]
-
 
 def _decision(meeting_id, project_id, entry, speakers) -> Decision:
     """entry: (text, reason) or (text, reason, alternatives, conflict_note).
@@ -368,26 +334,4 @@ async def seed_workspace(db, owner: User, mate: User | None = None, skip: set[in
         for text, severity in spec["risks"]:
             db.add(Risk(meeting_id=meeting.id, project_id=project.id, description=text, severity=severity))
             counts["risks"] += 1
-    # Sharma ji's voice khata, matching the kirana meetings.
-    from sqlalchemy import func as _func
-    if not await db.scalar(select(_func.count()).select_from(KhataEntry).where(KhataEntry.user_id == owner.id)):
-        for index, (customer, kind, amount, note, said) in enumerate(KHATA):
-            db.add(KhataEntry(user_id=owner.id, customer=customer, customer_key=_khata_key(customer), kind=kind,
-                              amount=amount, note=note, said=said, created_at=now - timedelta(days=len(KHATA) - index)))
     return counts
-
-
-KHATA = [
-    ("Gupta ji", "credit", 1100, "monthly ration", "Gupta ji ka mahine ka ration, gyarah sau udhaar likh do"),
-    ("Meena didi", "credit", 380, "atta, sugar", "Meena didi teen sau assi ka atta cheeni le gayi, baad mein dengi"),
-    ("Ramesh bhaiya", "credit", 640, "oil, dal", "Ramesh bhaiya chhe sau chaalees ka tel dal udhaar"),
-    ("Meena didi", "payment", 200, None, "Meena didi ne do sau jama kiye"),
-    ("Murugan anna", "credit", 450, "rice", "Murugan anna 450 rupees arisi kadan vaangitu ponaar"),
-    ("Farida aunty", "credit", 260, "milk, bread", "Farida aunty doodh bread do sau saath udhaar"),
-    ("Gupta ji", "payment", 500, None, "Gupta ji paanch sau de gaye"),
-]
-
-
-def _khata_key(name: str) -> str:
-    from app.services.khata_service import customer_key
-    return customer_key(name)

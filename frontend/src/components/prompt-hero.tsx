@@ -8,9 +8,9 @@ import { VoiceAskButton } from "@/components/voice-ask-button";
 import { cn } from "@/lib/utils";
 
 const EXAMPLES = [
-  "Sharma ji ka kitna udhaar baaki hai?",
-  "Is hafte kya decide hua?",
-  "Vedant ke paas kaunse tasks pending hain?",
+  "Auth rollback kyun hua?",
+  "What changed in the API release plan?",
+  "Which launch blockers does Vedant own?",
 ];
 
 
@@ -53,7 +53,7 @@ export function PromptHero({ firstName, onCapture }: { firstName?: string; onCap
             }
           }}
           rows={2}
-          placeholder="Kuch bhi poocho… “Is hafte kya decide hua?”"
+          placeholder="Ask your team memory… “Auth rollback kyun hua?”"
           aria-label="Ask company memory"
           className="w-full resize-none bg-transparent px-3 pt-2 text-lg leading-7 outline-none placeholder:text-muted-foreground/70"
         />
