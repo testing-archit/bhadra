@@ -18,7 +18,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.config import settings
 from app.database.db import get_db
 from app.database.models import CaptureRequest, CaptureSubscriber, User
-from app.dependencies import get_current_user, is_admin
+from app.dependencies import get_current_user, is_admin, require_full_account
 from app.rate_limit import limiter
 from app.routes.meeting_workspace import _notetaker_status
 from app.services import ai_extractor, capture_service
@@ -74,7 +74,7 @@ async def capture_status(user: User = Depends(get_current_user), db: AsyncSessio
 async def create_capture_request(
     request: Request,
     body: CaptureCreate,
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_full_account),
     db: AsyncSession = Depends(get_db),
 ) -> dict:
     if not settings.bot_api_secret:

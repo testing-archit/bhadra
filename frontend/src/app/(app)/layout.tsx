@@ -66,6 +66,15 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </Dialog>
 
         <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-background">
+          {user.email.toLowerCase().endsWith("@demo.wilco.invalid") && (
+            <p className="shrink-0 bg-secondary px-4 py-2 text-center text-xs text-secondary-foreground sm:text-sm">
+              You&apos;re exploring a demo workspace with sample meetings.{" "}
+              <a href="/login" onClick={(event) => { event.preventDefault(); localStorage.removeItem("charchaToken"); window.location.href = "/login"; }} className="font-semibold underline underline-offset-2">
+                Create a free account
+              </a>{" "}
+              to send Wilco to your own calls.
+            </p>
+          )}
           <Suspense fallback={<div className="h-22 shrink-0" />}><Topbar onOpenMenu={() => setDrawerOpen(true)} /></Suspense>
           <main
             id="main"

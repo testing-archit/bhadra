@@ -7,6 +7,7 @@ import { ArrowDown, CalendarDays, CheckCircle2 } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { GoogleLoginButton, googleSignInEnabled } from "@/components/google-login-button";
 import { EmailPasswordAuthForm } from "@/components/email-password-auth-form";
+import { TryDemoButton } from "@/components/try-demo-button";
 import { Separator } from "@/components/ui/separator";
 import { Waveform, Wordmark } from "@/components/brand";
 
@@ -56,7 +57,7 @@ export default function LoginPage() {
           </figure>
         </div>
 
-        <p className="text-sm text-band-muted">Hears English, Hindi and Hinglish with Gnani Prisma. Speaks with Gnani Timbre.</p>
+        <p className="text-sm text-band-muted">Hears Hinglish and 10+ Indian languages with Gnani Prisma. Speaks them back with Gnani Timbre.</p>
       </section>
 
       <section className="flex flex-col items-center justify-center rounded-[1.4rem] bg-background px-4 py-12 sm:px-8 lg:ml-2">
@@ -64,6 +65,12 @@ export default function LoginPage() {
           <div>
             <h2 className="text-3xl font-semibold tracking-tight">Sign in</h2>
             <p className="mt-1.5 text-sm text-muted-foreground">Pick up where your last meeting left off.</p>
+          </div>
+          <TryDemoButton />
+          <div className="flex items-center gap-3">
+            <Separator className="flex-1" />
+            <span className="text-xs text-muted-foreground">or sign in</span>
+            <Separator className="flex-1" />
           </div>
           {googleSignInEnabled && (
             <>

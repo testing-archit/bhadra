@@ -103,6 +103,7 @@ async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> 
 }
 
 export interface GnaniModels {
+  demo: boolean;
   prisma: { configured: boolean; model: string; mode: string };
   timbre: { configured: boolean; fast_model: string; fast_voice: string; english_voice: string; multilingual_model: string; multilingual_voice: string };
   voice_clone: { configured: boolean; model: string; enrolled: boolean; consented_at: string | null };
@@ -1636,6 +1637,8 @@ export const api = {
     }),
 
   refreshToken: () => apiFetch<AuthResponse>("/api/auth/refresh", { method: "POST" }),
+  /** A private, pre-filled demo workspace; no sign-up. */
+  startDemo: () => apiFetch<AuthResponse>("/api/auth/demo", { method: "POST" }),
 
   forgotPassword: (email: string) =>
     apiFetch<{ ok: boolean; message: string }>("/api/auth/password/forgot", { method: "POST", body: JSON.stringify({ email }) }),

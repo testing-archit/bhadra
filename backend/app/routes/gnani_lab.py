@@ -15,7 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.config import settings
 from app.database.db import get_db
 from app.database.models import User, VoiceClone, VoiceUpdate
-from app.dependencies import get_current_user
+from app.dependencies import get_current_user, is_demo, require_full_account
 from app.rate_limit import limiter
 from app.services import capture_service, evon_service, transcriber, tts_service, usage_ledger, voice_clone_service
 
@@ -38,6 +38,7 @@ async def models(user: User = Depends(get_current_user), db: AsyncSession = Depe
         "timbre": {"configured": speech, "fast_model": settings.gnani_tts_model, "fast_voice": settings.gnani_tts_voice,
                    "english_voice": settings.gnani_tts_english_voice, "multilingual_model": settings.gnani_tts_multilingual_model,
                    "multilingual_voice": settings.gnani_tts_multilingual_voice},
+        "demo": is_demo(user),
         "voice_clone": {"configured": speech, "model": voice_clone_service.VC_MODEL, "enrolled": clone is not None,
                         "consented_at": clone.consented_at.isoformat() if clone else None},
         "evon": {"configured": evon_service.configured(), "model": settings.evon_model},
@@ -93,7 +94,7 @@ async def try_timbre(request: Request, body: TimbreRequest, user: User = Depends
 @router.post("/voice-clone")
 @limiter.limit("5/minute")
 async def enroll_voice(request: Request, audio: UploadFile = File(...), consent: bool = Form(False),
-                       user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)) -> dict:
+                       user: User = Depends(require_full_account), db: AsyncSession = Depends(get_db)) -> dict:
     """Save an AI copy of your own voice. Needs your explicit consent; the
     sample is discarded once Gnani returns the voice embedding."""
     if not consent:
@@ -190,7 +191,7 @@ async def my_voice_updates(user: User = Depends(get_current_user), db: AsyncSess
 
 @router.post("/voice-updates")
 @limiter.limit("10/minute")
-async def create_voice_update(request: Request, body: VoiceUpdateRequest, user: User = Depends(get_current_user),
+async def create_voice_update(request: Request, body: VoiceUpdateRequest, user: User = Depends(require_full_account),
                               db: AsyncSession = Depends(get_db)) -> dict:
     if await db.get(VoiceClone, user.id) is None:
         raise HTTPException(status_code=409, detail="Record your voice first, so Wilco can speak your update.")

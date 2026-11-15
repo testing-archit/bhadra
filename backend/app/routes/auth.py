@@ -419,3 +419,43 @@ async def _set_password(db: AsyncSession, user: User, password: str, *, how: str
         db, "password_changed", user.id, {"how": how, "at": now.isoformat()}, dedupe_key=f"password_changed:{user.id}:{now.isoformat()}"
     )
     await db.commit()
+
+
+DEMO_DAILY_LIMIT = 300
+DEMO_KEEP_HOURS = 48
+
+
+@router.post("/demo", response_model=LoginResponse)
+@limiter.limit("3/minute")
+async def start_demo(request: Request, db: AsyncSession = Depends(get_db)) -> LoginResponse:
+    """A private, pre-filled workspace with no sign-up: synthetic Hinglish
+    meetings (a kirana store, ASHA workers, a sprint) to explore. Demo
+    accounts can't send the notetaker, link calendars or clone voices, get
+    no email, and are deleted after two days."""
+    import secrets
+
+    from sqlalchemy import delete
+
+    from app.dependencies import DEMO_EMAIL_DOMAIN
+    from app.services import demo_seed
+
+    domain = f"%@{DEMO_EMAIL_DOMAIN}"
+    now = datetime.datetime.now(datetime.UTC)
+    try:
+        # Old demo workspaces go first; never let cleanup block a new demo.
+        async with db.begin_nested():
+            await db.execute(delete(User).where(User.email.like(domain),
+                                                User.created_at < now - datetime.timedelta(hours=DEMO_KEEP_HOURS)))
+    except Exception:
+        pass
+    today = await db.scalar(select(func.count()).select_from(User).where(
+        User.email.like(domain), User.created_at >= now - datetime.timedelta(days=1)))
+    if today >= DEMO_DAILY_LIMIT:
+        raise HTTPException(status_code=429, detail="The demo is busy right now. Create a free account instead.")
+    user = User(email=f"guest-{secrets.token_hex(6)}@{DEMO_EMAIL_DOMAIN}", name="Archit Gupta",
+                password_hash=None)
+    db.add(user)
+    await db.flush()
+    await demo_seed.seed_workspace(db, user)
+    await db.commit()
+    return LoginResponse(token=create_access_token(user.id, user.email), email=user.email, name=user.name)

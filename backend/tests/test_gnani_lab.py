@@ -15,7 +15,7 @@ async def test_models_reports_every_gnani_model(client, member_user):
     response = await client.get("/api/gnani/models", headers=auth_headers(member_user))
     body = response.json()
     assert response.status_code == 200
-    assert set(body) == {"prisma", "timbre", "voice_clone", "evon", "warp"}
+    assert set(body) == {"demo", "prisma", "timbre", "voice_clone", "evon", "warp"}
     assert body["prisma"]["model"] == settings.gnani_stt_model
     assert body["timbre"]["multilingual_model"] == settings.gnani_tts_multilingual_model
 

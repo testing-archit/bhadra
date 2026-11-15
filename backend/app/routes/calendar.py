@@ -15,7 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database.db import get_db
 from app.database.models import CAPTURE_ACTIVE_STATUSES, CalendarConnection, CalendarEvent, CaptureRequest, Meeting, User
-from app.dependencies import get_current_user, meeting_visibility_clause
+from app.dependencies import get_current_user, meeting_visibility_clause, require_full_account
 from app.services import calendar_service, capture_service, secret_box
 
 router = APIRouter(prefix="/api/calendar", tags=["calendar"])
@@ -55,7 +55,7 @@ async def calendar_state(user: User = Depends(get_current_user), db: AsyncSessio
 
 
 @router.post("/connect")
-async def start_connect(user: User = Depends(get_current_user)) -> dict:
+async def start_connect(user: User = Depends(require_full_account)) -> dict:
     if not calendar_service.configured():
         raise HTTPException(status_code=503, detail="Google Calendar linking isn't set up on this server yet")
     return {"url": calendar_service.authorization_url(user.id, login_hint=user.email)}

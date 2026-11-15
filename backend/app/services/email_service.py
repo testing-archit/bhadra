@@ -313,6 +313,8 @@ async def _recipients(db: AsyncSession, row: EmailOutbox) -> list[User]:
         user = await db.get(User, user_id)
         if user is None or user.status != "active" or not wants(user, row.kind):
             continue
+        if (user.email or "").lower().endswith("@demo.wilco.invalid"):
+            continue  # no-sign-up demo accounts have no mailbox
         if meeting_id and not (
             await user_can_read_meeting(db, user, uuid.UUID(meeting_id))
             and await may_email_about_meeting(db, user, uuid.UUID(meeting_id))

@@ -192,7 +192,7 @@ function TimbreCard() {
   );
 }
 
-function VoiceCloneCard({ status, onChange }: { status?: GnaniModels["voice_clone"]; onChange: () => void }) {
+function VoiceCloneCard({ status, demo, onChange }: { status?: GnaniModels["voice_clone"]; demo?: boolean; onChange: () => void }) {
   const recorder = useRecorder(25);
   const [consent, setConsent] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
@@ -233,7 +233,9 @@ function VoiceCloneCard({ status, onChange }: { status?: GnaniModels["voice_clon
         <CardDescription>Missing a stand-up? Leave a typed update and Wilco says it in the call in your voice, announced as an AI copy.</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
-        {!enrolled ? (
+        {demo ? (
+          <p className="text-sm text-muted-foreground">Voice cloning needs a free account: your voice is only ever yours. Everything else on this page works in the demo.</p>
+        ) : !enrolled ? (
           <div className="flex flex-col gap-3">
             <p className="text-sm text-muted-foreground">Read anything aloud for 10 to 20 seconds in a quiet place. Only the voice embedding is kept, never the recording.</p>
             <label className="flex items-start gap-2 text-sm">
@@ -340,7 +342,7 @@ export default function GnaniLabPage() {
   useEffect(() => { refresh(); }, [refresh]);
 
   return (
-    <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-6 md:px-8">
+    <div className="flex w-full flex-col gap-6">
       <header className="flex flex-col gap-2">
         <h1 className="font-heading text-2xl font-semibold tracking-tight md:text-3xl">Built on Gnani</h1>
         <p className="max-w-2xl text-muted-foreground">Every voice in Wilco comes from Gnani's models: Prisma hears, Timbre speaks, and voice cloning lets your update speak for you. Try each one live.</p>
@@ -360,7 +362,7 @@ export default function GnaniLabPage() {
       <div className="grid gap-6 lg:grid-cols-2">
         <PrismaCard model={models?.prisma} />
         <TimbreCard />
-        <VoiceCloneCard status={models?.voice_clone} onChange={refresh} />
+        <VoiceCloneCard status={models?.voice_clone} demo={models?.demo} onChange={refresh} />
         <EvonCard status={models?.evon} />
       </div>
 

@@ -149,3 +149,19 @@ async def user_can_manage_meeting_access(db: AsyncSession, user: User, meeting: 
     if meeting.user_id == user.id or meeting.organizer_user_id == user.id:
         return True
     return is_admin(user) and not meeting.confidential
+
+
+# No-sign-up demo accounts (POST /api/auth/demo). The .invalid domain can
+# never receive mail; these accounts get a private seeded workspace and
+# can't reach anything outside it (notetaker, calendars, voice cloning).
+DEMO_EMAIL_DOMAIN = "demo.wilco.invalid"
+
+
+def is_demo(user: User) -> bool:
+    return (user.email or "").lower().endswith("@" + DEMO_EMAIL_DOMAIN)
+
+
+async def require_full_account(user: User = Depends(get_current_user)) -> User:
+    if is_demo(user):
+        raise HTTPException(status_code=403, detail="That isn't available in the demo. Create a free account to use it.")
+    return user
