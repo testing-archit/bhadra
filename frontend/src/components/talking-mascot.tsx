@@ -16,7 +16,7 @@ export function TalkingMascot({
   return (
     <svg
       className="talking-mascot"
-      data-phase={muted ? "muted" : phase}
+      data-phase={muted && phase !== "speaking" ? "muted" : phase}
       viewBox="0 0 320 360"
       aria-hidden="true"
     >
