@@ -20,6 +20,10 @@ on:
       - "tools/deploy.sh"
   workflow_dispatch:
     inputs:
+      diagnostics_only:
+        description: "Read sanitized deployment and agent diagnostics without deploying"
+        type: boolean
+        default: false
       no_cache:
         description: "Rebuild every image from scratch (ignores the build cache)"
         type: boolean
@@ -36,9 +40,42 @@ env:
   DEPLOY_REGISTRY_IMAGE: registry:3.1.2@sha256:ddf754342cfc8acc51a56d5d0ab6af06826461864460636d8bd5c546dab2a7b8
 
 jobs:
+  diagnostics:
+    if: github.event_name == 'workflow_dispatch' && inputs.diagnostics_only
+    runs-on: ubuntu-latest
+    env:
+      VM: ${{ secrets.CHARCHA_VM_USER }}@${{ secrets.CHARCHA_VM_HOST }}
+    steps:
+      - name: Read sanitized live agent diagnostics
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.CHARCHA_VM_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -T 10 -H "${{ secrets.CHARCHA_VM_HOST }}" >> ~/.ssh/known_hosts
+          ssh -o BatchMode=yes -o ConnectTimeout=15 -i ~/.ssh/id_ed25519 "$VM" bash -s <<'REMOTE'
+            bash -euo pipefail -c "$(cat)" </dev/null
+            cd ~/charcha
+            git log -1 --oneline
+            docker compose -f docker-compose.prod.yml ps
+            tools/deploy.sh --check
+            docker compose -f docker-compose.prod.yml logs --tail=200 backend | grep -E 'Agent job failed|Agent queue unavailable|agent_timing' | tail -20 || true
+            docker compose -f docker-compose.prod.yml exec -T backend python - <<'PYDIAG'
+          from app.config import settings
+          from app.services import gemini_service
+          import inspect
+          print({"model": settings.gemini_model, "model_key_configured": bool(settings.gemini_api_key), "public_app_url_configured": bool(settings.public_app_url), "structured_generation_options": list(inspect.signature(gemini_service.generate_structured).parameters)})
+          PYDIAG
+            docker compose -f docker-compose.prod.yml exec -T notetaker python - <<'PYDIAG'
+          import config
+          print({"presentation_enabled": config.PRESENT_BOARD, "google_auth_state_present": config.AUTH_STATE_PATH.is_file()})
+          PYDIAG
+          REMOTE
+
   # Nothing reaches the VM unless this passes.
   # What this push touched, so each job below does only the work it needs.
   changes:
+    if: github.event_name != 'workflow_dispatch' || !inputs.diagnostics_only
     runs-on: ubuntu-latest
     outputs:
       backend: ${{ steps.diff.outputs.backend }}
