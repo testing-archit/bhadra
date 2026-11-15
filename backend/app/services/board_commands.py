@@ -5,12 +5,14 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-Kind = Literal['summary', 'decision', 'task', 'risk', 'question', 'idea', 'note', 'timeline']
+from app.services import mermaid_safety
+
+Kind = Literal['summary', 'decision', 'task', 'risk', 'question', 'idea', 'note', 'timeline', 'diagram']
 
 
 class BoardOperation(BaseModel):
     model_config = ConfigDict(extra='forbid')
-    op: Literal['create_node', 'update_node', 'move_node', 'connect_nodes', 'remove_node']
+    op: Literal['create_node', 'update_node', 'move_node', 'connect_nodes', 'remove_node', 'set_diagram']
     node_id: str | None = Field(default=None, max_length=120)
     title: str | None = Field(default=None, min_length=1, max_length=160)
     text: str | None = Field(default=None, max_length=4000)
@@ -19,6 +21,7 @@ class BoardOperation(BaseModel):
     y: float | None = Field(default=None, ge=-20000, le=20000, allow_inf_nan=False)
     source: str | None = Field(default=None, max_length=120)
     target: str | None = Field(default=None, max_length=120)
+    mermaid: str | None = Field(default=None, max_length=mermaid_safety.MAX_CHARS + 40)
 
 
 class BoardCommandPlan(BaseModel):
@@ -32,9 +35,37 @@ def apply_operations(nodes: list, edges: list, operations: list[BoardOperation],
     for index, operation in enumerate(operations):
         values = operation.model_dump(exclude_none=True)
         op = values.pop('op')
-        if op == 'create_node':
+        if op == 'set_diagram':
+            source = mermaid_safety.clean(operation.mermaid or operation.text or '')
+            node_id = aliases.get(operation.node_id, operation.node_id) if operation.node_id else None
+            node = next((item for item in nodes if item['id'] == node_id), None) if node_id and not node_id.startswith('new:') else None
+            if node_id and not node_id.startswith('new:') and node is None:
+                raise ValueError('Choose an existing diagram to change')
+            if node is not None:
+                if node.get('locked'):
+                    raise ValueError('Unlock that diagram before changing it by voice')
+                if node.get('kind') != 'diagram':
+                    raise ValueError('That point is not a diagram')
+                node.update(text=source, **({'title': operation.title} if operation.title else {}))
+            else:
+                identifier = f'voice:{uuid.uuid5(command_id, str(index)).hex}'
+                if node_id:
+                    if node_id in aliases:
+                        raise ValueError('New point references must be unique and start with new:')
+                    aliases[node_id] = identifier
+                if any(item['id'] == identifier for item in nodes):
+                    raise ValueError('This operation was already applied')
+                nodes.append({
+                    'id': identifier, 'kind': 'diagram', 'title': operation.title or 'Diagram', 'text': source,
+                    'x': operation.x if operation.x is not None else 80 + (len(nodes) % 3) * 370,
+                    'y': operation.y if operation.y is not None else 100 + (len(nodes) // 3) * 190,
+                    'origin': 'ai', 'locked': False, 'source_id': None, 'source_start_ms': None,
+                })
+        elif op == 'create_node':
             if not operation.title:
                 raise ValueError('A new point needs a title')
+            if operation.kind == 'diagram':
+                raise ValueError('Use set_diagram for diagrams')
             if operation.node_id:
                 if not operation.node_id.startswith('new:') or operation.node_id in aliases or any(n['id'] == operation.node_id for n in nodes):
                     raise ValueError('New point references must be unique and start with new:')
@@ -79,6 +110,10 @@ def apply_operations(nodes: list, edges: list, operations: list[BoardOperation],
                 edits = {key: values[key] for key in ('title', 'text', 'kind') if key in values}
                 if not edits:
                     raise ValueError('Specify what to change in that point')
+                if 'kind' in edits and (edits['kind'] == 'diagram') != (node.get('kind') == 'diagram'):
+                    raise ValueError('Use set_diagram for diagrams')
+                if node.get('kind') == 'diagram' and 'text' in edits:
+                    edits['text'] = mermaid_safety.clean(edits['text'])
                 node.update(edits)
         if len(nodes) > 120 or len(edges) > 200:
             raise ValueError('This board is full; remove points before adding more')
@@ -95,4 +130,9 @@ Do not execute negated requests. Suggestions are ideas, not agreed decisions. Ne
 issue, email, or external action was performed: your only tools are board operations.
 If the request is a question or lacks an actionable instruction, return no operations.
 For a flow, place consecutive steps left to right with enough space between nodes.
+For an architecture, system design, sequence, data model (ER), state machine or any multi-step
+flow request, prefer ONE set_diagram operation whose mermaid field is valid Mermaid source
+(flowchart LR, sequenceDiagram, erDiagram, classDiagram or stateDiagram-v2). Keep labels short,
+quote labels with punctuation like A["Auth API"], use no click/link lines and no %%{init} directives.
+To change an existing diagram, send set_diagram with its node_id and the full updated source.
 The message is a short clarification when operations are empty. Return the requested schema.'''

@@ -42,3 +42,24 @@ def test_routes_only_explicit_board_requests(question, active, task, expected):
 ])
 def test_drawing_requests_route_to_the_board_before_one_is_open(question, expected):
     assert board_intent(question, False) == expected
+
+
+@pytest.mark.parametrize('question,expected', [
+    ('architecture diagram bana do', 'edit'),
+    ('Wilco, login ka flow chart banao', 'edit'),
+    ('sequence diagram dikhao for the payment flow', 'edit'),
+    ('draw the system architecture', 'edit'),
+    ('create a sequence diagram for checkout', 'open'),
+])
+def test_diagram_requests_route_to_the_board(question, expected):
+    assert board_intent(question, False) == expected
+
+
+def test_diagram_requests_use_wilcos_own_board():
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'bot'))
+    from board_intent import wants_diagram
+    sys.path.pop(0)
+    assert wants_diagram('Wilco, architecture diagram bana do')
+    assert wants_diagram('make an ER diagram of users and meetings')
+    assert not wants_diagram('open FigJam')
+    assert not wants_diagram('add task: Ravi to review the board')
