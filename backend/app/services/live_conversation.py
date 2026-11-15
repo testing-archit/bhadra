@@ -79,7 +79,7 @@ _TASK_WORDS = re.compile(
 
 def looks_like_task(text: str) -> bool:
     """A spoken request to record a task, not a question about tasks."""
-    return bool(_TASK_WORDS.search(text)) and not re.search(r"\?\s*$|^\s*(what|which|kaun|kya|kitne|how many)\b", text, re.I)
+    return bool(_TASK_WORDS.search(text)) and not re.search(r"\?\s*$|^\s*(what|which|kaun|kya|kitne|how many)\b|\b(?:don[’']t|do not|never|cancel)\b", text, re.I)
 
 
 def task_confirmation(task: dict, language: str | None) -> str:

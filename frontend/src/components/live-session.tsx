@@ -24,6 +24,7 @@ interface Pipeline {
   answeredMs?: number;
   spokeMs?: number;
   task?: string;
+  jira?: { key: string; url?: string | null };
 }
 
 function modelName(id?: string): string {
@@ -149,6 +150,7 @@ export function LiveSession() {
           answeredMs: result.timings?.reply_ms,
           spokeMs: result.timings?.tts_ms,
           task: result.task_added?.description || undefined,
+          jira: result.task_added?.jira_issue_key ? { key: result.task_added.jira_issue_key, url: result.task_added.jira_url } : undefined,
         });
         if (!result.audio || phaseRef.current !== "thinking") {
           go("listening");
@@ -469,6 +471,7 @@ export function LiveSession() {
             <ul className="live-pipeline" aria-label="Models that handled this turn">
               <li>Heard by {pipeline.heard}{last[0]?.language && LANGUAGE_LABELS[last[0].language] ? ` · ${LANGUAGE_LABELS[last[0].language]}` : ""}{seconds(pipeline.heardMs)}</li>
               <li>{pipeline.task ? <Link href="/tasks">Task added: {pipeline.task}</Link> : `Answered by ${pipeline.answered}${seconds(pipeline.answeredMs)}`}</li>
+              {pipeline.jira && <li>{pipeline.jira.url ? <a href={pipeline.jira.url} target="_blank" rel="noopener noreferrer">Open Jira ticket {pipeline.jira.key}</a> : `Jira ticket ${pipeline.jira.key}`}</li>}
               <li>Spoken by {pipeline.spoke}{pipeline.voice ? ` (${pipeline.voice})` : ""}{seconds(pipeline.spokeMs)}</li>
             </ul>
           )}
@@ -478,7 +481,7 @@ export function LiveSession() {
           <span>Try asking</span>
           <p>“What did we decide in our last meeting?”</p>
           <p>“Why did we roll back the auth release?”</p>
-          <p>“Which launch blockers still need an owner?”</p>
+          <p>“Create a Jira ticket: fix the webhook retry bug, assign Vedant”</p>
           <p>“Vedant ko login bug Friday tak fix karna hai, task bana do” <span className="text-xs text-muted-foreground">(adds a real task)</span></p>
           <Link href="/memory">Prefer to type? Open Memory</Link>
         </div>

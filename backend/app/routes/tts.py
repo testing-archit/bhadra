@@ -6,8 +6,12 @@ from collections import OrderedDict
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from pydantic import BaseModel, Field
 
-from app.database.models import User
-from app.dependencies import get_current_user
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.database.db import get_db
+from app.database.models import Meeting, MeetingInsight, User
+from app.dependencies import get_current_user, meeting_visibility_clause
 from app.rate_limit import limiter
 from app.config import settings
 from app.services import gemini_service, tts_service, usage_ledger
@@ -95,3 +99,18 @@ async def speak_translated(request: Request, body: TranslatedSpeechRequest, user
     model, voice = tts_service.voice_for(body.language)
     return {"language": body.language, "text": text, "audio": audio, "speech_error": speech_error,
             "translated": text != body.text, "model": model, "voice": voice}
+
+
+@router.get("/standup")
+async def latest_standup(user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)) -> dict:
+    """Latest readable stand-up, ready for the existing translated Timbre player."""
+    from app.services.standup_service import spoken_text
+    meeting = await db.scalar(select(Meeting).where(
+        Meeting.template == "standup", Meeting.deleted_at.is_(None),
+        Meeting.confidential.is_(False), meeting_visibility_clause(user),
+    ).order_by(Meeting.date.desc()).limit(1))
+    if meeting is None:
+        return {"standup": None}
+    insight = await db.scalar(select(MeetingInsight).where(MeetingInsight.meeting_id == meeting.id))
+    return {"standup": {"meeting_id": str(meeting.id), "title": meeting.title,
+                        "date": meeting.date.isoformat(), "text": spoken_text(meeting, insight)}}

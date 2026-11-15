@@ -35,6 +35,7 @@ from playwright.async_api import BrowserContext, Page, async_playwright
 import config
 import board_presenter
 import browser_voice
+from call_translation import RunningTranslations
 from agent_client import AgentClient, AgentBusy
 from figjam_browser import FigJamBrowser, run_actions
 from board_intent import board_intent, normalize, opening_only, requires_plan
@@ -562,6 +563,7 @@ class MeetingSession:
         self._progress_shown = set()
         self._agent_runtime = None
         self._last_caption_flush = 0.0
+        self._translations = RunningTranslations()
         self._browser_lock = asyncio.Lock()
         self._caption_flush_lock = asyncio.Lock()
         # Set only for "add the notetaker to this link" visits; calendar
@@ -931,6 +933,10 @@ class MeetingSession:
 
     async def execute_command(self, page: Page, command: Command) -> str | None:
         asked, question = command.asked, command.question
+        translation = self._translations.command(question, self.captions.export())
+        if translation:
+            await self.send_agent_message(page, translation)
+            return translation
         if self.capture_request_id and (ask := standin_question(question)):
             standin = await self.find_standin(ask[0])
             if standin:
@@ -1326,7 +1332,7 @@ class MeetingSession:
             # Caption revisions wake intake immediately; the short timeout also
             # checks settled captions and typed chat without a DOM observer.
             runtime.changed = self.captions.changed
-            flush_task = asyncio.create_task(self._caption_flush_loop())
+            flush_task = asyncio.create_task(self._caption_flush_loop(page))
             present_task = asyncio.create_task(self._presentation_loop(page))
             try:
                 return await self._stay(page)
@@ -1375,10 +1381,13 @@ class MeetingSession:
                 log.warning('Board presentation refresh unavailable')
             await asyncio.sleep(2)
 
-    async def _caption_flush_loop(self) -> None:
+    async def _caption_flush_loop(self, page) -> None:
         while True:
             try:
                 await self.flush_live_captions()
+                if self._agent and self.captions.audio_started_at is not None:
+                    await self._translations.flush(self.captions.export(), time.monotonic() - self.captions.audio_started_at,
+                        self._agent.translate, lambda text: self.send_agent_message(page, text), lambda: self.captions.paused)
             except Exception as error:
                 log.warning("Caption upload failed (%s)", type(error).__name__)
             await asyncio.sleep(5)
