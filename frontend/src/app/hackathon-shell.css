@@ -233,6 +233,21 @@
   background: var(--background);
 }
 
+/* The page families own their local palette; the shared canvas carries it to
+   the edges so route transitions never flash a light frame. */
+.signal-content:has(:is(.signal-room, .signal-work, .signal-intelligence-page, .signal-support, .delivery-radar)) {
+  --background: var(--signal-void);
+  --foreground: var(--signal-text);
+  --secondary: var(--signal-panel);
+  --secondary-foreground: var(--signal-text);
+  background: var(--signal-void);
+}
+
+.signal-content main:has(:is(.signal-room, .signal-work, .signal-intelligence-page, .signal-support, .delivery-radar)) > div {
+  max-width: none;
+  padding: 0;
+}
+
 .signal-topbar {
   position: relative;
   min-height: 80px;

@@ -13,6 +13,7 @@ import { DecisionReviewDialog } from "@/components/record-review-dialogs";
 import { VerificationBadge } from "@/components/verification-badge";
 import { Search, Scale, CalendarDays, AlertTriangle, FolderKanban, Trash2, Pencil, RefreshCw } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
+import "../../signal-work.css";
 
 export default function DecisionsPage() {
   const [decisions, setDecisions] = useState<DecisionListItem[] | null>(null);
@@ -63,15 +64,18 @@ export default function DecisionsPage() {
   }
 
   return (
-    <div className="flex flex-col gap-6">
-      <PageHeader title="Decisions" description="Every decision your team has made, why, and what it replaced." />
+    <div className="signal-work flex flex-col gap-6">
+      <div className="signal-work-intro">
+        <span className="signal-work-kicker">The why behind the work</span>
+        <PageHeader title="Decisions" description="Trace what your team chose, why it mattered, and which alternatives were left behind." />
+      </div>
 
       {error && <p className="text-sm text-destructive">{error}</p>}
 
       {!decisions && !error && <Skeleton className="h-64 w-full" />}
 
       {decisions && (
-        <div className="flex gap-2">
+        <div className="signal-work-toolbar flex gap-2">
           <div className="relative flex-1">
             <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
@@ -98,9 +102,9 @@ export default function DecisionsPage() {
         </div>
       )}
 
-      <div className="flex flex-col gap-3">
+      <div className="flex flex-col gap-3" aria-label="Decision records">
         {filtered?.map((decision) => (
-          <Card key={decision.id} className={decision.conflict_note ? "ring-warning/40" : undefined}>
+          <Card key={decision.id} className={`signal-work-card ${decision.conflict_note ? "ring-warning/40" : ""}`}>
             <CardContent className="flex flex-col gap-2 py-4">
               <div className="flex items-start justify-between gap-4">
                 <div className="flex flex-wrap items-center gap-2"><p className="text-sm font-medium">{decision.decision}</p><VerificationBadge verifiedAt={decision.verified_at} /></div>

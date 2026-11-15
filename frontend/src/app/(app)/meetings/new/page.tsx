@@ -14,6 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import "../../../hackathon-intelligence.css";
 import {
   AlertTriangle,
   Bot,
@@ -133,10 +134,10 @@ export default function NewMeetingPage() {
   const transcriptionReady = status ? status.transcription.configured && status.media_tools : true;
 
   return (
-    <div className="mx-auto flex max-w-2xl flex-col gap-6">
+    <div className="signal-intelligence-page signal-new-meeting-page mx-auto flex max-w-2xl flex-col gap-6">
       <PageHeader
-        title="Add a meeting"
-        description="Bring in a recording or a transcript you already have. It gets the same searchable transcript, cited notes and action items as a live capture."
+        title="Bring a meeting into Wilco"
+        description="Upload a recording or paste a transcript. Wilco turns it into searchable decisions, owners, and follow-ups for your team."
       />
       {status?.fixture_mode && (
         <p className="rounded-lg bg-muted px-3 py-2 text-xs text-muted-foreground">

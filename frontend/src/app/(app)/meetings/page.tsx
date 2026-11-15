@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils";
 import { SOURCE_LABELS } from "@/lib/labels";
 import { RecordedMeetingCard } from "@/components/recorded-meeting-card";
 import { MeetingAgenda } from "@/components/meeting-agenda";
+import "../../signal-work.css";
 
 
 const selectClass = "h-8 rounded-lg border bg-background px-2.5 text-sm text-foreground";
@@ -117,19 +118,19 @@ function MeetingsContent() {
   }
 
   return (
-    <div className="flex flex-col gap-6">
-      {view === "recorded" ? <PageHeader
-        title="Meetings"
-        actions={
-          <Button onClick={() => openNotetaker()}>
-            <Bot /> Invite Wilco
-          </Button>
-        }
-      /> : <h1 className="sr-only">Calendar</h1>}
+    <div className="signal-work flex flex-col gap-6">
+      <div className="signal-work-intro">
+        <span className="signal-work-kicker">Conversations → context</span>
+        <PageHeader
+          title={view === "recorded" ? "Meetings" : "Calendar"}
+          description={view === "recorded" ? "Find the discussion behind a decision, blocker, or next step." : "See the calls ahead and prepare with your team’s context."}
+          actions={<Button onClick={() => openNotetaker()}><Bot /> Invite Wilco</Button>}
+        />
+      </div>
 
       <NotetakerActivity />
 
-      <div className="hidden gap-1 self-start rounded-lg bg-muted p-0.5 sm:flex" role="group" aria-label="Meetings view">
+      <div className="signal-work-toolbar flex gap-1 self-start" role="group" aria-label="Meetings view">
         {([
           ["recorded", "Recorded", Video],
           ["calendar", "Calendar", CalendarDays],
@@ -150,7 +151,7 @@ function MeetingsContent() {
       </div>
 
       {view === "calendar" ? <MeetingAgenda /> : <>
-      <div className="flex flex-col gap-3">
+      <div className="signal-work-toolbar flex flex-col gap-3">
         <div className="flex gap-2">
           <div className="relative flex-1">
             {searching ? (
@@ -227,8 +228,8 @@ function MeetingsContent() {
       )}
 
       {groups.map((group) => (
-        <section key={group.label} className="flex flex-col gap-1">
-          <h2 className="px-1 pb-1 text-sm font-medium text-muted-foreground">{group.label}</h2>
+        <section key={group.label} className="flex flex-col gap-2">
+          <h2 className="signal-work-list-title px-1 pb-1">{group.label}<span className="signal-work-count">{group.items.length}</span></h2>
           <div className="meeting-card-grid">
             {group.items.map((meeting) => <RecordedMeetingCard key={meeting.id} meeting={meeting} />)}
           </div>

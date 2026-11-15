@@ -23,6 +23,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { ChatMarkdown } from "@/components/chat-markdown";
+import "../../hackathon-intelligence.css";
 import { CitedMarkdown, ResolvedCitation } from "@/components/cited-markdown";
 import { ChatActions } from "@/components/chat-actions";
 import { VoiceAskButton } from "@/components/voice-ask-button";
@@ -435,7 +436,7 @@ export default function MemoryPage() {
   );
 
   return (
-    <div className="memory-studio" data-active={active}>
+    <div className="signal-intelligence-page signal-memory-page memory-studio" data-active={active}>
       <div className="memory-toolbar">
         <span className="memory-toolbar-label">Your meeting memory</span>
         <div>
@@ -524,17 +525,17 @@ export default function MemoryPage() {
         <div className="memory-start">
           <div className="memory-intro">
             <div>
-              <p>It’s in your meetings.</p>
-              <h1>Let’s find it.</h1>
+              <p>Decisions, blockers, and the why behind them.</p>
+              <h1>Ask your team memory.</h1>
             </div>
             <WilcoMascot className="memory-mascot" />
           </div>
           {composer}
           <div className="memory-prompts" aria-label="Start with a question">
             {[
-              ["Decisions", "What decisions changed recently?"],
-              ["Open tasks", "Which tasks are still open?"],
-              ["Catch me up", "What should I follow up on this week?"],
+              ["Release decisions", "What changed in the latest release plan?"],
+              ["Open blockers", "Which launch blockers are still open?"],
+              ["My follow-ups", "What engineering work should I follow up on this week?"],
             ].map(([label, question]) => (
               <button
                 key={label}

@@ -15,6 +15,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { ArrowLeft, CalendarDays, ListChecks, Loader2, NotebookPen, Scale, Search } from "lucide-react";
 
 import { STATUS_LABELS } from "@/lib/labels";
+import "../../../hackathon-intelligence.css";
 const MAX_PEOPLE = 20;
 
 /** A brief for an upcoming meeting, built only from earlier meetings you can
@@ -72,14 +73,14 @@ export default function MeetingPrepPage() {
   }));
 
   return (
-    <div className="mx-auto flex max-w-3xl flex-col gap-6">
-      <div>
+    <div className="signal-intelligence-page signal-prep-page mx-auto flex max-w-3xl flex-col gap-6">
+      <div className="signal-intelligence-hero">
         <Link href="/meetings" className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground hover:underline">
           <ArrowLeft className="h-3.5 w-3.5" /> Back to meetings
         </Link>
-        <h1 className="mt-2 text-2xl font-semibold tracking-tight">Prepare for a meeting</h1>
+        <h1 className="mt-2 text-2xl font-semibold tracking-tight">Walk in with context</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Pick who you&apos;re meeting. Wilco pulls your earlier meetings with them, their open tasks and recent decisions, and drafts a cited brief.
+          Pick the people in your next sync. Wilco gathers earlier decisions, open work, and a cited briefing from meetings you can access.
         </p>
       </div>
 

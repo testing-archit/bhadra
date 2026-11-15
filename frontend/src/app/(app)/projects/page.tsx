@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/page-header";
 import { DeleteConfirmationDialog } from "@/components/delete-confirmation-dialog";
 import { Search, FolderKanban, ListChecks, Scale, ShieldAlert, CalendarDays, Plus, Trash2 } from "lucide-react";
+import "../../signal-work.css";
 
 export default function ProjectsPage() {
   const [projects, setProjects] = useState<ProjectSummary[] | null>(null);
@@ -66,12 +67,15 @@ export default function ProjectsPage() {
   }
 
   return (
-    <div className="flex flex-col gap-6">
-      <PageHeader title="Projects" description="Initiatives named across your meetings, with every meeting, task, decision and risk tied to them." />
+    <div className="signal-work flex flex-col gap-6">
+      <div className="signal-work-intro">
+        <span className="signal-work-kicker">Workstreams and delivery</span>
+        <PageHeader title="Projects" description="Follow an initiative from meeting discussion to decisions, owners, and risks." />
+      </div>
 
       {error && <p className="text-sm text-destructive">{error}</p>}
 
-      <div className="flex gap-2">
+      <div className="signal-work-toolbar flex gap-2">
         <Input value={newProject} onChange={(event) => setNewProject(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") void createProject(); }} placeholder="Create a project or initiative" />
         <Button onClick={createProject} disabled={creating || !newProject.trim()}><Plus className="h-4 w-4" /> Create</Button>
       </div>
@@ -79,7 +83,7 @@ export default function ProjectsPage() {
       {!projects && !error && <Skeleton className="h-64 w-full" />}
 
       {projects && (
-        <div className="relative">
+        <div className="signal-work-toolbar relative">
           <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={query}
@@ -103,7 +107,7 @@ export default function ProjectsPage() {
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         {filtered?.map((project) => (
-          <Card key={project.id} className="group relative h-full transition-colors hover:bg-accent/40">
+          <Card key={project.id} className="signal-work-card group relative h-full transition-colors">
             <Link href={`/projects/${project.id}`} className="block h-full">
               <CardContent className="flex flex-col gap-3 py-4">
                 <div className="flex items-start justify-between gap-3">

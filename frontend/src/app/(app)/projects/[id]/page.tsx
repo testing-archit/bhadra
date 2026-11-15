@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 
 import { STATUS_LABELS } from "@/lib/labels";
+import "../../../signal-work.css";
 export default function ProjectDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
@@ -52,11 +53,11 @@ export default function ProjectDetailPage() {
     }
   }
 
-  if (error) return <p className="text-sm text-destructive">{error}</p>;
+  if (error) return <div className="signal-work"><p role="alert" className="text-sm text-destructive">{error}</p><Link className="signal-work-back mt-3 inline-flex items-center gap-1 text-sm" href="/projects"><ArrowLeft className="size-4" /> Back to projects</Link></div>;
 
   if (!project) {
     return (
-      <div className="flex flex-col gap-3">
+      <div className="signal-work flex flex-col gap-3">
         <Skeleton className="h-8 w-64" />
         <Skeleton className="h-40 w-full" />
       </div>
@@ -64,12 +65,12 @@ export default function ProjectDetailPage() {
   }
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex items-start justify-between gap-4">
+    <div className="signal-work flex flex-col gap-6">
+      <div className="signal-work-intro flex items-start justify-between gap-4">
         <div>
         <Link
           href="/projects"
-          className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground hover:underline"
+          className="signal-work-back flex items-center gap-1 text-sm hover:underline"
         >
           <ArrowLeft className="h-3.5 w-3.5" />
           Back to projects
@@ -91,6 +92,13 @@ export default function ProjectDetailPage() {
         <Button variant="outline" size="sm" className="text-destructive hover:text-destructive" onClick={() => setDeleteOpen(true)}>
           <Trash2 className="h-4 w-4" /> Delete project
         </Button>
+      </div>
+
+      <div className="signal-work-stat-grid" aria-label="Project activity">
+        <div className="signal-work-stat"><strong>{project.meetings.length}</strong><span>Meetings</span></div>
+        <div className="signal-work-stat"><strong>{project.tasks.length}</strong><span>Tasks</span></div>
+        <div className="signal-work-stat"><strong>{project.decisions.length}</strong><span>Decisions</span></div>
+        <div className="signal-work-stat"><strong>{project.risks.length}</strong><span>Risks</span></div>
       </div>
 
       <Card>
