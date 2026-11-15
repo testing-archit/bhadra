@@ -1,12 +1,13 @@
 import asyncio
 import logging
+import re
 import datetime
 import uuid
 from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field
-from sqlalchemy import select
+from sqlalchemy import case, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -100,14 +101,20 @@ async def _meeting_payload(db: AsyncSession, meeting: Meeting) -> dict:
     }
 
 
-async def _recent_readable_meetings(db: AsyncSession, user: User) -> list[Meeting]:
+async def _recent_readable_meetings(db: AsyncSession, user: User, query: str = "") -> list[Meeting]:
     """The newest meetings this person can read, for answering company-wide
     questions straight from the records when vector search can't."""
+    # Rank before limiting: an older ADR must remain findable without vectors.
+    # Keep the same access rules and ten-meeting generation budget.
+    stop = {"why", "did", "the", "for", "and", "what", "who", "how", "was", "were", "our", "does", "that", "this", "from", "choose", "about", "with", "have", "has", "are", "can", "you"}
+    terms = list(dict.fromkeys(word for word in re.findall(r"[^\W_]+", query.lower()) if len(word) > 2 and word not in stop))[:12]
+    score = sum((case((Meeting.title.ilike(f"%{term}%"), 4), else_=0) + case((func.coalesce(Meeting.summary, "").ilike(f"%{term}%"), 2), else_=0) + case((func.coalesce(Meeting.transcript, "").ilike(f"%{term}%"), 1), else_=0) for term in terms), 0)
+    ordering = [score.desc(), Meeting.date.desc()] if terms else [Meeting.date.desc()]
     result = await db.execute(
         select(Meeting)
         .options(selectinload(Meeting.tasks), selectinload(Meeting.decisions))
         .where(Meeting.id.in_(visible_meeting_ids(user)), Meeting.confidential.is_(False))
-        .order_by(Meeting.date.desc())
+        .order_by(*ordering)
         .limit(MAX_SCOPE_MEETINGS)
     )
     return list(result.scalars().all())
@@ -200,7 +207,7 @@ async def chat(
         # Without a reachable vector store, or for meetings that were never
         # indexed, answer from the newest readable meetings' own records.
         if answer is None or not answer.get("sources"):
-            recent = await _recent_readable_meetings(db, user)
+            recent = await _recent_readable_meetings(db, user, query)
             if recent:
                 if answer is not None:
                     answer.pop("usage", None)
