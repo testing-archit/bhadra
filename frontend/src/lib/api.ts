@@ -1585,6 +1585,7 @@ export const api = {
       transcript: string; reply: string | null; audio: string | null; language?: string | null;
       timings?: { input_and_context_ms: number; reply_ms: number; tts_ms: number; total_ms: number };
       heard_model?: string; reply_model?: string; speech_model?: string; speech_voice?: string;
+      khata_added?: Array<{ customer: string; kind: string; amount: number }>;
     }>(
       "/api/live/turn", { method: "POST", body: form },
     );

@@ -130,4 +130,5 @@ A kirana's udhaar book kept by speaking (Real Deal). Demo guests start with Shar
 | Type "Meena didi ne 300 jama kiye" | A payment; her balance drops |
 | Type "Karthik anna 750 rupees kadan, paruppu and oil" (Tanglish) | Karthik anna ₹750 udhaar |
 | Type "Ravi bhaiya kitne ka baaki hai" | "I didn't hear a name and an amount" (questions never create entries) |
+| In Talk to Wilco, say "Ramesh bhaiya ne 250 ka doodh udhaar liya" | Wilco: "Khata mein likh diya: Ramesh bhaiya 250 rupaye udhaar." and a "Written to your Voice khata" chip; then ask "Ramesh bhaiya ka kitna baaki hai?" |
 | Pick தமிழ் → Remind on Murugan anna | A polite Tamil WhatsApp message; Send on WhatsApp opens wa.me; Listen / Voice note play it in Timbre's Tamil voice |

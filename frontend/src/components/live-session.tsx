@@ -23,6 +23,7 @@ interface Pipeline {
   heardMs?: number;
   answeredMs?: number;
   spokeMs?: number;
+  khata?: number;
 }
 
 function modelName(id?: string): string {
@@ -147,6 +148,7 @@ export function LiveSession() {
           heardMs: result.timings?.input_and_context_ms,
           answeredMs: result.timings?.reply_ms,
           spokeMs: result.timings?.tts_ms,
+          khata: result.khata_added?.length || undefined,
         });
         if (!result.audio || phaseRef.current !== "thinking") {
           go("listening");
@@ -466,7 +468,11 @@ export function LiveSession() {
           {pipeline && (
             <ul className="live-pipeline" aria-label="Models that handled this turn">
               <li>Heard by {pipeline.heard}{last[0]?.language && LANGUAGE_LABELS[last[0].language] ? ` · ${LANGUAGE_LABELS[last[0].language]}` : ""}{seconds(pipeline.heardMs)}</li>
-              <li>Answered by {pipeline.answered}{seconds(pipeline.answeredMs)}</li>
+              {pipeline.khata ? (
+                <li><Link href="/khata">Written to your Voice khata ({pipeline.khata})</Link></li>
+              ) : (
+                <li>Answered by {pipeline.answered}{seconds(pipeline.answeredMs)}</li>
+              )}
               <li>Spoken by {pipeline.spoke}{pipeline.voice ? ` (${pipeline.voice})` : ""}{seconds(pipeline.spokeMs)}</li>
             </ul>
           )}

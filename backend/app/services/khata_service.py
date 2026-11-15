@@ -60,3 +60,24 @@ def reminder(customer: str, balance: float, shop: str, language: str) -> str:
         model=settings.gemini_fast_model, timeout_seconds=15,
     )
     return " ".join(text.replace("*", "").split()).strip()
+
+
+_LEDGER_WORDS = re.compile(
+    r"\b(udhaar|udhar|udhari|jama|diye|diya|liya|liye|le gaye|le gayi|chuka|chukaya|kadan|kadana|paid|pay kiya|payment|"
+    r"credit|baaki likh|khate|khata|likh do|likho|rupaye|rupees|rs|₹)\b", re.I)
+_QUESTION = re.compile(r"(\?|\b(kitna|kitne|kya|kaun|kab|how much|what|who|when|evlo|enna|kaise)\b)", re.I)
+
+
+def looks_like_entry(text: str) -> bool:
+    """A spoken ledger line (a name, an amount, a ledger word), not a question."""
+    return bool(re.search(r"\d|sau|hazaar|hazar|lakh|nooru|aayiram", text, re.I)) and bool(_LEDGER_WORDS.search(text)) \
+        and not _QUESTION.search(text)
+
+
+def confirmation(entries: list, language: str | None) -> str:
+    """What Wilco says back after writing entries down."""
+    parts = [f"{e.customer} {int(e.amount) if float(e.amount).is_integer() else e.amount} rupaye "
+             + ("udhaar" if e.kind == "credit" else "jama") for e in entries]
+    if language and language.startswith("en"):
+        return "Noted in the khata: " + "; ".join(p.replace("rupaye udhaar", "rupees on credit").replace("rupaye jama", "rupees paid") for p in parts) + "."
+    return "Khata mein likh diya: " + "; ".join(parts) + "."
