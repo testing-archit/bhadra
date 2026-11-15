@@ -491,7 +491,7 @@ jobs:
             docker compose -f docker-compose.prod.yml exec -T backend python scripts/verify_agent_release.py --model-canary --voice-canary
             docker compose -f docker-compose.prod.yml exec -T notetaker python - <<'PYBOT'
           import config
-          import agent_client, board_presenter, browser_voice, command_runtime
+          import agent_client, board_presenter, browser_voice, command_runtime, meeting_session
           from pathlib import Path
           print({"presentation_enabled": config.PRESENT_BOARD, "google_auth_state_present": config.AUTH_STATE_PATH.is_file(), "isolated_microphone_available": bool(browser_voice.SCRIPT), "runtime_imports": "ok"})
           assert config.AUTH_STATE_PATH.is_file()

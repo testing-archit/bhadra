@@ -5,6 +5,8 @@ from pathlib import Path
 from unittest.mock import patch
 from zipfile import ZipFile
 import json
+import subprocess
+import sys
 
 import pytest
 from sqlalchemy import select
@@ -110,3 +112,20 @@ def test_downloaded_plugin_matches_sources_and_has_scoped_network_access():
         assert len(domains) == 1 and domains[0].startswith('https://') and '*' not in domains[0]
         assert bundle.read('code.js').decode() == (root/'integrations/figjam/code.js').read_text().replace('__API_ORIGIN__', domains[0])
         assert bundle.read('ui.html').decode() == (root/'integrations/figjam/ui.html').read_text()
+        assert bundle.read('configure.py').decode() == (root/'integrations/figjam/configure.py').read_text()
+
+
+def test_plugin_installation_uses_the_users_figma_assigned_id(tmp_path):
+    root = Path(__file__).resolve().parents[2]
+    target = tmp_path/'wilco'
+    target.mkdir()
+    with ZipFile(root/'frontend/public/downloads/wilco-figjam.zip') as bundle:
+        bundle.extractall(target)
+    generated = tmp_path/'figma-generated.json'
+    generated.write_text(json.dumps({'id':'1234567890123456789','name':'Wilco meeting commands'}))
+    result = subprocess.run([sys.executable,str(target/'configure.py'),'--from-manifest',str(generated)], capture_output=True, timeout=5)
+    assert result.returncode == 0
+    ready = json.loads((target/'manifest.json').read_text())
+    assert ready['id'] == '1234567890123456789'
+    assert ready['editorType'] == ['figjam']
+    assert json.loads(generated.read_text()) == {'id':'1234567890123456789','name':'Wilco meeting commands'}

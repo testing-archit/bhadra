@@ -32,7 +32,7 @@ flowchart LR
 The user selected FigJam/Figma. New bot board commands request this destination. Without a paired file, the bot asks for setup and does not silently draw into Wilco's built-in board. The API's legacy internal destination remains compatible for older callers and isolated release canaries.
 
 1. In the live meeting page, paste the shared FigJam file link and get a one-time code.
-2. Download the development plugin there, unzip it, and import its manifest through Figma desktop → Plugins → Development. This plugin is not published in Figma Community. Organization plugin policies still apply.
+2. In Figma desktop → Plugins → Development → New plugin, create a development entry for Wilco and save its generated folder. Download and unzip the Wilco plugin files. Run the included `configure.py --from-manifest /path/to/figma-generated/manifest.json` to copy your own Figma-issued ID into Wilco's manifest, then import that updated manifest. The helper never edits Figma's generated files. This plugin is not published in Figma Community. Organization plugin policies still apply.
 3. Open the matching FigJam file, run Wilco meeting commands, paste its link and the code, and keep the plugin open.
 4. Say “Wilco, draw a signup, verification and payment flow.” The plugin creates native shapes and connectors. Rename/move/remove/undo requests operate on Wilco-created objects; unrelated native content is left alone.
 5. Use Figma's Share button to choose collaborators. Share the FigJam browser tab in Meet when presenting. Automatic bot presentation of a private FigJam file is not implemented; Wilco does not have that file's browser session.
@@ -47,7 +47,7 @@ The finished meeting retains the shared FigJam link. Its Board view opens that n
 
 ## Verification
 
-- 470 backend tests passed on isolated Postgres, including paired/unpaired routing, token scope/replay, native acknowledgment, cancellation, cross-origin scope, finished-meeting links, command recognition, mixed instructions, priority admission, audio cancellation, and real SDK request serialization.
+- 471 backend tests passed on isolated Postgres, including paired/unpaired routing, token scope/replay, native acknowledgment, cancellation, cross-origin scope, installation, finished-meeting links, command recognition, mixed instructions, priority admission, audio cancellation, and real SDK request serialization.
 - Five Node tests exercised the native shape/connector implementation, replay, human-edit conflicts, locks/deletions during planning, and preservation of unrelated objects.
 - Frontend typecheck and production build passed.
 - Real Chromium/WebRTC audio proof: 24 kHz synthetic speech decoded at 48 kHz, remote RMS 0.19454 with dominant frequency 433.59 Hz for a 440 Hz source, unrelated speaker RMS below 0.005, stopped RMS zero, malformed audio rejected. This is synthetic transport validation, not a real Meet voice test.
