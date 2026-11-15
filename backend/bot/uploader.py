@@ -1,4 +1,4 @@
-"""Sends a finished meeting to the Charcha backend.
+"""Sends a finished meeting to the Wilco backend.
 
 Each meeting is first written to its own folder under PENDING_DIR
 (metadata.json + audio.webm) and only deleted once the backend accepts it, so
@@ -141,7 +141,7 @@ def report_capture_event(capture_request_id: str, status: str, detail: str | Non
 
 
 def capture_state(capture_request_id: str) -> dict | None:
-    """{"status", "stop_requested", "scheduled_end"}, or None when Charcha
+    """{"status", "stop_requested", "scheduled_end"}, or None when Wilco
     can't be reached — which is never a stop signal."""
     try:
         response = httpx.get(
@@ -161,7 +161,7 @@ def capture_stop_requested(capture_request_id: str) -> bool:
 
 
 def queue_invite(meeting) -> dict:
-    """Ask Charcha to queue a visit for a meeting the notetaker was invited to."""
+    """Ask Wilco to queue a visit for a meeting the notetaker was invited to."""
     response = httpx.post(
         f"{config.BACKEND_URL}/api/bot/invites",
         headers=_bot_headers(),
@@ -181,7 +181,7 @@ def queue_invite(meeting) -> dict:
 
 
 def live_answer(question: str, captions: list[dict], capture_request_id: str | None, title: str = "") -> str | None:
-    """Asks Charcha a question from the call's chat; None if unreachable."""
+    """Asks Wilco a question from the call's chat; None if unreachable."""
     try:
         response = httpx.post(
             f"{config.BACKEND_URL}/api/bot/live-answer",
@@ -197,7 +197,7 @@ def live_answer(question: str, captions: list[dict], capture_request_id: str | N
 
 
 def live_task(text: str, capture_request_id: str) -> str | None:
-    """Holds a task typed in the call's chat ("Charcha, add task: ...") for
+    """Holds a task typed in the call's chat ("Wilco, add task: ...") for
     the meeting's notes; returns the confirmation to post, None on failure."""
     try:
         response = httpx.post(

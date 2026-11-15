@@ -1,4 +1,4 @@
-"""Jira Cloud: send Charcha tasks to Jira and keep their status in step.
+"""Jira Cloud: send Wilco tasks to Jira and keep their status in step.
 
 One company connection (JiraConnection, id=1), set up in Admin →
 Integrations, either way:
@@ -16,14 +16,14 @@ Works on Jira Free.
   `project_map`, else the default; a subtask whose parent is in Jira becomes
   a Jira sub-task. The description carries the transcript quote and a link
   back to the meeting.
-* People: Charcha users are linked to Jira users (JiraUserLink) by email, then
+* People: Wilco users are linked to Jira users (JiraUserLink) by email, then
   exact display name — Jira Free usually hides emails — and admins can fix
   links by hand. Links drive assignee <-> owner and comment authors.
 * Two-way fields: summary <-> task text, assignee <-> owner, due date,
   priority, status category. Each task keeps a snapshot of the issue as last
   synced; on a poll, only fields that differ from it (changed *in Jira*) are
-  copied into Charcha, so neither side overwrites what the other didn't
-  touch. Charcha edits are pushed at once (`push_changes`); failures land in
+  copied into Wilco, so neither side overwrites what the other didn't
+  touch. Wilco edits are pushed at once (`push_changes`); failures land in
   `tasks.jira_error`, and an issue deleted in Jira unlinks the task.
 * Comments both ways, deduplicated by Jira comment id.
 * A loop (app.main lifespan, Postgres advisory lock, one process) polls
@@ -59,7 +59,7 @@ SYNC_SECONDS = 120
 MAX_LOOKBACK_MINUTES = 7 * 24 * 60
 SUMMARY_LIMIT = 250
 
-# Charcha status <-> Jira status category key.
+# Wilco status <-> Jira status category key.
 TO_JIRA = {"pending": "new", "in_progress": "indeterminate", "done": "done"}
 FROM_JIRA = {"new": "pending", "indeterminate": "in_progress", "done": "done"}
 
@@ -286,7 +286,7 @@ def _norm(value: str | None) -> str:
 
 
 async def match_people(db: AsyncSession, client: httpx.AsyncClient) -> tuple[list[dict], list[uuid.UUID]]:
-    """Auto-links Charcha people to Jira users — email first, then an exact,
+    """Auto-links Wilco people to Jira users — email first, then an exact,
     unambiguous display name — without touching manual links. Returns the
     Jira users (for the admin picker) and the people newly linked. Commits."""
     users = await jira_users(client)
@@ -334,7 +334,7 @@ async def _user_for_account(db: AsyncSession, account_id: str | None) -> User | 
 
 
 async def _owner_user(db: AsyncSession, task: MeetingTask) -> User | None:
-    """The Charcha person who owns the task: the resolved owner, else the
+    """The Wilco person who owns the task: the resolved owner, else the
     owner's name when exactly one active person has it."""
     if task.owner_user_id:
         return await db.get(User, task.owner_user_id)
@@ -361,7 +361,7 @@ def _is_placeholder(meeting: Meeting | None) -> bool:
 
 _issue_types: dict[tuple[str, bool], str] = {}
 
-# Charcha priority <-> Jira priority name.
+# Wilco priority <-> Jira priority name.
 PRIORITY_TO_JIRA = {"high": "High", "medium": "Medium", "low": "Low"}
 PRIORITY_FROM_JIRA = {"highest": "High", "high": "High", "medium": "Medium", "low": "Low", "lowest": "Low"}
 
@@ -372,7 +372,7 @@ async def _issue_type_id(client: httpx.AsyncClient, project_key: str, subtask: b
         meta = await _call(client, "GET", f"/rest/api/3/issue/createmeta/{project_key}/issuetypes")
         types = [t for t in meta.get("issueTypes", meta.get("values", [])) if bool(t.get("subtask")) == subtask]
         if not types:
-            raise JiraError(f"Jira project {project_key} has no {'sub-task' if subtask else 'issue'} type Charcha can create")
+            raise JiraError(f"Jira project {project_key} has no {'sub-task' if subtask else 'issue'} type Wilco can create")
         chosen = next((t for t in types if t.get("name", "").lower() == "task"), types[0])
         _issue_types[key] = chosen["id"]
     return _issue_types[key]
@@ -423,7 +423,7 @@ def _description(task: MeetingTask, meeting: Meeting | None, owner_unassigned: s
             _paragraph(
                 _text("From the meeting "),
                 _text(meeting.title, link=app_url(f"/meetings/{meeting.id}?tab=actions")),
-                _text(f" ({when}) in Charcha." if when else " in Charcha."),
+                _text(f" ({when}) in Wilco." if when else " in Wilco."),
             )
         )
     return {"type": "doc", "version": 1, "content": blocks}
@@ -455,7 +455,7 @@ def issue_url(connection: JiraConnection | None, key: str | None) -> str | None:
 
 
 def _snapshot(fields: dict) -> dict:
-    """The fields Charcha mirrors, from a Jira issue's `fields`."""
+    """The fields Wilco mirrors, from a Jira issue's `fields`."""
     return {
         "summary": " ".join((fields.get("summary") or "").split()),
         "assignee": (fields.get("assignee") or {}).get("accountId"),
@@ -469,7 +469,7 @@ def _snapshot(fields: dict) -> dict:
 
 async def create_issue(db: AsyncSession, task: MeetingTask) -> str:
     """Creates the Jira issue for `task` (idempotent: an already linked task
-    returns its key) and records the link and snapshot. A Charcha subtask
+    returns its key) and records the link and snapshot. A Wilco subtask
     whose parent is already in Jira becomes a Jira sub-task. Commits."""
     if task.jira_issue_key:
         return task.jira_issue_key
@@ -589,7 +589,7 @@ async def auto_send(meeting_id: uuid.UUID) -> int:
         return 0
 
 
-# ---------------------------------------------------------------- Charcha -> Jira
+# ---------------------------------------------------------------- Wilco -> Jira
 
 async def _transition(client: httpx.AsyncClient, key: str, category: str) -> str | None:
     """Moves the issue into a status of `category`; returns that status name.
@@ -620,7 +620,7 @@ async def _push_status(client: httpx.AsyncClient, task: MeetingTask) -> None:
 
 
 async def push_changes(task_id: uuid.UUID, changed: set[str]) -> None:
-    """Charcha -> Jira after a person edited a linked task (`changed` holds
+    """Wilco -> Jira after a person edited a linked task (`changed` holds
     task field names). Background task; failures are recorded on the task
     (jira_error), never raised. An issue deleted in Jira is unlinked."""
     try:
@@ -669,7 +669,7 @@ async def push_changes(task_id: uuid.UUID, changed: set[str]) -> None:
 
 
 async def push_comment(comment_id: uuid.UUID) -> None:
-    """Mirror a Charcha comment onto the linked issue. Background task."""
+    """Mirror a Wilco comment onto the linked issue. Background task."""
     try:
         async with async_session() as db:
             comment = await db.get(TaskComment, comment_id)
@@ -682,7 +682,7 @@ async def push_comment(comment_id: uuid.UUID) -> None:
             author = await db.get(User, comment.user_id) if comment.user_id else None
             body = {"type": "doc", "version": 1, "content": [
                 _paragraph(_text(comment.body)),
-                _paragraph(_text(f"— {(author.name or author.email) if author else 'A teammate'}, via Charcha", em=True)),
+                _paragraph(_text(f"— {(author.name or author.email) if author else 'A teammate'}, via Wilco", em=True)),
             ]}
             try:
                 async with await open_client(db, connection) as client:
@@ -695,7 +695,7 @@ async def push_comment(comment_id: uuid.UUID) -> None:
         logger.exception("Could not copy comment %s to Jira", comment_id)
 
 
-# ---------------------------------------------------------------- Jira -> Charcha
+# ---------------------------------------------------------------- Jira -> Wilco
 
 SYNC_FIELDS = ["status", "summary", "assignee", "duedate", "priority", "comment", "updated"]
 
@@ -705,14 +705,14 @@ _people_matched_at: datetime.datetime | None = None
 
 
 async def sync_once(db: AsyncSession) -> int:
-    """Jira → Charcha: fields and comments of every linked issue updated since
+    """Jira → Wilco: fields and comments of every linked issue updated since
     the last poll. Returns how many tasks changed."""
     global _people_matched_at
     connection = await get_connection(db)
     if connection is None:
         return 0
     if _people_matched_at is None or _now() - _people_matched_at > PEOPLE_REMATCH:
-        # New Charcha accounts and new Jira users get linked without a visit
+        # New Wilco accounts and new Jira users get linked without a visit
         # to the admin page.
         try:
             async with await open_client(db, connection) as client:
@@ -791,7 +791,7 @@ def _history(task: MeetingTask, field: str, old, new) -> TaskHistory:
 
 async def apply_issue(db: AsyncSession, issue: dict, client: httpx.AsyncClient | None = None) -> int:
     """Copies what changed *in Jira* since the last snapshot onto the task;
-    fields nobody changed in Jira are left as Charcha has them. Returns 1 when
+    fields nobody changed in Jira are left as Wilco has them. Returns 1 when
     the task changed."""
     task = (
         await db.execute(select(MeetingTask).where(MeetingTask.jira_issue_key == issue["key"]))

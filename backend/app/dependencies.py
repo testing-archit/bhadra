@@ -121,7 +121,7 @@ async def user_can_read_meeting(
     db: AsyncSession, user: User, meeting_id: uuid.UUID | None
 ) -> bool:
     """Whether `user` may open the meeting: they recorded it, have granted
-    access to it, or are a Charcha admin. Says nothing about
+    access to it, or are a Wilco admin. Says nothing about
     whether the meeting is deleted — callers filter on `deleted_at` themselves,
     because the recycle bin legitimately reads deleted meetings."""
     if meeting_id is None:
@@ -143,7 +143,7 @@ async def user_can_read_meeting(
 async def user_can_manage_meeting_access(db: AsyncSession, user: User, meeting: Meeting) -> bool:
     """Who decides who else may read a meeting: the person whose notetaker
     recorded it, the calendar organizer (when they have an account), and
-    Charcha admins — except on a confidential meeting, which only its
+    Wilco admins — except on a confidential meeting, which only its
     recorder and organizer manage (an admin could otherwise share it with
     themselves)."""
     if meeting.user_id == user.id or meeting.organizer_user_id == user.id:

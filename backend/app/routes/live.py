@@ -28,11 +28,11 @@ async def live_turn(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> dict:
-    """One spoken turn of Charcha Live: Gnani Prisma hears it, Gemini
+    """One spoken turn of Wilco Live: Gnani Prisma hears it, Gemini
     answers briefly from the person's meetings, Gnani Timbre says it.
     Returns the transcript, the reply and the reply's MP3 (base64)."""
     if not settings.gnani_api_key:
-        raise HTTPException(status_code=503, detail="Charcha Live needs GNANI_API_KEY")
+        raise HTTPException(status_code=503, detail="Wilco Live needs GNANI_API_KEY")
     audio_bytes = await audio.read()
     if not audio_bytes:
         raise HTTPException(status_code=400, detail="The audio was empty")
@@ -65,7 +65,7 @@ async def live_turn(
             live_conversation.reply, past, text, digest, (user.name or "").split(" ")[0] or None, heard.get("language")
         )
     except Exception:
-        logger.exception("Charcha Live reply failed")
+        logger.exception("Wilco Live reply failed")
         answer = "Sorry, abhi jawab nahi de paaya. Ek baar phir boliye?"
     if not answer:
         answer = "Sorry, main samjha nahi. Ek baar phir boliye?"
@@ -77,7 +77,7 @@ async def live_turn(
             speech = await tts_service.synthesize(answer, spoken_language)
         encoded = base64.b64encode(speech).decode()
     except Exception:
-        logger.exception("Charcha Live speech failed")
+        logger.exception("Wilco Live speech failed")
         encoded = None
     timings = {'input_and_context_ms': speech_input_ms, 'reply_ms': reply_ms,
                'tts_ms': round((time.monotonic()-tts_started)*1000, 2),

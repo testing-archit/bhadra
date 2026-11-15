@@ -318,7 +318,7 @@ async def test_every_story_renders_with_brand_and_plain_text(member_user, other_
             row = EmailOutbox(kind=kind, user_id=user.id, payload=payload, priority=1, status="queued")
             rendered = await email_stories.render(db, row, user)
             assert rendered is not None, kind
-            assert "Charcha" in rendered["html"] and "charcha-apple-touch-icon.png" in rendered["html"], kind
+            assert "Wilco" in rendered["html"] and "wilco-apple-touch-icon.png" in rendered["html"], kind
             assert rendered["subject"] and rendered["text"].strip(), kind
             assert "<script>" not in rendered["html"], kind
             switchable = email_service.CATEGORIES[email_service.KINDS[kind][0]][2]

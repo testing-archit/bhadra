@@ -294,6 +294,6 @@ async def test_a_recording_that_never_arrives_stops_showing_as_processing(member
         await capture_service.expire_unclaimed(db)
         await db.commit()
         await db.refresh(capture)
-        assert capture.status == "failed" and "never reached Charcha" in capture.status_detail
+        assert capture.status == "failed" and "never reached Wilco" in capture.status_detail
         await db.delete(capture)
         await db.commit()

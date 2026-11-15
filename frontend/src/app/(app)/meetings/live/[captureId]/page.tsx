@@ -50,7 +50,7 @@ export default function LiveMeetingBoardPage() {
       {captions.length ? <div className="mt-4 max-h-96 space-y-3 overflow-y-auto pr-2">{captions.map((caption) => <p key={caption.seq} className="grid gap-1 border-b pb-3 text-sm last:border-b-0 sm:grid-cols-[5rem_9rem_minmax(0,1fr)]">
         <span className="text-xs tabular-nums text-muted-foreground">{Math.floor(caption.start / 60)}:{String(Math.floor(caption.start % 60)).padStart(2, "0")}</span>
         <span className="font-medium">{caption.speaker}</span><span className="leading-6 text-muted-foreground">{caption.text}</span>
-      </p>)}</div> : <p className="mt-4 text-sm text-muted-foreground">Charcha will show finalized captions here as the conversation begins.</p>}
+      </p>)}</div> : <p className="mt-4 text-sm text-muted-foreground">Wilco will show finalized captions here as the conversation begins.</p>}
     </section>
   </main>;
 }

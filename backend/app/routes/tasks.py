@@ -480,7 +480,7 @@ async def set_owner_access(
         raise HTTPException(status_code=422, detail="action must be send or keep_private")
     access = privacy_service.owner_access(task, await privacy_service.owners_in_meeting(db, [task]))
     if access in (None, "meeting"):
-        raise HTTPException(status_code=409, detail="This task's owner was in the meeting, or isn't a Charcha account")
+        raise HTTPException(status_code=409, detail="This task's owner was in the meeting, or isn't a Wilco account")
     if body.action == "send":
         if access != "shared":
             privacy_service.share_task(db, task)
@@ -522,7 +522,7 @@ async def list_comments(
         {
             "id": str(comment.id),
             "body": comment.body,
-            # Written in Jira by someone not linked to a Charcha account.
+            # Written in Jira by someone not linked to a Wilco account.
             "author": name or email or comment.author_name or "Former teammate",
             "source": comment.source,
             "created_at": comment.created_at.isoformat(),
@@ -577,8 +577,8 @@ async def get_history(
             "old_value": entry.old_value,
             "new_value": entry.new_value,
             "changed_by": "Jira" if entry.source == "jira" else name or email or (
-                # A learned correction Charcha applied by itself has no person.
-                "Charcha" if entry.source == "vocabulary" and entry.changed_by is None else "Former teammate"
+                # A learned correction Wilco applied by itself has no person.
+                "Wilco" if entry.source == "vocabulary" and entry.changed_by is None else "Former teammate"
             ),
             "changed_at": entry.changed_at.isoformat(),
         }

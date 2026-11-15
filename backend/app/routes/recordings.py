@@ -29,7 +29,7 @@ SUPPORTED_MEETING_TYPES = {"physical", "online"}
 
 
 class AttendeeInput(BaseModel):
-    """One person in the room. `user_id` set means a Charcha colleague picked
+    """One person in the room. `user_id` set means a Wilco colleague picked
     from the directory; `user_id` unset means an external guest typed in by
     name (and optionally email) who has no account and never gains access."""
 
@@ -454,7 +454,7 @@ async def link_recording(
     if not await user_can_manage_meeting_access(db, user, meeting):
         raise HTTPException(
             status_code=403,
-            detail="Only the meeting's organizer, the person who recorded it, or a Charcha admin can attach a recording",
+            detail="Only the meeting's organizer, the person who recorded it, or a Wilco admin can attach a recording",
         )
     recording.meeting_id = meeting.id
     recording.title = meeting.title

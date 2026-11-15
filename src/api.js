@@ -27,7 +27,7 @@ export function workspaceUrl(path = "/dashboard") {
 
 export async function api(path, { method = "GET", body, token } = {}) {
   const session = token ? { charchaApiToken: token } : await getSession();
-  if (!session) throw new ApiError(401, "Sign in to Charcha first.");
+  if (!session) throw new ApiError(401, "Sign in to Wilco first.");
   let response;
   try {
     response = await fetch(`${BACKEND_URL}${path}`, {
@@ -39,17 +39,17 @@ export async function api(path, { method = "GET", body, token } = {}) {
       body: body ? JSON.stringify(body) : undefined,
     });
   } catch {
-    throw new ApiError(0, "Charcha can't be reached. Check your connection.");
+    throw new ApiError(0, "Wilco can't be reached. Check your connection.");
   }
   if (response.status === 401 && !token) {
     // The session expired or was revoked; signing out here keeps every
     // surface (popup, Meet button, dashboard tabs) from showing stale data.
     await clearSession();
-    throw new ApiError(401, "Your Charcha session expired. Sign in again.");
+    throw new ApiError(401, "Your Wilco session expired. Sign in again.");
   }
   if (!response.ok) {
     const data = await response.json().catch(() => ({}));
-    const detail = typeof data.detail === "string" ? data.detail : `Charcha returned ${response.status}`;
+    const detail = typeof data.detail === "string" ? data.detail : `Wilco returned ${response.status}`;
     throw new ApiError(response.status, detail);
   }
   return response.json();

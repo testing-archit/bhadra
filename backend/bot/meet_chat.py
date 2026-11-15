@@ -109,7 +109,7 @@ def join_notice(display_name: str, requested_by: str | None, app_url: str | None
     that it records, and how to make it leave."""
     invited = f", invited by {requested_by}" if requested_by else ""
     lines = [
-        f"Hi, I'm {display_name}{invited}. I'm recording this call so Charcha can write up the notes, tasks and decisions.",
+        f"Hi, I'm {display_name}{invited}. I'm recording this call so Wilco can write up the notes, tasks and decisions.",
         f'To stop me, say "{leave_phrase}" or remove me from the call.',
         'Ask about this call by saying "Wilco, ..." out loud (with captions on) or typing it here. Repeat "Wilco" for each command.',
         'For a shared FigJam file, say "Wilco, open FigJam", connect it once, then ask "Wilco, draw a signup and payment flow".',
@@ -149,7 +149,7 @@ _QUESTION_RE = re.compile(r"^\s*@?(?:wilco|charcha)\b[\s,:;.!-]*(.+)$", re.IGNOR
 
 
 class ChatWatcher:
-    """Finds new chat messages addressed to Charcha ("Charcha, ...").
+    """Finds new chat messages addressed to Wilco ("Wilco, ...").
 
     Lines already in the panel when watching starts are ignored, and so are
     the notetaker's own messages, so it never answers itself or old chat."""

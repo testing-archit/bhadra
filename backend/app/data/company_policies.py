@@ -17,9 +17,9 @@ POLICY_CHUNKS = [
         "document": HANDBOOK,
         "section": "About this Handbook",
         "text": (
-            "This sample handbook shows how Charcha answers questions about team "
+            "This sample handbook shows how Wilco answers questions about team "
             "policies. It is demo content, not an employment contract. Teams using "
-            "Charcha should replace it with their own policies."
+            "Wilco should replace it with their own policies."
         ),
     },
     {

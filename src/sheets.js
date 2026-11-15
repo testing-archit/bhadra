@@ -13,7 +13,7 @@ export const TASK_COLUMNS = [
   { title: "Project", width: 130 },
   { title: "Meeting", width: 240, wrap: true },
   { title: "Meeting date", width: 110, date: true },
-  { title: "Charcha", width: 80 },
+  { title: "Wilco", width: 80 },
   { title: "Jira", width: 90 },
 ];
 
@@ -25,7 +25,7 @@ export const MEETING_COLUMNS = [
   { title: "Summary", width: 420, wrap: true },
   { title: "Decisions", width: 320, wrap: true },
   { title: "Tasks", width: 65 },
-  { title: "Charcha", width: 80 },
+  { title: "Wilco", width: 80 },
 ];
 
 const STATUS_LABELS = { pending: "To do", in_progress: "In progress", done: "Done" };

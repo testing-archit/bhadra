@@ -19,7 +19,8 @@ def test_transcript_is_timestamped_and_named():
 
 
 def test_answers_are_plain_text_and_never_start_with_charcha():
-    assert live_assist._clean("**Charcha:** ## Vedant builds it by Friday.") == "Vedant builds it by Friday."
+    assert live_assist._clean("**Wilco:** ## Vedant builds it by Friday.") == "Vedant builds it by Friday."
+    assert live_assist._clean("Charcha: Vedant builds it by Friday.") == "Vedant builds it by Friday."
 
 
 def test_no_captions_yet_answers_without_calling_gemini():

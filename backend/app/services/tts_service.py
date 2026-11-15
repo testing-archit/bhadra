@@ -1,4 +1,4 @@
-"""Speech for Charcha's answers and summaries, through Gnani Timbre.
+"""Speech for Wilco's answers and summaries, through Gnani Timbre.
 
 One REST call per text returns MP3 bytes. Results are cached on disk by a
 hash of everything that shapes the audio, so replaying an answer or a

@@ -145,7 +145,7 @@ async def exchange_code(code: str) -> tuple[str, str]:
             raise CalendarError("Calendar access wasn't granted. Tick the calendar box on Google's consent screen.")
         refresh_token = tokens.get("refresh_token")
         if not refresh_token:
-            raise CalendarError("Google didn't return long-lived access. Remove Charcha from your Google account's third-party access and connect again.")
+            raise CalendarError("Google didn't return long-lived access. Remove Wilco from your Google account's third-party access and connect again.")
         info = await client.get(USERINFO_URL, headers={"Authorization": f"Bearer {tokens['access_token']}"})
         email = info.json().get("email", "") if info.status_code == 200 else ""
     return refresh_token, email.lower()
@@ -168,7 +168,7 @@ async def access_token(connection: CalendarConnection) -> str:
     if response.status_code != 200:
         error = response.json().get("error", "") if response.headers.get("content-type", "").startswith("application/json") else ""
         if error in {"invalid_grant", "unauthorized_client"}:
-            raise CalendarError("Google revoked Charcha's calendar access. Reconnect your calendar.")
+            raise CalendarError("Google revoked Wilco's calendar access. Reconnect your calendar.")
         raise CalendarError(f"Couldn't refresh calendar access ({response.status_code})")
     return response.json()["access_token"]
 
@@ -412,7 +412,7 @@ async def sync_connection(db: AsyncSession, connection: CalendarConnection) -> i
         if "Reconnect" in message:
             connection.status = "error"
             if newly_broken:
-                db.add(Notification(user_id=connection.user_id, type="calendar_error", message=f"Charcha stopped following your calendar: {message}", link="/settings#calendar"))
+                db.add(Notification(user_id=connection.user_id, type="calendar_error", message=f"Wilco stopped following your calendar: {message}", link="/settings#calendar"))
         await db.commit()
         return 0
 
@@ -591,7 +591,7 @@ async def _series_keeps_refusing(db: AsyncSession, user: User, item: dict) -> bo
         return False
     link = "/dashboard"
     message = (
-        f"Charcha stopped sending the notetaker to “{item['title'] or 'a recurring meeting'}”: nobody admitted it "
+        f"Wilco stopped sending the notetaker to “{item['title'] or 'a recurring meeting'}”: nobody admitted it "
         f"the last {REFUSED_VISITS_TO_SKIP} times. Turn the meeting on under Coming up to try again."
     )
     told = (

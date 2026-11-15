@@ -12,7 +12,7 @@ Two rules, on top of invite-based meeting access (app/dependencies.py):
   reach Avni's task list on its own.
 * **Confidential meetings** (`set_confidential`): marked by a person or by
   the notes AI, which flags personnel, pay, legal and deal talk at no extra
-  cost. Only the people in the meeting can open one — Charcha admins too lose
+  cost. Only the people in the meeting can open one — Wilco admins too lose
   their exemption — and it never goes to Jira or a public share link.
 """
 

@@ -281,7 +281,7 @@ async def may_email_about_meeting(db: AsyncSession, user: User, meeting_id: uuid
     """Whether this person may be emailed about this meeting. Colleagues on
     INTERNAL_EMAIL_DOMAINS: yes, as their access allows. Anyone else only when
     they recorded it, asked for its notetaker themselves, or the recorder,
-    organizer or an admin deliberately shared it with them in Charcha — a
+    organizer or an admin deliberately shared it with them in Wilco — a
     calendar invite or being heard in the call is not enough."""
     domains = settings.internal_email_domain_list
     if not domains or (user.email or "").strip().lower().rpartition("@")[2] in domains:
@@ -383,7 +383,7 @@ async def send_one(db: AsyncSession, row: EmailOutbox) -> None:
     to_email = rendered.get("to") or (user.email if user else None)
     row.to_email, row.subject = to_email, rendered["subject"]
     category = KINDS[row.kind][0]
-    headers = {"X-Charcha-Kind": row.kind}
+    headers = {"X-Wilco-Kind": row.kind}
     # A shared email has no one-click unsubscribe: it would switch off the
     # To person's email, whoever clicked. Each reader manages their own.
     if user is not None and CATEGORIES[category][2] and not _shared(row):

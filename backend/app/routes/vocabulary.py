@@ -7,7 +7,7 @@ vocabulary_service); the person who added an entry or an admin can delete it.
 Teammates lists whose names are listened for — every account, the guests
 someone added, and guests who keep turning up in your meetings — each with
 the spellings transcription has written for them. Suggestions are the
-mishearings Charcha noticed by itself; anyone who can read one of the
+mishearings Wilco noticed by itself; anyone who can read one of the
 meetings it came from can accept or dismiss it.
 """
 
@@ -285,14 +285,14 @@ async def list_people(user: User = Depends(get_current_user), db: AsyncSession =
 
 @router.post("/people", status_code=201)
 async def add_person(body: PersonCreate, user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)) -> dict:
-    """List a guest without a Charcha account — a client, vendor or regular
+    """List a guest without a Wilco account — a client, vendor or regular
     visitor — so their name is listened for in every meeting."""
     existing = (await db.execute(select(KnownPerson).where(func.lower(KnownPerson.name) == body.name.lower()))).scalar_one_or_none()
     account = (await db.execute(
         select(User.id).where(func.lower(User.name) == body.name.lower(), User.status == "active")
     )).first()
     if account is not None:
-        raise HTTPException(status_code=409, detail=f"{body.name} already has a Charcha account, so their name is listened for already.")
+        raise HTTPException(status_code=409, detail=f"{body.name} already has a Wilco account, so their name is listened for already.")
     if existing is None:
         existing = KnownPerson(
             name=body.name, email=(body.email or "").strip() or None, note=_clean(body.note or "") or None, created_by=user.id
@@ -364,7 +364,7 @@ def _suggestion_payload(suggestion: TermSuggestion, readable: dict[uuid.UUID, st
 
 @router.get("/suggestions")
 async def list_suggestions(user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)) -> list[dict]:
-    """Pending mishearings Charcha noticed, from meetings you can read."""
+    """Pending mishearings Wilco noticed, from meetings you can read."""
     pending = (await db.execute(
         select(TermSuggestion).where(TermSuggestion.status == "pending").order_by(TermSuggestion.updated_at.desc()).limit(200)
     )).scalars().all()

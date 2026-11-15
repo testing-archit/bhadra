@@ -156,7 +156,7 @@ async def jira_projects(admin: User = Depends(require_admin), db: AsyncSession =
 async def save_jira_projects(
     body: JiraProjectSettings, admin: User = Depends(require_admin), db: AsyncSession = Depends(get_db)
 ) -> dict:
-    """Default project and Charcha → Jira project mapping, for either kind of
+    """Default project and Wilco → Jira project mapping, for either kind of
     connection (right after Connect with Jira, this is the only step left)."""
     connection = await jira_service.get_connection(db)
     if connection is None:
@@ -215,9 +215,9 @@ async def jira_oauth_callback(
         return back("error", str(failure))
     admin = await db.get(User, admin_id)
     if admin is None or admin.status != "active" or not is_admin(admin):
-        return back("error", "Only a Charcha admin can connect Jira")
+        return back("error", "Only a Wilco admin can connect Jira")
     if not sites:
-        return back("error", "That Atlassian account has no Jira site Charcha can write to")
+        return back("error", "That Atlassian account has no Jira site Wilco can write to")
     site = sites[0]
 
     connection = await jira_service.get_connection(db)
@@ -278,7 +278,7 @@ async def _people_payload(db: AsyncSession, jira_users: list[dict]) -> dict:
 
 @router.get("/api/admin/jira/people")
 async def jira_people(admin: User = Depends(require_admin), db: AsyncSession = Depends(get_db)) -> dict:
-    """Charcha people and the Jira user each one is (auto-matching first)."""
+    """Wilco people and the Jira user each one is (auto-matching first)."""
     connection = await jira_service.get_connection(db)
     if connection is None:
         raise HTTPException(status_code=409, detail="Connect Jira first")
@@ -313,7 +313,7 @@ async def set_jira_person(
     if body.account_id and chosen is None:
         raise HTTPException(status_code=422, detail="That Jira user wasn't found")
     if body.account_id:
-        # One Jira user is one Charcha person.
+        # One Jira user is one Wilco person.
         other = (
             await db.execute(select(JiraUserLink).where(JiraUserLink.account_id == body.account_id, JiraUserLink.user_id != user_id))
         ).scalar_one_or_none()

@@ -189,7 +189,7 @@ class MeResponse(BaseModel):
     team_name: str | None
     job_title: str | None
     auth_method: str
-    # Whether a Charcha password is set (Google accounts may have none).
+    # Whether a Wilco password is set (Google accounts may have none).
     has_password: bool = False
     created_at: str
 
@@ -228,7 +228,7 @@ class GoogleSheetsSettings(BaseModel):
 @limiter.limit("10/hour")
 async def connector_token(request: Request, user: User = Depends(get_current_user)) -> dict:
     """A 90-day token for connecting Claude (or another MCP client) to this
-    person's Charcha. It only works on the MCP endpoint, never the regular
+    person's Wilco. It only works on the MCP endpoint, never the regular
     API, and a password change revokes it."""
     from app import mcp_server
 
@@ -273,7 +273,7 @@ async def list_directory(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> list[dict]:
-    """Every active Charcha account, for the attendee pickers.
+    """Every active Wilco account, for the attendee pickers.
 
     Not admin-only on purpose: to say who was in a meeting you have to be able
     to see the list of colleagues. It exposes name, email and department —
@@ -363,7 +363,7 @@ FORGOT_COOLDOWN = datetime.timedelta(minutes=2)
 @limiter.limit("5/minute")
 async def forgot_password(request: Request, body: ForgotPasswordRequest, db: AsyncSession = Depends(get_db)) -> dict:
     """Always the same answer, whether or not the address has an account, so
-    this can't be used to find out who uses Charcha."""
+    this can't be used to find out who uses Wilco."""
     user = (await db.execute(select(User).where(func.lower(User.email) == body.email))).scalar_one_or_none()
     if user is not None and user.status == "active":
         recent = await db.scalar(
@@ -383,7 +383,7 @@ async def forgot_password(request: Request, body: ForgotPasswordRequest, db: Asy
                 token = await email_service.issue_password_link(db, user, "reset")
                 await email_service.enqueue(db, "password_reset", user.id, {"token": token}, dedupe_key=f"password_reset:{token[:16]}")
             await db.commit()
-    return {"ok": True, "message": "If that address has a Charcha account, a reset link is on its way."}
+    return {"ok": True, "message": "If that address has a Wilco account, a reset link is on its way."}
 
 
 @router.post("/password/reset", response_model=LoginResponse)

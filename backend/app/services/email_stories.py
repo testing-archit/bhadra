@@ -1,4 +1,4 @@
-"""What each Charcha email says. One renderer per kind; each returns
+"""What each Wilco email says. One renderer per kind; each returns
 {"subject", "html", "text", "tag"} or None to skip (nothing worth sending,
 or the moment has passed). Rendered at send time from current data, so an
 email never shows a task that was finished in the meantime, and never shows a
@@ -114,12 +114,12 @@ async def password_reset(db, row, user):
     link = app_url(f"/reset-password?token={urllib.parse.quote(row.payload['token'])}")
     body = (
         paragraph(f"Hi {esc(first_name(user))},")
-        + paragraph("Someone asked to reset the password for your Charcha account. If it was you, choose a new one below.")
+        + paragraph("Someone asked to reset the password for your Wilco account. If it was you, choose a new one below.")
         + paragraph(f"This link works once and expires in {email_service.RESET_MINUTES} minutes.", muted=True)
         + callout(paragraph("Didn't ask for this? You can ignore this email — your password stays the same and nobody can use this link without access to your inbox.", size=14))
     )
-    return _finish(user, "password_reset", "Reset your Charcha password", "Reset your password", body,
-                   preheader="Choose a new password for Charcha. The link expires in an hour.", cta=("Choose a new password", link),
+    return _finish(user, "password_reset", "Reset your Wilco password", "Reset your password", body,
+                   preheader="Choose a new password for Wilco. The link expires in an hour.", cta=("Choose a new password", link),
                    reason=f"Sent to {user.email} because a password reset was requested for this address.")
 
 
@@ -131,23 +131,23 @@ async def password_reset_google(db, row, user):
         link = app_url(f"/reset-password?token={urllib.parse.quote(token)}")
         body = (
             paragraph(f"Hi {esc(first_name(user))},")
-            + paragraph("You sign in to Charcha with Google, and you don't have a Charcha password yet. If you'd like one — "
+            + paragraph("You sign in to Wilco with Google, and you don't have a Wilco password yet. If you'd like one — "
                         "to sign in with your email and a password, for example in the Chrome extension — set it below. "
                         "Continue with Google keeps working either way.")
             + paragraph(f"This link works once and expires in {email_service.RESET_MINUTES} minutes.", muted=True)
             + callout(paragraph("Didn't ask for this? You can ignore this email — nothing changes and nobody can use this link without access to your inbox.", size=14))
         )
-        return _finish(user, "password_reset_google", "Set a password for Charcha", "Set a Charcha password", body,
+        return _finish(user, "password_reset_google", "Set a password for Wilco", "Set a Wilco password", body,
                        preheader="Add a password to your Google sign-in. The link expires in an hour.", cta=("Set a password", link),
                        reason=f"Sent to {user.email} because a password reset was requested for this address.")
     body = (
         paragraph(f"Hi {esc(first_name(user))},")
-        + paragraph("Someone asked to reset the password for your Charcha account, but you sign in with Google — there's no Charcha password to reset.")
+        + paragraph("Someone asked to reset the password for your Wilco account, but you sign in with Google — there's no Wilco password to reset.")
         + paragraph("Use <strong>Continue with Google</strong> on the sign-in page with this address. If you can't get into your Google account, Google's own recovery will help.")
         + paragraph("Didn't ask for this? You can safely ignore it.", muted=True)
     )
-    return _finish(user, "password_reset_google", "You sign in to Charcha with Google", "No password to reset", body,
-                   preheader="Your Charcha account uses Google sign-in.", cta=("Go to sign in", app_url("/login")),
+    return _finish(user, "password_reset_google", "You sign in to Wilco with Google", "No password to reset", body,
+                   preheader="Your Wilco account uses Google sign-in.", cta=("Go to sign in", app_url("/login")),
                    reason=f"Sent to {user.email} because a password reset was requested for this address.")
 
 
@@ -156,10 +156,10 @@ async def password_changed(db, row, user):
     at = when(datetime.datetime.fromisoformat(row.payload["at"])) if row.payload.get("at") else ""
     body = (
         paragraph(f"Hi {esc(first_name(user))},")
-        + paragraph(f"The password for your Charcha account was {'reset with an emailed link' if how == 'reset' else 'changed from Settings'}{' on ' + esc(at) if at else ''}. Everywhere you were signed in has been signed out.")
-        + callout(paragraph("<strong>Wasn't you?</strong> Reset your password now and tell your Charcha admin — someone may have access to your email.", size=14), tone="warning")
+        + paragraph(f"The password for your Wilco account was {'reset with an emailed link' if how == 'reset' else 'changed from Settings'}{' on ' + esc(at) if at else ''}. Everywhere you were signed in has been signed out.")
+        + callout(paragraph("<strong>Wasn't you?</strong> Reset your password now and tell your Wilco admin — someone may have access to your email.", size=14), tone="warning")
     )
-    return _finish(user, "password_changed", "Your Charcha password was changed", "Your password was changed", body,
+    return _finish(user, "password_changed", "Your Wilco password was changed", "Your password was changed", body,
                    preheader="If this wasn't you, reset it now.", cta=("Reset it again", app_url("/forgot-password")),
                    reason="Security notices are always sent.")
 
@@ -169,38 +169,38 @@ async def invite(db, row, user):
     link = app_url(f"/reset-password?token={urllib.parse.quote(row.payload['token'])}&invite=1")
     body = (
         paragraph(f"Hi {esc(first_name(user))},")
-        + paragraph(f"{esc(by)} added you to <strong>Charcha</strong>, Bhadra's meeting memory. It joins your Google Meet calls, writes the notes, and keeps every decision and task searchable.")
+        + paragraph(f"{esc(by)} added you to <strong>Wilco</strong>, Bhadra's meeting memory. It joins your Google Meet calls, writes the notes, and keeps every decision and task searchable.")
         + paragraph("Set your password to get started — or skip it and use <strong>Continue with Google</strong> with this address.")
         + paragraph(f"The link works once and expires in {email_service.INVITE_DAYS} days.", muted=True)
     )
-    return _finish(user, "invite", f"{by} invited you to Charcha", "You're invited to Charcha", body,
+    return _finish(user, "invite", f"{by} invited you to Wilco", "You're invited to Wilco", body,
                    preheader="Set your password, or sign in with Google.", cta=("Set your password", link),
-                   reason=f"Sent to {user.email} because an admin created a Charcha account for this address.")
+                   reason=f"Sent to {user.email} because an admin created a Wilco account for this address.")
 
 
 async def welcome(db, row, user):
     tips = bullet_list([
         "<strong>Send the notetaker</strong> into a Google Meet or Teams call — paste the link on Home, or use the Chrome extension.",
         "<strong>Link Google Calendar</strong> in Settings and it joins your meetings by itself, with a brief before each one.",
-        "<strong>Ask Charcha</strong> anything about past meetings — answers cite the meeting they came from.",
+        "<strong>Ask Wilco</strong> anything about past meetings — answers cite the meeting they came from.",
     ])
     body = (
-        paragraph(f"Hi {esc(first_name(user))}, welcome to Charcha.")
-        + paragraph("Charcha remembers your meetings so you don't have to. Three things to try first:")
+        paragraph(f"Hi {esc(first_name(user))}, welcome to Wilco.")
+        + paragraph("Wilco remembers your meetings so you don't have to. Three things to try first:")
         + tips
     )
-    return _finish(user, "welcome", "Welcome to Charcha", "Welcome to Charcha", body,
-                   preheader="Three things to try in your first week.", cta=("Open Charcha", app_url("/dashboard")),
-                   reason=f"Sent to {user.email} because a Charcha account was created for this address.")
+    return _finish(user, "welcome", "Welcome to Wilco", "Welcome to Wilco", body,
+                   preheader="Three things to try in your first week.", cta=("Open Wilco", app_url("/dashboard")),
+                   reason=f"Sent to {user.email} because a Wilco account was created for this address.")
 
 
 async def calendar_error(db, row, user):
     body = (
         paragraph(f"Hi {esc(first_name(user))},")
-        + paragraph(esc(row.payload.get("message") or "Charcha can no longer read your Google Calendar."))
+        + paragraph(esc(row.payload.get("message") or "Wilco can no longer read your Google Calendar."))
         + paragraph("Until you reconnect it, the notetaker won't join your calendar meetings by itself and you won't get pre-meeting briefs.", muted=True)
     )
-    return _finish(user, "calendar_error", "Reconnect your Google Calendar to Charcha", "Your calendar stopped syncing", body,
+    return _finish(user, "calendar_error", "Reconnect your Google Calendar to Wilco", "Your calendar stopped syncing", body,
                    preheader="The notetaker can't follow your calendar until you reconnect.", cta=("Reconnect calendar", app_url("/settings#calendar")),
                    reason="Sent because your linked calendar stopped syncing.")
 
@@ -212,13 +212,13 @@ async def notetaker_signed_out(db, row, user):
     ])
     body = (
         paragraph(f"Hi {esc(first_name(user))},")
-        + paragraph("The Charcha notetaker is signed out of Google, so Google Meet is turning it away from meetings that only admit signed-in accounts. Those meetings aren't being recorded.")
+        + paragraph("The Wilco notetaker is signed out of Google, so Google Meet is turning it away from meetings that only admit signed-in accounts. Those meetings aren't being recorded.")
         + heading("To fix it")
         + steps
     )
-    return _finish(user, "notetaker_signed_out", "Action needed: the Charcha notetaker is signed out", "The notetaker is signed out", body,
+    return _finish(user, "notetaker_signed_out", "Action needed: the Wilco notetaker is signed out", "The notetaker is signed out", body,
                    preheader="Meetings that need a signed-in account aren't being recorded.", cta=("Open Admin → Notetaker", app_url("/admin?tab=notetaker")),
-                   reason="Sent to Charcha admins.")
+                   reason="Sent to Wilco admins.")
 
 
 # ---------------------------------------------------------------- meetings
@@ -246,7 +246,7 @@ async def pre_meeting_brief(db, row, user):
         + (heading("Open tasks") + bullet_list(tasks) if tasks else "")
         + (paragraph(small("From " + sources)) if sources else "")
     )
-    cta = ("Join the meeting", event.meeting_url) if event.meeting_url else ("Open in Charcha", app_url(f"/dashboard?brief={event.id}"))
+    cta = ("Join the meeting", event.meeting_url) if event.meeting_url else ("Open in Wilco", app_url(f"/dashboard?brief={event.id}"))
     return _finish(user, "pre_meeting_brief", f"Brief: {event.title} starts in {minutes} min", "Your pre-meeting brief", body,
                    preheader=f"{event.title} at {when(event.start_at)} — where things stand and what's open.", cta=cta,
                    reason="Built only from earlier meetings you can open. Sent because this meeting is on your linked calendar.")
@@ -280,11 +280,11 @@ async def notes_ready(db, row, user):
         + (callout(heading("Your tasks", 14).replace("margin:22px", "margin:0") + bullet_list([_task_line(t) for t in mine[:MAX_ITEMS]])) if mine else "")
         + (heading("Decisions") + bullet_list([esc(d.decision) for d in decisions]) if decisions else "")
         + (heading("Other action items") + bullet_list([f"{esc(t.description)}{small(' · ' + esc(t.owner or 'no owner'))}" for t in others[:MAX_ITEMS]]) if others else "")
-        + (paragraph(small(f"and {len(others) - MAX_ITEMS} more in Charcha")) if len(others) > MAX_ITEMS else "")
+        + (paragraph(small(f"and {len(others) - MAX_ITEMS} more in Wilco")) if len(others) > MAX_ITEMS else "")
     )
     subject = f"Notes ready: {meeting.title}" + (f" — {len(mine)} task{'s' if len(mine) != 1 else ''} for you" if mine else "")
     return _finish(user, "notes_ready", subject, meeting.title, body,
-                   preheader=(overview[:140] if overview else "Summary, decisions and action items are in Charcha."),
+                   preheader=(overview[:140] if overview else "Summary, decisions and action items are in Wilco."),
                    cta=("Open the notes", app_url(f"/meetings/{meeting.id}")),
                    reason="Sent because you were in this meeting or asked for its notes.")
 
@@ -309,11 +309,11 @@ def _notes_for_everyone(meeting, overview, decisions, tasks, people, user):
         + _avatars(people)
         + (paragraph(esc(overview[:900] + ("…" if len(overview) > 900 else ""))) if overview else "")
         + (heading("Action items") + task_html if task_html else "")
-        + (paragraph(small(f"and {len(tasks) - shown} more in Charcha")) if len(tasks) > shown else "")
+        + (paragraph(small(f"and {len(tasks) - shown} more in Wilco")) if len(tasks) > shown else "")
         + (heading("Decisions") + bullet_list([esc(d.decision) for d in decisions]) if decisions else "")
     )
     return _finish(user, "notes_ready", f"Notes ready: {meeting.title}", meeting.title, body,
-                   preheader=(overview[:140] if overview else "Summary, decisions and action items are in Charcha."),
+                   preheader=(overview[:140] if overview else "Summary, decisions and action items are in Wilco."),
                    cta=("Open the notes", app_url(f"/meetings/{meeting.id}")),
                    reason="Sent to everyone with access to this meeting — see To and CC.", shared=True)
 
@@ -458,7 +458,7 @@ async def weekly_digest(db, row, user):
         + stat(len(meetings), "meetings") + stat(len(decisions), "decisions") + stat(len(open_tasks), "open tasks") + stat(overdue, "overdue")
         + "</tr></table>"
     )
-    body = paragraph(f"Good morning {esc(first_name(user))}, here's your week in Charcha.") + stats
+    body = paragraph(f"Good morning {esc(first_name(user))}, here's your week in Wilco.") + stats
     if decisions:
         body += heading("Decisions last week") + bullet_list([f"{esc(d.decision)}{small(' · ' + esc(titles.get(d.meeting_id, '')))}" for d in decisions])
     if open_tasks:
@@ -472,9 +472,9 @@ async def weekly_digest(db, row, user):
             [f'<a href="{esc(app_url(f"/meetings/{m.id}"))}" style="color:#2E2A8C;">{esc(m.title)}</a>{small(" · " + esc(when(m.date, time=False)))}' for m in meetings[:MAX_ITEMS]]
         )
     plural = lambda n, word: f"{n} {word}{'' if n == 1 else 's'}"  # noqa: E731
-    return _finish(user, "weekly_digest", f"Your week in Charcha: {plural(len(meetings), 'meeting')}, {plural(len(open_tasks), 'open task')}", "Your week in Charcha", body,
+    return _finish(user, "weekly_digest", f"Your week in Wilco: {plural(len(meetings), 'meeting')}, {plural(len(open_tasks), 'open task')}", "Your week in Wilco", body,
                    preheader=f"{len(decisions)} decisions, {overdue} overdue tasks, {len(upcoming)} meetings coming up.",
-                   cta=("Open Charcha", app_url("/dashboard")),
+                   cta=("Open Wilco", app_url("/dashboard")),
                    reason=f"Sent every {email_service.WEEKDAYS[email_service.schedule_for(user)['digest_day']]} morning. Change the day in Settings → Email.")
 
 
@@ -510,6 +510,6 @@ async def render(db: AsyncSession, row: EmailOutbox, user: User | None) -> dict 
     if row.kind in _ABOUT_A_MEETING and user is not None:
         meeting_id = _id_in(row.payload.get("link"), rf"(?<=/meetings/){_UUID}")
         if meeting_id and not await email_service.may_email_about_meeting(db, user, meeting_id):
-            row.last_error = "Outside the company and the meeting wasn't shared with them in Charcha"
+            row.last_error = "Outside the company and the meeting wasn't shared with them in Wilco"
             return None
     return await RENDERERS[row.kind](db, row, user)

@@ -1,56 +1,54 @@
-# Charcha (चर्चा)
+# Wilco
 
-**Voice-first meeting memory for Indian teams.** Speak in Hindi, English or both in one sentence: in a Google Meet, a Teams call or in person. Charcha turns the conversation into owners, tasks, decisions and searchable memory, and answers back out loud.
+**Voice-first meeting memory for Indian teams.** Speak in Hindi, English or both in one sentence: in a Google Meet, a Teams call or in person. Wilco turns the conversation into owners, tasks, decisions and searchable memory, draws what you describe on a shared whiteboard, and answers back out loud.
 
-Built by **team Bhadra**: Archit and Vedant.
+Built by **team Bhadra**: Archit and Vedant. (Wilco was called Charcha before the rebrand; you'll still see `charcha` in internal identifiers, env vars and storage keys, which are kept so existing installs keep working.)
 
 **Live app: https://34-58-54-115.sslip.io** (demo data is synthetic)
 
-![Charcha home: "Bolo. Charcha sun raha hai."](docs/screenshots/home-dark.png)
+![Wilco home](docs/screenshots/wilco-violet-home-desktop.png)
 
 ## Built on Gnani AI
 
-| Gnani model | What Charcha uses it for |
+| Gnani model | What Wilco uses it for |
 |---|---|
 | **Prisma v3** (speech-to-text, `codemix`, `indic-auto`) | Transcribes meetings, in-person recordings and spoken questions in Hindi, English and Hinglish |
-| **Timbre v2.5** (`hi-en`) and **v3.0** (all Indian languages) | Reads answers aloud, powers Charcha Live's spoken replies in the speaker's own language, and lets the notetaker **speak in the call** |
+| **Timbre v2.5** (`hi-en`) and **v3.0** (all Indian languages) | Reads answers aloud, powers Wilco Live's spoken replies in the speaker's own language, and lets the notetaker **speak in the call** |
 
 The loop is: **Prisma hears, Gemini thinks, Timbre speaks.**
 
 ## What it does
 
-- **Charcha Live: talk to your meetings, like Gemini Live, built on Gnani.**
-  - Tap once and just talk, in Hindi, English, Hinglish or any of 8 more Indian languages.
-  - Charcha detects when you've finished, answers out loud from your meetings, and stops the moment you interrupt.
-  - It replies in your language and script: Tamil in Tamil, Marathi in Marathi.
-- **Ask by voice, hear the answer.** Tap the mic and ask "Sharma ji ka kitna udhaar baaki hai?". Charcha answers from your meetings, with line-level citations, and reads the answer aloud.
-- **A notetaker in the call, like Claude Meetings** (see [docs/claude-meetings.md](docs/claude-meetings.md)):
-  - It joins Google Meet (or Teams by link), records and turns on captions.
-  - It announces itself in the chat.
-  - It answers **"Charcha, …" spoken aloud or typed in the chat**, from that call so far, and says the answer out loud.
-  - "Charcha recap" gives the key points, decisions and action items so far.
-  - "Charcha, add task: Vedant to send the invoice by Friday" creates a real task.
-- **Notes that hold up.** Summaries, tasks with owners and due dates, decisions with reasons and rejected alternatives, reversals of earlier decisions, and risks. Every item is backed by a quote from the transcript.
+- **Wilco in the call** (compare [docs/claude-meetings.md](docs/claude-meetings.md)):
+  - It joins Google Meet (or Teams by link) with the Wilco mascot on camera, records, turns on captions and announces itself in chat.
+  - Say or type **"Wilco, …"**. It answers from the call so far, in chat and out loud, through an isolated microphone that only ever carries its own voice.
+  - **"Wilco, draw a signup, verification and payment flow"** draws on a live meeting whiteboard, or as native shapes in your own **FigJam** file through the Wilco plugin ([docs/voice-figjam-reliability.md](docs/voice-figjam-reliability.md)). Move, rename, connect, remove and "undo that" work by voice too.
+  - **"Wilco recap"** gives the key points, decisions and action items so far. **"Wilco, add task: Vedant to send the invoice by Friday"** creates a real task.
+  - Requests run as durable jobs with progress messages. "Status", "cancel that" and "stop speaking" control them, and "Wilco, please leave" sends the bot out.
+- **Wilco Live: talk to your meetings, like Gemini Live, built on Gnani.** Tap once and talk, in Hindi, English, Hinglish or 8 more Indian languages. An audio-reactive mascot listens, answers from your meetings in your language, and stops when you interrupt.
+- **Ask by voice, hear the answer.** Ask "Sharma ji ka kitna udhaar baaki hai?" and get an answer from your meetings, with line-level citations, read aloud.
+- **Notes that hold up.** Summaries, tasks with owners and due dates, decisions with reasons and rejected alternatives, reversals and risks, each backed by a quote from the transcript. A guided review lets you confirm them quickly.
+- **Follow-through.** Home shows what needs you today, task cards and focus mode keep owners moving, and stand-up digests track blockers across a series.
 - **In-person recorder** for shops, field visits and gram sabhas, recording in 5-minute segments that survive patchy networks.
 - **Claude connector (MCP).** Claude Desktop, Claude Code or claude.ai can search your meetings, read tasks and decisions, ask memory and add tasks: Settings → Connect Claude.
 - **Privacy by default.** Only the people in a meeting can read it, confidential meetings stay closed even to admins, and live answers in a call never reveal company memory to guests.
-- Also included: Jira two-way sync, Google Calendar auto-join, pre-meeting briefs, Google Sheets export, a policy assistant, and learned name corrections for Indian names.
+- Also included: Jira two-way sync, Google Calendar auto-join, pre-meeting briefs, Google Sheets export, a policy assistant, consent-based voice enrolment for speaker names, and learned name corrections for Indian names.
 
 ## Screenshots
 
 | | |
 |---|---|
-| ![Charcha Live: hands-free voice conversation](docs/screenshots/live-dark.png) | ![Home](docs/screenshots/home-dark.png) |
-| ![Ask memory by voice: an answer with citations](docs/screenshots/memory-answer-dark.png) | ![A meeting: summary, tasks, decisions and transcript](docs/screenshots/meeting-dark.png) |
-| ![Decisions with reasons, alternatives and reversals](docs/screenshots/decisions-dark.png) | ![Tasks board](docs/screenshots/tasks-dark.png) |
-| ![Sign-in](docs/screenshots/login-dark.png) | ![Connect Claude (MCP)](docs/screenshots/connect-claude-dark.png) |
-| ![Home in light mode](docs/screenshots/home-light.png) | ![Home on a phone](docs/screenshots/home-mobile.png) |
+| ![Wilco Live: hands-free voice conversation](docs/screenshots/wilco-live-desktop.png) | ![Home](docs/screenshots/wilco-violet-home-desktop.png) |
+| ![Ask memory: a conversation with citations](docs/screenshots/wilco-memory-conversation.png) | ![Guided meeting review](docs/screenshots/wilco-violet-review.png) |
+| ![FigJam connection for voice drawing](docs/screenshots/wilco-figjam-connection.png) | ![Wilco on camera in Google Meet](docs/screenshots/wilco-meet-camera.png) |
+| ![Task cards](docs/screenshots/wilco-task-cards-desktop.png) | ![Home on a phone](docs/screenshots/wilco-violet-home-mobile.png) |
 
 ## Docs
 
 - [docs/testing-guide.md](docs/testing-guide.md): what to test, with questions and expected answers from the demo data.
-- [docs/claude-meetings.md](docs/claude-meetings.md): Claude Meetings research and how Charcha matches it, feature by feature.
-- [DESIGN.md](DESIGN.md): the "night glow" design system.
+- [docs/claude-meetings.md](docs/claude-meetings.md): Claude Meetings research and how Wilco matches it, feature by feature.
+- [docs/voice-whiteboard.md](docs/voice-whiteboard.md), [docs/voice-figjam-reliability.md](docs/voice-figjam-reliability.md) and [docs/meeting-action-agent.md](docs/meeting-action-agent.md): in-call drawing, FigJam and the command agent.
+- [DESIGN.md](DESIGN.md): the design system (light violet by default, with a dark theme).
 - [CLAUDE.md](CLAUDE.md): project guide for Claude Code sessions (architecture, conventions, deploy).
 
 ## Architecture
@@ -59,7 +57,8 @@ The loop is: **Prisma hears, Gemini thinks, Timbre speaks.**
 | --- | --- | --- |
 | Web workspace | `frontend/` | Next.js 16, React 19, TypeScript, Tailwind CSS |
 | API + MCP server | `backend/` | FastAPI, SQLAlchemy async, PostgreSQL, MCP Python SDK (`/api/mcp`) |
-| Notetaker bot | `backend/bot/` | Playwright + Chromium on Xvfb, PulseAudio (recording and voice), ffmpeg |
+| Notetaker bot | `backend/bot/` | Playwright + Chromium on Xvfb, PulseAudio (recording), a Web Audio microphone (voice), ffmpeg |
+| FigJam plugin | `integrations/figjam/` | Figma plugin API (development plugin, paired per meeting) |
 | Chrome extension | `src/`, `manifest.json` | Manifest V3, Vite |
 | Speech | `backend/app/services/transcriber.py`, `tts_service.py` | Gnani Prisma v3, Gnani Timbre v2.5 |
 | AI notes and answers | `backend/app/services/` | Gemini |
@@ -103,7 +102,7 @@ Frontend:
 
 ```bash
 cd frontend
-cp .env.example .env.local
+echo "NEXT_PUBLIC_BACKEND_URL=http://localhost:8080" > .env.local
 npm install
 npm run dev
 ```
@@ -124,9 +123,9 @@ npm test
 npm run build
 ```
 
-Reload the unpacked extension at `chrome://extensions`, then reload any open Meet tab. In a short test call, confirm that the Charcha control appears in the call, **Invite notetaker** brings the bot to the lobby, the toolbar badge changes to `REC` once it is admitted, **Stop notetaker** makes it leave, and a "notes are ready" notification opens the meeting. To review the popup design without installing anything, serve `src/` over HTTP and open `popup.html?preview=1` (or `?preview=login`, `?tab=meet`); it runs on built-in sample data.
+Reload the unpacked extension at `chrome://extensions`, then reload any open Meet tab. In a short test call, confirm that the Wilco control appears in the call, **Invite notetaker** brings the bot to the lobby, the toolbar badge changes to `REC` once it is admitted, **Stop notetaker** makes it leave, and a "notes are ready" notification opens the meeting. To review the popup design without installing anything, serve `src/` over HTTP and open `popup.html?preview=1` (or `?preview=login`, `?tab=meet`); it runs on built-in sample data.
 
-Release checklist: bump `version` in `manifest.json` and `package.json`, update `extensionVersion` in `frontend/src/app/extension/page.tsx`, then run `npm run build:production` and zip `dist/` to `frontend/public/downloads/charcha-extension-v<version>.zip`.
+Release checklist: bump `version` in `manifest.json` and `package.json`, update `extensionVersion` in `frontend/src/app/extension/page.tsx`, then run `npm run build:production` and zip `dist/` to `frontend/public/downloads/wilco-extension-v<version>.zip`.
 
 Google OAuth requires a Chrome extension OAuth client for `manifest.json` and a web OAuth client in `NEXT_PUBLIC_GOOGLE_CLIENT_ID`. Email/password authentication works without Google OAuth.
 

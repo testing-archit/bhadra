@@ -47,7 +47,7 @@ async def lifespan(_: FastAPI):
         await asyncio.gather(*tasks, return_exceptions=True)
 
 
-app = FastAPI(title="Charcha", lifespan=lifespan)
+app = FastAPI(title="Wilco", lifespan=lifespan)
 
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
@@ -87,7 +87,7 @@ app.include_router(recap.router)
 app.include_router(voice.router)
 app.include_router(figjam.router)
 app.add_middleware(figjam.BridgeCors)
-# Charcha as an MCP server for Claude and other assistants (connector token).
+# Wilco as an MCP server for Claude and other assistants (connector token).
 app.mount(mcp_server.MCP_PATH, mcp_server.http_app())
 
 

@@ -2,10 +2,10 @@
 
 People add the notetaker's Google account to a calendar event the way they
 would add fred@fireflies.ai; the bot joins the Meet, records it, and posts the
-audio plus Meet's captions here. There is no signed-in Charcha user on the
+audio plus Meet's captions here. There is no signed-in Wilco user on the
 other end, so this route authenticates the bot with a shared secret and then
 files the meeting under the event's organizer — or, when the organizer has no
-Charcha account, the first invitee who does.
+Wilco account, the first invitee who does.
 """
 
 import asyncio
@@ -125,10 +125,10 @@ async def bot_ingest(
         # the bot believes the organizer was.
         owner = await db.get(User, capture.user_id)
     if owner is None:
-        # Nobody on the invite has a Charcha account — there is no one to file
+        # Nobody on the invite has a Wilco account — there is no one to file
         # the meeting under and no one who could ever read it.
         logger.info("Bot meeting %s skipped: no internal attendee", meta.event_id)
-        await _finish_without_notes(db, capture, "Nobody on the invite has a Charcha account, so there was no one to save the notes for.")
+        await _finish_without_notes(db, capture, "Nobody on the invite has a Wilco account, so there was no one to save the notes for.")
         return {"status": "skipped", "reason": "no_internal_attendee"}
 
     # Transcription and notes for this meeting are billed to its owner.
@@ -590,7 +590,7 @@ class LiveTask(BaseModel):
 
 @router.post("/live-task", dependencies=[Depends(require_bot)])
 async def live_task(body: LiveTask, db: AsyncSession = Depends(get_db)) -> dict:
-    """"Charcha, add task: ..." from the call's chat. Held on the visit until
+    """"Wilco, add task: ..." from the call's chat. Held on the visit until
     the meeting exists, then created as a real task (origin "live")."""
     capture = await db.get(CaptureRequest, body.capture_request_id)
     if capture is None:
@@ -724,7 +724,7 @@ async def bot_invite(body: BotInvite, db: AsyncSession = Depends(get_db)) -> dic
     start. It goes through the same queue as every other visit, so a meeting
     that a colleague's linked calendar (or a pasted link) already covers gets
     no second bot. Filed under the organizer, else the first invitee with a
-    Charcha account; with nobody internal, there's no one to read the notes."""
+    Wilco account; with nobody internal, there's no one to read the notes."""
     owner = await _active_user_by_email(db, body.organizer_email)
     if owner is None:
         for attendee in body.attendees:

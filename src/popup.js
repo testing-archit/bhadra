@@ -152,10 +152,10 @@ function renderThisMeeting(code, meetCapture) {
   } else if (capture && isLive(capture)) {
     const recording = capture.status === "capturing";
     dot.className = `dot ${recording ? "is-live" : "is-wait"}`;
-    $("#this-meeting-title").textContent = recording ? "Charcha is taking notes" : capture.status_label;
+    $("#this-meeting-title").textContent = recording ? "Wilco is taking notes" : capture.status_label;
     $("#this-meeting-detail").textContent = capture.status === "waiting_for_admission"
       ? "It's in the lobby. Admit it from the call."
-      : recording ? "Notes appear in Charcha a few minutes after the call." : capture.status_detail || "";
+      : recording ? "Notes appear in Wilco a few minutes after the call." : capture.status_detail || "";
     if (capture.active && !capture.stop_requested) button(recording ? "Stop notetaker" : "Cancel", "danger", () => stop(capture.id));
   } else if (capture?.status === "completed" && capture.meeting_id) {
     dot.className = "dot is-done";
