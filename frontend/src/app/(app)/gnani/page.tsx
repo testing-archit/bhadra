@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import "../support-pages.css";
 
 const LANGUAGES: Array<{ code: string; label: string; sample: string }> = [
   { code: "hi-en", label: "Hinglish", sample: "Vedant, login bug Friday tak fix kar dena, release usi pe blocked hai." },
@@ -34,8 +35,8 @@ const LANGUAGE_NAMES: Record<string, string> = {
 
 /** Where each Gnani model runs inside Wilco. */
 const IN_WILCO = [
-  { model: "Prisma v3", icon: Mic, uses: ["Transcribes every meeting, Hinglish, Tanglish and 10+ Indian languages", "Recaps noisy phone calls and WhatsApp voice notes", "Keeps a shop's udhaar khata by voice", "Hears Wilco Live and spoken questions"] },
-  { model: "Timbre v2.5 + v3", icon: Volume2, uses: ["Wilco's voice in Google Meet calls", "Spoken replies in Wilco Live, in your language", "Listen to meeting notes in 11 languages", "Khata reminders as voice notes"] },
+  { model: "Prisma v3", icon: Mic, uses: ["Transcribes engineering meetings in Hinglish, Tanglish and 10+ Indian languages", "Recaps customer and incident calls", "Captures technical terms and teammate names", "Hears Wilco Live and spoken questions"] },
+  { model: "Timbre v2.5 + v3", icon: Volume2, uses: ["Wilco's voice in Google Meet calls", "Spoken replies in Wilco Live, in your language", "Listen to meeting notes in 11 languages", "Reads concise team updates aloud"] },
   { model: "Timbre voice cloning", icon: Fingerprint, uses: ["Your update read in your own voice in a call you'll miss", "Opt-in, your voice only, deletable anytime"] },
   { model: "Evon v3.3", icon: Brain, uses: ["Answers Wilco Live when the team hosts it", "Falls back to Wilco's default model if Evon is unreachable"] },
 ];
@@ -379,10 +380,10 @@ export default function GnaniLabPage() {
   useEffect(() => { refresh(); }, [refresh]);
 
   return (
-    <div className="flex w-full flex-col gap-6">
-      <header className="flex flex-col gap-2">
-        <h1 className="font-heading text-2xl font-semibold tracking-tight md:text-3xl">Built on Gnani</h1>
-        <p className="max-w-2xl text-muted-foreground">Every voice in Wilco comes from Gnani's models: Prisma hears, Timbre speaks, and voice cloning lets your update speak for you. Try each one live.</p>
+    <div className="signal-support flex w-full flex-col gap-6">
+      <header className="support-hero flex flex-col gap-2">
+        <h1 className="font-heading text-2xl font-semibold tracking-tight md:text-3xl">Voice lab</h1>
+        <p className="max-w-2xl text-muted-foreground">Hear the speech models behind your team&apos;s meeting workflow. Prisma captures multilingual discussion; Timbre speaks back; optional voice matching identifies speakers.</p>
       </header>
 
       <section aria-label="Where each model runs in Wilco" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -400,8 +401,8 @@ export default function GnaniLabPage() {
         <span className="flex items-center gap-3">
           <PhoneCall className="size-5 shrink-0 text-primary" aria-hidden="true" />
           <span>
-            <span className="block text-sm font-semibold">Got a noisy phone call or a WhatsApp voice note?</span>
-            <span className="block text-xs text-muted-foreground">Upload it: Prisma transcribes 8 kHz telephony audio in any Indian language, Wilco writes the recap and Timbre reads it back.</span>
+            <span className="block text-sm font-semibold">Need a quick customer-call recap?</span>
+            <span className="block text-xs text-muted-foreground">Upload the recording. Prisma transcribes telephony audio, Wilco extracts follow-ups, and Timbre reads the recap back.</span>
           </span>
         </span>
         <ArrowRight className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />

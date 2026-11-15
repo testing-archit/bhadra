@@ -1,0 +1,132 @@
+.signal-public-auth,
+.signal-public-extension,
+.signal-public-shared {
+  --public-ink: #071126;
+  --public-panel: #10203d;
+  --public-raised: #172b4b;
+  --public-line: #345071;
+  --public-text: #f4f8ff;
+  --public-muted: #adc0d9;
+  --public-cyan: #58e3f4;
+  --public-violet: #a891ff;
+  --public-orange: #ff9745;
+  --background: var(--public-ink);
+  --foreground: var(--public-text);
+  --card: var(--public-panel);
+  --card-foreground: var(--public-text);
+  --muted: var(--public-raised);
+  --muted-foreground: var(--public-muted);
+  --secondary: var(--public-raised);
+  --secondary-foreground: var(--public-text);
+  --primary: var(--public-cyan);
+  --primary-foreground: var(--public-ink);
+  --border: var(--public-line);
+  --input: var(--public-line);
+  --ring: var(--public-cyan);
+  --marigold: var(--public-orange);
+  --marigold-foreground: var(--public-ink);
+  color: var(--foreground);
+  background: var(--background);
+}
+
+.signal-public-auth {
+  display: flex;
+  flex: 1;
+  min-height: 100dvh;
+  background:
+    radial-gradient(ellipse at 22% 20%, color-mix(in srgb, var(--public-cyan) 12%, transparent), transparent 33%),
+    radial-gradient(ellipse at 85% 80%, color-mix(in srgb, var(--public-violet) 20%, transparent), transparent 40%),
+    var(--public-ink);
+}
+.signal-public-auth > div { width: 100%; }
+.signal-public-auth [data-slot="card"] {
+  position: relative;
+  max-width: 420px;
+  border-color: var(--public-line);
+  background: linear-gradient(145deg, var(--public-raised), var(--public-panel));
+  box-shadow: 0 20px 60px color-mix(in srgb, var(--public-ink) 60%, transparent);
+}
+.signal-public-auth [data-slot="card"]::before {
+  position: absolute;
+  inset: 0 0 auto;
+  height: 3px;
+  background: linear-gradient(90deg, var(--public-orange), var(--public-cyan), var(--public-violet));
+  content: "";
+}
+.signal-public-auth [data-slot="card-title"] { color: var(--public-text); font-size: 1.55rem; }
+.signal-public-auth [data-slot="input"] { border-color: var(--public-line); background: var(--public-ink); color: var(--public-text); }
+.signal-public-auth button[type="submit"] { background: var(--public-orange); color: var(--public-ink); font-weight: 700; }
+.signal-public-auth button[type="submit"]:hover { background: color-mix(in srgb, var(--public-orange) 82%, white); }
+.signal-public-auth :is(a, input, button):focus-visible,
+.signal-public-extension :is(a, button):focus-visible,
+.signal-public-shared a:focus-visible { outline: 2px solid var(--public-cyan); outline-offset: 3px; }
+
+.signal-public-extension { min-height: 100dvh; }
+.signal-public-extension > header { border-color: var(--public-line); background: var(--public-ink); }
+.signal-public-extension .signal-extension-hero {
+  position: relative;
+  overflow: hidden;
+  border-color: var(--public-line);
+  background:
+    radial-gradient(ellipse at 75% 36%, color-mix(in srgb, var(--public-violet) 26%, transparent), transparent 43%),
+    linear-gradient(125deg, var(--public-panel), var(--public-ink));
+}
+.signal-public-extension .signal-extension-hero::after {
+  position: absolute;
+  inset: auto 0 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--public-orange), var(--public-cyan), var(--public-violet));
+  content: "";
+}
+.signal-public-extension .signal-extension-hero h1 { font-size: clamp(2.7rem, 5vw, 4.8rem); letter-spacing: -.055em; }
+.signal-public-extension .signal-extension-cta { background: var(--public-orange); color: var(--public-ink); }
+.signal-public-extension .signal-extension-cta:hover { background: color-mix(in srgb, var(--public-orange) 82%, white); }
+.signal-public-extension .signal-extension-browser { background: #172137; border-color: var(--public-line); box-shadow: 0 30px 60px color-mix(in srgb, var(--public-ink) 65%, transparent); }
+.signal-public-extension .signal-extension-control { background: #1b2548f2; color: var(--public-text); }
+.signal-public-extension .signal-extension-control-copy { color: var(--public-muted); }
+.signal-public-extension .signal-extension-feature { padding: 20px; border: 1px solid var(--public-line); border-radius: 16px; background: var(--public-panel); }
+.signal-public-extension .signal-extension-feature svg { color: var(--public-cyan); }
+.signal-public-extension .signal-extension-install { border-color: var(--public-line); background: var(--public-panel); }
+.signal-public-extension .signal-extension-install li { border-color: var(--public-line); background: var(--public-ink); }
+.signal-public-extension .signal-extension-install li > span { background: var(--public-orange); color: var(--public-ink); }
+.signal-public-extension footer { border-color: var(--public-line); }
+
+.signal-public-shared {
+  position: relative;
+  max-width: none;
+  min-height: 100dvh;
+  padding-inline: max(16px, calc((100vw - 860px) / 2));
+  background: radial-gradient(ellipse at 100% 0%, color-mix(in srgb, var(--public-violet) 17%, transparent), transparent 35%), var(--public-ink);
+}
+.signal-public-shared [data-slot="card"] { border-color: var(--public-line); background: var(--public-panel); }
+.signal-public-shared .signal-shared-head {
+  position: relative;
+  overflow: hidden;
+  padding: clamp(22px, 3vw, 34px);
+  border: 1px solid var(--public-line);
+  border-radius: 20px;
+  background: linear-gradient(120deg, var(--public-panel), var(--public-ink));
+}
+.signal-public-shared .signal-shared-head::after {
+  position: absolute;
+  inset: auto 0 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--public-orange), var(--public-cyan), var(--public-violet));
+  content: "";
+}
+.signal-public-shared .signal-shared-head h1 { font-size: clamp(1.75rem, 3vw, 2.6rem); letter-spacing: -.045em; }
+
+@media (max-width: 640px) {
+  .signal-public-extension .signal-extension-hero h1 { font-size: 2.8rem; }
+  .signal-public-extension .signal-extension-feature { padding: 16px; }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .signal-public-auth [data-slot="card"]::before,
+  .signal-public-extension .signal-extension-hero::after,
+  .signal-public-shared .signal-shared-head::after {
+    animation: public-trace-in .65s ease-out both;
+    transform-origin: left;
+  }
+  @keyframes public-trace-in { from { transform: scaleX(.04); opacity: .35; } to { transform: scaleX(1); opacity: 1; } }
+}

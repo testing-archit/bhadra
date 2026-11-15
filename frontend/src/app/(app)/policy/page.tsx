@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 
 import { useStickToBottom } from "@/lib/use-stick-to-bottom";
+import "../support-pages.css";
 const SUGGESTIONS = [
   "Give me an overview of our HR policies",
   "How many casual leave days do I get?",
@@ -133,7 +134,7 @@ export default function PolicyPage() {
   }
 
   return (
-    <div className="grid grid-cols-1 h-[calc(100dvh-3.5rem)] min-h-0 w-full overflow-hidden bg-card lg:grid-cols-[280px_minmax(0,1fr)]">
+    <div className="signal-support signal-support-policy grid grid-cols-1 h-[calc(100dvh-3.5rem)] min-h-0 w-full overflow-hidden bg-card lg:grid-cols-[280px_minmax(0,1fr)]">
       <aside className="flex max-h-48 flex-col border-b bg-muted/50 lg:max-h-none lg:border-r lg:border-b-0">
         <div className="border-b px-4 py-4">
           <div className="mb-4 flex items-center gap-2">
@@ -142,7 +143,7 @@ export default function PolicyPage() {
             </span>
             <div>
               <p className="text-sm font-semibold text-foreground">Policy desk</p>
-              <p className="text-[11px] text-muted-foreground">Bhadra handbook</p>
+              <p className="text-[11px] text-muted-foreground">Company handbook</p>
             </div>
           </div>
           <Button className="w-full justify-start gap-2" size="sm" onClick={startNewConversation}>
@@ -195,7 +196,7 @@ export default function PolicyPage() {
         <header className="flex items-center justify-between gap-4 border-b bg-card/85 px-5 py-4 backdrop-blur-sm sm:px-8">
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-base font-semibold tracking-tight text-foreground">Ask Bhadra Policy</h1>
+              <h1 className="text-base font-semibold tracking-tight text-foreground">Ask company policy</h1>
               <span className="inline-flex items-center gap-1 rounded-full bg-tint-mint px-2 py-0.5 text-xs font-medium text-tint-mint-foreground">
                 <FileCheck2 className="h-3 w-3" /> Grounded
               </span>

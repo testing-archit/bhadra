@@ -24,6 +24,7 @@ import {
   CircleDollarSign, KeyRound, Lock, Pencil, Plus, RefreshCw, Search,
   ShieldCheck, Sparkles, Trash2, UserCheck, Users, Video, XCircle,
 } from "lucide-react";
+import "../support-pages.css";
 
 const ROLE_LABELS: Record<string, string> = {
   super_admin: "Super admin", admin: "Admin", team_admin: "Team admin", member: "Member",
@@ -129,18 +130,18 @@ export default function AdminPage() {
     catch (cause) { setError(cause instanceof Error ? cause.message : "Team could not be deleted"); }
   }
 
-  if (forbidden) return <div className="grid min-h-[60vh] place-items-center"><div className="max-w-md text-center"><Lock className="mx-auto mb-4 h-9 w-9 text-muted-foreground"/><h1 className="text-xl font-semibold">Admin access required</h1><p className="mt-2 text-sm text-muted-foreground">Your account does not have an administrative role.</p></div></div>;
+  if (forbidden) return <div className="signal-support grid min-h-[60vh] place-items-center"><div className="max-w-md text-center"><Lock className="mx-auto mb-4 h-9 w-9 text-muted-foreground"/><h1 className="text-xl font-semibold">Admin access required</h1><p className="mt-2 text-sm text-muted-foreground">Your account does not have an administrative role.</p></div></div>;
 
   return (
-    <div className="flex w-full flex-col gap-5 pb-10">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+    <div className="signal-support flex w-full flex-col gap-5 pb-10">
+      <div className="support-hero flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Admin</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">Workspace control</h1>
           <p className="mt-1 max-w-2xl text-sm text-muted-foreground">People, teams, usage and the audit trail for your Wilco workspace.</p>
         </div>
         <div className="flex items-center gap-2.5 rounded-lg border bg-card px-3 py-2">
-          <span className="size-2 rounded-full bg-success" />
-          <div><p className="text-xs font-medium">Systems operational</p><p className="text-[11px] text-muted-foreground">Last activity {relativeTime(overview?.last_activity_at ?? null)}</p></div>
+          <span className="size-2 rounded-full bg-primary" />
+          <div><p className="text-xs font-medium">Workspace activity</p><p className="text-[11px] text-muted-foreground">Last activity {relativeTime(overview?.last_activity_at ?? null)}</p></div>
         </div>
       </div>
 
@@ -179,7 +180,7 @@ export default function AdminPage() {
         </TabsContent>
 
         <TabsContent value="teams" className="space-y-4">
-          <div className="flex items-end justify-between gap-4"><div><h2 className="text-xl font-semibold tracking-tight">Teams</h2><p className="mt-1 text-sm text-muted-foreground">Organize access and ownership around how Bhadra works.</p></div><Button onClick={createTeam}><Plus className="h-4 w-4"/> Create team</Button></div>
+          <div className="flex items-end justify-between gap-4"><div><h2 className="text-xl font-semibold tracking-tight">Teams</h2><p className="mt-1 text-sm text-muted-foreground">Organize access and ownership around your engineering and product teams.</p></div><Button onClick={createTeam}><Plus className="h-4 w-4"/> Create team</Button></div>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">{teams.map(team => <Card key={team.id} className="group"><CardHeader className="pb-3"><div className="flex items-start justify-between"><span className="grid h-10 w-10 place-items-center rounded-xl bg-accent text-foreground"><Building2 className="h-4 w-4"/></span><div className="flex opacity-0 transition-opacity group-hover:opacity-100"><Button size="icon-sm" variant="ghost" onClick={() => editTeam(team)}><Pencil className="h-3.5 w-3.5"/></Button><Button size="icon-sm" variant="ghost" className="hover:text-destructive" onClick={() => void deleteTeam(team)}><Trash2 className="h-3.5 w-3.5"/></Button></div></div><CardTitle className="mt-3 text-base">{team.name}</CardTitle><p className="min-h-10 text-xs leading-5 text-muted-foreground">{team.description || "No description yet."}</p></CardHeader><CardContent className="flex items-center justify-between border-t pt-4"><span className="flex items-center gap-2 text-xs text-muted-foreground"><Users className="h-3.5 w-3.5"/>{team.member_count} member{team.member_count === 1 ? "" : "s"}</span><span className="text-[10px] text-muted-foreground">Created {new Date(team.created_at).toLocaleDateString()}</span></CardContent></Card>)}{teams.length === 0 && <button onClick={createTeam} className="grid min-h-52 place-items-center rounded-xl border border-dashed bg-card text-sm text-muted-foreground hover:border-primary hover:text-primary"><span className="flex flex-col items-center gap-2"><Plus className="h-5 w-5"/> Create the first team</span></button>}</div>
         </TabsContent>
 

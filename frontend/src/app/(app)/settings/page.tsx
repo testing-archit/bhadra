@@ -18,6 +18,7 @@ import { EmailSettings, PasswordSettings } from "@/components/email-settings";
 import { initialsFor } from "@/components/shell/sidebar";
 import { cn } from "@/lib/utils";
 import { DeleteConfirmationDialog } from "@/components/delete-confirmation-dialog";
+import "../support-pages.css";
 
 const SUGGESTIONS = ["Engineering", "Sales", "Marketing", "Design", "Operations", "Founders"];
 const ROLE_LABELS: Record<string, string> = { super_admin: "Super admin", admin: "Admin", team_admin: "Team admin", member: "Member" };
@@ -131,8 +132,8 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="mx-auto flex max-w-3xl flex-col gap-6">
-      <PageHeader title="Settings" description="Your profile, how Wilco looks, and the integrations shared with the Chrome extension." />
+    <div className="signal-support signal-support-narrow mx-auto flex max-w-3xl flex-col gap-6">
+      <div className="support-hero"><PageHeader title="Workspace settings" description="Manage your profile, team connections, meeting capture, and account preferences." /></div>
 
       {user && (
         <Card>

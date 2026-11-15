@@ -13,6 +13,7 @@ import {
   Sheet,
   Sparkles,
 } from "lucide-react";
+import "../signal-public.css";
 
 export const metadata: Metadata = { title: "Chrome extension" };
 
@@ -39,7 +40,7 @@ const steps = [
 
 export default function ExtensionPage() {
   return (
-    <main className="min-h-screen bg-background text-foreground">
+    <main className="signal-public-extension min-h-screen bg-background text-foreground">
       <header className="border-b bg-card/80 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-5 py-4 sm:px-8">
           <Link href="/" className="flex items-center gap-2.5" aria-label="Wilco home">
@@ -51,10 +52,10 @@ export default function ExtensionPage() {
         </div>
       </header>
 
-      <section className="border-b bg-card">
+      <section className="signal-extension-hero border-b bg-card">
         <div className="mx-auto grid grid-cols-1 max-w-6xl gap-12 px-5 py-16 sm:px-8 sm:py-20 lg:grid-cols-[1.1fr_.9fr] lg:items-center">
           <div>
-            <p className="text-sm font-medium text-primary">Wilco for Chrome, version {extensionVersion}</p>
+            <p className="text-sm font-medium text-primary">Wilco for Chrome · version {extensionVersion}</p>
             <h1 className="mt-3 max-w-2xl text-4xl font-semibold leading-[1.08] tracking-tight sm:text-5xl">
               Send the notetaker without leaving the call.
             </h1>
@@ -64,11 +65,11 @@ export default function ExtensionPage() {
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               {storeUrl ? (
-                <a href={storeUrl} target="_blank" rel="noreferrer" className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-primary px-5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90">
+                <a href={storeUrl} target="_blank" rel="noreferrer" className="signal-extension-cta inline-flex h-11 items-center justify-center gap-2 rounded-xl px-5 text-sm font-semibold transition-colors">
                   Add to Chrome <ExternalLink className="size-4" />
                 </a>
               ) : (
-                <a href={`/downloads/wilco-extension-v${extensionVersion}.zip`} download className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-primary px-5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90">
+                <a href={`/downloads/wilco-extension-v${extensionVersion}.zip`} download className="signal-extension-cta inline-flex h-11 items-center justify-center gap-2 rounded-xl px-5 text-sm font-semibold transition-colors">
                   Download for Chrome <Download className="size-4" />
                 </a>
               )}
@@ -85,7 +86,7 @@ export default function ExtensionPage() {
 
           {/* A faithful mock of the control the extension adds to Meet. */}
           <div className="relative mx-auto w-full max-w-md">
-            <div className="overflow-hidden rounded-2xl border bg-[#202124] shadow-2xl">
+            <div className="signal-extension-browser overflow-hidden rounded-2xl border shadow-2xl">
               <div className="flex items-center gap-2 border-b border-white/10 px-4 py-2.5">
                 <span className="size-2.5 rounded-full bg-white/15" />
                 <span className="size-2.5 rounded-full bg-white/15" />
@@ -96,7 +97,7 @@ export default function ExtensionPage() {
                 {["Asha", "Ravi", "Neha", "You"].map((name) => (
                   <div key={name} className="flex items-end rounded-lg bg-white/[.06] p-2 text-xs text-white/60">{name}</div>
                 ))}
-                <div className="absolute bottom-5 left-5 w-64 rounded-2xl border border-white/10 bg-[#1D1A3B]/95 p-3 text-[#FAF7F1] shadow-xl">
+                <div className="signal-extension-control absolute bottom-5 left-5 w-64 rounded-2xl border border-white/10 p-3 shadow-xl">
                   <div className="flex items-center gap-2">
                     <span className="grid size-6 place-items-center rounded-lg bg-secondary"><img src="/wilco-mark.png" alt="" className="size-4 rounded" /></span>
                     <span className="text-[13px] font-semibold">Wilco</span>
@@ -105,7 +106,7 @@ export default function ExtensionPage() {
                     <span className="relative flex size-2"><span className="absolute inline-flex size-full animate-ping rounded-full bg-red-500/60 motion-reduce:animate-none" /><span className="relative size-2 rounded-full bg-red-500" /></span>
                     Recording this call
                   </p>
-                  <p className="mt-1 text-xs leading-5 text-[#C8C4EB]">Notes, tasks and decisions appear in Wilco a few minutes after the call ends.</p>
+                  <p className="signal-extension-control-copy mt-1 text-xs leading-5">Notes, tasks and decisions appear in Wilco a few minutes after the call ends.</p>
                   <div className="mt-3 rounded-lg bg-red-500/15 py-2 text-center text-xs font-semibold text-red-300">Stop notetaker</div>
                 </div>
               </div>
@@ -118,7 +119,7 @@ export default function ExtensionPage() {
         <h2 className="text-2xl font-semibold tracking-tight">What it does</h2>
         <div className="mt-8 grid grid-cols-1 gap-x-10 gap-y-8 sm:grid-cols-2 lg:grid-cols-3">
           {features.map(({ icon: Icon, title, copy }) => (
-            <article key={title}>
+            <article key={title} className="signal-extension-feature">
               <Icon className="size-5 text-primary" />
               <h3 className="mt-3 font-semibold">{title}</h3>
               <p className="mt-1.5 text-sm leading-6 text-muted-foreground">{copy}</p>
@@ -127,7 +128,7 @@ export default function ExtensionPage() {
         </div>
       </section>
 
-      <section id="install" className="scroll-mt-8 border-t bg-card">
+      <section id="install" className="signal-extension-install scroll-mt-8 border-t bg-card">
         <div className="mx-auto max-w-6xl px-5 py-16 sm:px-8">
           <h2 className="text-2xl font-semibold tracking-tight">Install in about two minutes</h2>
           <p className="mt-2 text-muted-foreground">Only needed while the Chrome Web Store listing is in review.</p>
@@ -149,7 +150,7 @@ export default function ExtensionPage() {
 
       <footer className="border-t">
         <div className="mx-auto flex max-w-6xl flex-col gap-2 px-5 py-6 text-sm text-muted-foreground sm:flex-row sm:justify-between sm:px-8">
-          <span>Wilco, built by team Bhadra</span>
+          <span>Wilco for software teams</span>
           <span>Works with Google Meet in Chrome</span>
         </div>
       </footer>

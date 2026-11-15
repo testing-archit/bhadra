@@ -12,6 +12,7 @@ import {
   ArrowRight, CalendarDays, CircleHelp, Clock, Lightbulb, ListChecks, MessagesSquare, NotebookText, Scale, ShieldAlert,
   type LucideIcon,
 } from "lucide-react";
+import "../../signal-public.css";
 
 function ListCard({ title, icon: Icon, items }: { title: string; icon: LucideIcon; items: string[] }) {
   if (items.length === 0) return null;
@@ -58,7 +59,7 @@ export default function SharedMeetingPage() {
     && !meeting.tasks.length && !meeting.decisions.length && !meeting.risks.length && !meeting.next_steps.length;
 
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 px-4 py-10">
+    <div className="signal-public-shared mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 px-4 py-10">
       <div className="flex items-center gap-2">
         <img src="/wilco-mark.png" alt="Wilco" className="h-8 w-8 rounded-lg" />
         <span className="text-sm font-semibold tracking-tight text-muted-foreground">
@@ -77,7 +78,7 @@ export default function SharedMeetingPage() {
 
       {meeting && (
         <>
-          <div>
+          <div className="signal-shared-head">
             <h1 className="text-2xl font-semibold tracking-tight">{meeting.title}</h1>
             <p className="mt-1 flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
               <span className="flex items-center gap-1">

@@ -8,6 +8,7 @@ import { AuthShell } from "@/components/auth-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import "../signal-public.css";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
@@ -35,7 +36,7 @@ export default function ForgotPasswordPage() {
 
   if (sent) {
     return (
-      <AuthShell title="Check your email">
+      <div className="signal-public-auth"><AuthShell title="Check your email">
         <div className="flex flex-col items-center gap-3 text-center">
           <MailCheck className="size-8 text-primary" />
           <p className="text-sm text-muted-foreground">
@@ -45,12 +46,12 @@ export default function ForgotPasswordPage() {
           <p className="text-xs text-muted-foreground">Nothing after a few minutes? Check spam, or make sure you used your work address.</p>
         </div>
         <Link href="/login" className="text-center text-sm font-medium text-primary hover:underline">Back to sign in</Link>
-      </AuthShell>
+      </AuthShell></div>
     );
   }
 
   return (
-    <AuthShell title="Reset your password" description="Enter your work email and we'll send you a link to choose a new password.">
+    <div className="signal-public-auth"><AuthShell title="Reset your password" description="Enter your work email and we'll send you a link to choose a new password.">
       <form onSubmit={submit} className="flex flex-col gap-3">
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="forgot-email">Email</Label>
@@ -62,6 +63,6 @@ export default function ForgotPasswordPage() {
       <p className="text-center text-xs text-muted-foreground">
         Signed up with Google? Use <Link href="/login" className="font-medium text-foreground hover:underline">Continue with Google</Link> instead.
       </p>
-    </AuthShell>
+    </AuthShell></div>
   );
 }

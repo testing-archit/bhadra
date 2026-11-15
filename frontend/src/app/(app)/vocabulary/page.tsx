@@ -13,6 +13,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
+import "../support-pages.css";
 
 /** The names and terms transcription gets wrong, shared by the company.
  * Corrections fix every new transcript and the notes written from it;
@@ -104,11 +105,11 @@ export default function VocabularyPage() {
   const canDelete = (entry: VocabularyEntry) => !!user && (user.is_admin || entry.created_by_id === user.id);
 
   return (
-    <div className="flex flex-col gap-6">
-      <PageHeader
-        title="Vocabulary"
-        description="Names and terms that transcription gets wrong. Wilco fixes them in every new meeting and its notes, and tells the transcriber to listen for them, starting with the people invited to the meeting. When you correct a misheard name in a meeting, it's learned here automatically."
-      />
+    <div className="signal-support flex flex-col gap-6">
+      <div className="support-hero"><PageHeader
+        title="Team vocabulary"
+        description="Teach Wilco teammate names, product terms, acronyms, and incident codes. Corrections improve future transcripts and meeting notes."
+      /></div>
 
       {suggestions.length > 0 && (
         <SuggestionsCard

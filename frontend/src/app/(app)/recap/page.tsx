@@ -8,6 +8,7 @@ import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import "../support-pages.css";
 
 const LANGUAGE_LABELS: Record<string, string> = {
   "hi-IN": "Hindi / Hinglish", "en-IN": "English", "ta-IN": "Tamil", "te-IN": "Telugu", "kn-IN": "Kannada",
@@ -65,14 +66,14 @@ export default function RecapPage() {
   }
 
   return (
-    <div className="flex flex-col gap-6">
-      <PageHeader
-        title="Call & voice note recap"
-        description="Drop in a phone call recording or a WhatsApp voice note. Wilco recaps it in the language it was spoken in, reads the recap aloud, and saves the action items."
-      />
+    <div className="signal-support flex flex-col gap-6">
+      <div className="support-hero"><PageHeader
+        title="Call recap"
+        description="Upload a customer, incident, or team call. Wilco turns it into a spoken summary and owned follow-ups, even when the conversation moves between languages."
+      /></div>
 
       <div className="flex gap-2" role="radiogroup" aria-label="What is it?">
-        {([["voice_note", "WhatsApp voice note", FileAudio], ["call", "Phone call", Phone]] as const).map(([value, label, Icon]) => (
+        {([["voice_note", "Voice note", FileAudio], ["call", "Phone call", Phone]] as const).map(([value, label, Icon]) => (
           <button
             key={value}
             type="button"
@@ -96,7 +97,7 @@ export default function RecapPage() {
           const dropped = event.dataTransfer.files?.[0];
           if (dropped && !busy) void run(dropped);
         }}
-        className="glass flex cursor-pointer flex-col items-center gap-3 rounded-3xl border border-dashed px-6 py-12 text-center transition-colors hover:border-primary/50"
+        className="support-dropzone glass flex cursor-pointer flex-col items-center gap-3 rounded-3xl border border-dashed px-6 py-12 text-center transition-colors hover:border-primary/50"
       >
         <input
           ref={inputRef}
@@ -134,7 +135,7 @@ export default function RecapPage() {
             </div>
             <div className="flex flex-wrap gap-2">
               {result.audio && (
-                <Button onClick={togglePlay} className="bg-marigold text-marigold-foreground hover:bg-marigold/90">
+                <Button onClick={togglePlay} className="support-primary">
                   {playing ? <Pause /> : <Play />} {playing ? "Pause" : "Play voice recap"}
                 </Button>
               )}
@@ -171,7 +172,7 @@ export default function RecapPage() {
             )}
             {result.amounts.length > 0 && (
               <section>
-                <h2 className="mb-2 text-sm font-semibold">Amounts and numbers</h2>
+                <h2 className="mb-2 text-sm font-semibold">Numbers mentioned</h2>
                 <ul className="flex flex-wrap gap-2">
                   {result.amounts.map((amount, index) => (
                     <li key={index} className="rounded-full border bg-muted px-3 py-1 text-xs">{amount}</li>

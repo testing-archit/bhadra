@@ -9,6 +9,7 @@ import { AuthShell } from "@/components/auth-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import "../signal-public.css";
 
 /** Reached from the password-reset email and from an admin's invitation
  * (?invite=1). Setting the password signs you in. */
@@ -49,14 +50,14 @@ export default function ResetPasswordPage() {
 
   if (token === null) {
     return (
-      <AuthShell title="This link is incomplete" description="Open the link straight from your email, or ask for a new one.">
+      <div className="signal-public-auth"><AuthShell title="This link is incomplete" description="Open the link straight from your email, or ask for a new one.">
         <Link href="/forgot-password" className="text-center text-sm font-medium text-primary hover:underline">Ask for a new link</Link>
-      </AuthShell>
+      </AuthShell></div>
     );
   }
 
   return (
-    <AuthShell
+    <div className="signal-public-auth"><AuthShell
       title={invite ? "Welcome to Wilco" : "Choose a new password"}
       description={invite ? "Set a password for your new account. You can also sign in with Google using the same address." : "You'll be signed out everywhere else."}
     >
@@ -78,6 +79,6 @@ export default function ResetPasswordPage() {
         )}
         <Button type="submit" disabled={busy}>{busy ? "Saving…" : invite ? "Set password and continue" : "Save and sign in"}</Button>
       </form>
-    </AuthShell>
+    </AuthShell></div>
   );
 }
