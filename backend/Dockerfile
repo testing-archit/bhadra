@@ -8,6 +8,9 @@ RUN apt-get update \
 
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
+COPY requirements-agent-tracing.txt .
+ARG ENABLE_AGENT_TRACING=0
+RUN if [ "$ENABLE_AGENT_TRACING" = "1" ]; then pip install --no-cache-dir -r requirements-agent-tracing.txt; fi
 
 COPY . .
 RUN python scripts/download_speaker_model.py

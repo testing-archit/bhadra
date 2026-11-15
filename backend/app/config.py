@@ -1,3 +1,4 @@
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -25,6 +26,13 @@ class Settings(BaseSettings):
     # digest) with zero configuration. Only ingest/chat/policy-chat routes
     # actually need these to be real; they fail at request time, not at
     # startup, if left blank.
+    # Bound live command admission and execution across API processes.
+    meeting_agent_workers: int = Field(default=2, ge=1, le=16)
+    meeting_agent_queue_per_capture: int = Field(default=8, ge=1, le=32)
+    meeting_agent_queue_global: int = Field(default=64, ge=1, le=1000)
+    meeting_agent_timeout_seconds: int = Field(default=45, ge=1, le=180)
+    meeting_agent_lease_seconds: int = Field(default=15, ge=1, le=60)
+    meeting_agent_provider_seconds: int = Field(default=15, ge=1, le=60)
     gemini_api_key: str = ""
     gemini_model: str = "gemini-3.8-flash"
     # Small, frequent jobs (meeting-type detection, conflict checks).

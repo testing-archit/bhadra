@@ -134,3 +134,70 @@ docker compose -f docker-compose.prod.yml logs -f notetaker
   then. When they break, transcripts still come through with `Speaker 1/2/…`, and people
   can rename speakers in the meeting page.
 - Recording people needs their consent. Tell attendees the notetaker is recording.
+
+## Command pipeline timings
+
+Commands run in three owned tasks: intake, execution/chat delivery, and speech playback.
+Each command and speech queue holds up to eight items; a full queue applies backpressure.
+Caption changes wake intake; a 500 ms timeout also checks typed chat and settled captions.
+The existing 2.5 second caption-settling rule remains. Duplicate identical captions do not
+restart that timer. Caption uploads and capture lifecycle checks run independently.
+
+`command_timing` JSON log records correlate `session_id` and `command_id`, with stage,
+outcome, duration, and queue wait. Stages include execution, answer/task/board requests,
+chat delivery, and speech (synthesis plus playback). These records contain no command or
+reply text. They do not measure acoustic end-of-speech, model first token, or first audio
+byte yet. The existing uploader logs are a separate surface.
+
+Optional MLflow export: build the bot image with `--build-arg ENABLE_COMMAND_TRACING=1`,
+then provide `MEETING_COMMAND_MLFLOW=1`, `MLFLOW_TRACKING_URI`, and
+`MLFLOW_EXPERIMENT_ID` in the notetaker environment. The default image does not install
+MLflow. Export failure must not fail commands; no raw provider exception is forwarded.
+Use a reachable tracking service in production and asynchronous trace logging.
+
+To validate locally without a browser, provider calls, or a database:
+
+```bash
+python -m pip install -r backend/bot/requirements-tracing.txt
+python backend/scripts/validate_command_tracing.py --tracking-uri file:///tmp/wilco-traces
+python -m pytest --noconftest backend/tests/test_bot_captions.py backend/tests/test_command_runtime.py -q
+```
+
+The tracing validator checks four stored/retrievable traces from two synthetic commands.
+`--noconftest` limits this bot-only check to local tests and avoids the application's
+database fixture; it is not a replacement for the full backend suite.
+
+Session shutdown cancels queued work and terminates/reaps active ffmpeg playback. A
+synchronous HTTP request already running in a thread may still finish: cancellation
+does not undo external writes. Spoken controls and durable current-call jobs are now described in
+[meeting-action-agent.md](../../docs/meeting-action-agent.md). Provider streaming and
+authenticated account connector actions remain follow-up work. Real Meet and Teams acceptance is required before release.
+
+## Voice board editing and presentation prototype
+
+See [voice-whiteboard.md](../../docs/voice-whiteboard.md) for the capability table,
+voice examples, alternatives researched, validation, and remaining real-call checks.
+
+Open a board with “Wilco, open a whiteboard”, then ask “Wilco, draw a signup flow”.
+Edits use version checks and command IDs; undo cannot overwrite a later human edit.
+Explicit edits pause autonomous AI additions until Resume AI is selected in the board.
+
+Automatic Meet presentation is experimental and defaults off. `PRESENT_BOARD=1` in
+`backend/bot/.env` enables a canvas-only display-media adapter in the bot's browser.
+It needs an explicit “present the board” request and a successful Meet UI check.
+It has passed a local Chromium/WebRTC media test, not a real Meet acceptance session.
+Teams presentation is not enabled. Manual sharing of the board tab remains available.
+
+## Durable meeting action agent
+
+The bot now submits model-bound requests to durable backend jobs and polls results
+independently of intake/playback. Update the backend/schema before updating the bot.
+Common board/task/answer requests use direct tools; compound action requests use a
+planner limited to four steps. Work survives backend/bot reconnects, with saved
+receipts, queue limits, leases, cancellation fences, and explicit partial outcomes.
+
+Say “Wilco, stop speaking” to silence playback while keeping work, “cancel that”
+to stop a request, or “status” to inspect current work. These short controls bypass
+normal caption settling and task queues. Action commands retain the 2.5 second
+settling rule. See the linked guide for exact limits, validation, and remaining
+real-call acceptance.

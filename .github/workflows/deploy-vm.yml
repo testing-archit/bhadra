@@ -1,6 +1,8 @@
 name: Test and deploy
 
 on:
+  pull_request:
+    branches: [main]
   push:
     branches: [main]
     paths:
@@ -52,7 +54,9 @@ jobs:
         run: |
           set -euo pipefail
           before="${{ github.event.before }}"
-          if [ "${{ github.event_name }}" != "push" ] || [ -z "$before" ] || ! git cat-file -e "$before^{commit}" 2>/dev/null; then
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            changed=$(git diff --name-only "${{ github.event.pull_request.base.sha }}" "$GITHUB_SHA")
+          elif [ "${{ github.event_name }}" != "push" ] || [ -z "$before" ] || ! git cat-file -e "$before^{commit}" 2>/dev/null; then
             changed="backend/ backend/bot/ frontend/ src/ docker-compose.prod.yml"
           else
             changed=$(git diff --name-only "$before" "$GITHUB_SHA")
@@ -170,7 +174,7 @@ jobs:
   deploy:
     needs: [changes, test, prebuild]
     if: >-
-      always() && needs.test.result == 'success' &&
+      always() && github.event_name != 'pull_request' && needs.test.result == 'success' &&
       (needs.prebuild.result == 'success' || needs.prebuild.result == 'skipped')
     runs-on: ubuntu-latest
     # One deploy at a time: a second push waits for the first instead of
@@ -234,6 +238,29 @@ jobs:
           } >> "$GITHUB_OUTPUT"
           echo "restart=$(echo $restart | tr ' ' '\n' | sort -u | tr '\n' ' ')" >> "$GITHUB_OUTPUT"
           echo "Deployed: $deployed → $GITHUB_SHA | build:$build | restart:$restart"
+
+      - name: Preserve rollback images and check the VM
+        run: |
+          ssh -o BatchMode=yes -o ConnectTimeout=15 -i ~/.ssh/id_ed25519 "$VM" \
+            RELEASE_ID="'${{ github.run_id }}'" bash -s <<'REMOTE'
+            set -euo pipefail
+            cd ~/charcha
+            test -z "$(git status --porcelain)" || { echo "VM checkout has local changes; leaving it intact"; exit 1; }
+            backup="$HOME/.deploy-backups/agent-$RELEASE_ID"
+            mkdir -p "$backup"
+            chmod 700 "$HOME/.deploy-backups" "$backup"
+            git rev-parse HEAD > "$backup/commit"
+            if [ -f backend/bot/.env ]; then
+              cp backend/bot/.env "$backup/notetaker.env"
+              chmod 600 "$backup/notetaker.env"
+            fi
+            for service in backend notetaker; do
+              docker tag "charcha-$service:latest" "charcha-$service:rollback-$RELEASE_ID"
+              docker image inspect -f '{{.Id}}' "charcha-$service:rollback-$RELEASE_ID"
+            done
+            tools/deploy.sh --check
+            df -h /
+          REMOTE
 
       # Images are built here on GitHub, never on the e2-medium: a Next.js and
       # Python build there stole the CPU and RAM live meetings need. Layers
@@ -346,6 +373,26 @@ jobs:
             test -s .env || { echo "~/charcha/.env is missing"; exit 1; }
             test -s backend/.env || { echo "~/charcha/backend/.env is missing"; exit 1; }
 
+            # Explicit release authorization includes testing board presentation.
+            # Keep this server-side so the product default remains off.
+            python3 - <<'PYENV'
+          from pathlib import Path
+          import os
+          marker = Path.home() / ".deploy-state" / "agent-presentation-initialized"
+          if not marker.exists():
+              path = Path("backend/bot/.env")
+              previous = path.read_text() if path.exists() else ""
+              rows = [line for line in previous.splitlines() if not line.strip().startswith("PRESENT_BOARD=")]
+              path.parent.mkdir(parents=True, exist_ok=True)
+              path.write_text("\n".join(rows) + "\nPRESENT_BOARD=1\n")
+              os.chmod(path, 0o600)
+              marker.parent.mkdir(mode=0o700, exist_ok=True)
+              marker.write_text("Enabled for the user-authorized agent test release.\n")
+              print("Enabled presentation for this test release")
+          else:
+              print("Preserved the server's existing presentation setting")
+          PYENV
+
             docker compose -f docker-compose.prod.yml config --quiet
             docker compose -f docker-compose.prod.yml pull -q postgres nginx certbot
             # Infrastructure (recreated only if its config changed).
@@ -382,4 +429,26 @@ jobs:
             docker compose -f docker-compose.prod.yml ps
             docker compose -f docker-compose.prod.yml logs --tail=100 backend frontend nginx
             exit 1
+          REMOTE
+
+      - name: Verify the deployed agent and notetaker
+        if: contains(steps.plan.outputs.restart, 'backend') || contains(steps.plan.outputs.restart, 'notetaker')
+        run: |
+          ssh -o BatchMode=yes -o ConnectTimeout=15 -o ServerAliveInterval=30 -i ~/.ssh/id_ed25519 "$VM" bash -s <<'REMOTE'
+            set -euo pipefail
+            cd ~/charcha
+            for service in backend notetaker; do
+              current=$(docker inspect -f '{{.Image}}' "charcha-$service-1")
+              expected=$(docker image inspect -f '{{.Id}}' "charcha-$service:latest")
+              test "$current" = "$expected" || { echo "$service has not restarted onto the new image"; exit 1; }
+            done
+            docker compose -f docker-compose.prod.yml exec -T backend python scripts/verify_agent_release.py --model-canary
+            docker compose -f docker-compose.prod.yml exec -T notetaker python - <<'PYBOT'
+          import config
+          import agent_client, board_presenter, command_runtime
+          from pathlib import Path
+          print({"presentation_enabled": config.PRESENT_BOARD, "google_auth_state_present": config.AUTH_STATE_PATH.is_file(), "runtime_imports": "ok"})
+          assert config.AUTH_STATE_PATH.is_file()
+          PYBOT
+            docker compose -f docker-compose.prod.yml ps
           REMOTE

@@ -249,3 +249,32 @@ def speech(text: str) -> bytes | None:
     except Exception as error:
         log.warning("Speech failed: %s", error)
         return None
+
+
+def board_state(capture_request_id: str) -> dict | None:
+    try:
+        response = httpx.get(
+            f'{config.BACKEND_URL}/api/bot/capture-requests/{capture_request_id}/board',
+            headers={'Authorization': f"Bot {config.require('BOT_API_SECRET')}"}, timeout=10,
+        )
+        response.raise_for_status()
+        return response.json()
+    except Exception:
+        log.warning('Could not fetch live board state')
+        return None
+
+
+def board_command(capture_request_id: str, command_id: str, command: str) -> dict:
+    try:
+        response = httpx.post(
+            f'{config.BACKEND_URL}/api/bot/capture-requests/{capture_request_id}/board/commands',
+            headers={'Authorization': f"Bot {config.require('BOT_API_SECRET')}"},
+            json={'command_id': command_id, 'command': command}, timeout=60,
+        )
+        if response.status_code in {409, 422}:
+            return {'message': response.json().get('detail', 'Please ask again.')}
+        response.raise_for_status()
+        return response.json()
+    except Exception:
+        log.warning('Could not apply live board command')
+        return {'message': "I couldn't update the board. Please try again."}

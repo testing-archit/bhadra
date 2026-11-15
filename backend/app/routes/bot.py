@@ -15,10 +15,11 @@ import json
 import logging
 import re
 import uuid
+from typing import Literal
 
 from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, Header, HTTPException, Request, Response, UploadFile
 from pydantic import BaseModel, Field
-from sqlalchemy import func, or_, select
+from sqlalchemy import case, func, or_, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -518,6 +519,33 @@ async def request_live_board(
     return {"board_id": str(board.id), "url": f"{settings.public_app_url.rstrip('/')}/meetings/live/{request_id}"}
 
 
+class LiveBoardCommand(BaseModel):
+    command_id: uuid.UUID
+    command: str = Field(min_length=1, max_length=1000)
+
+
+@router.get("/capture-requests/{request_id}/board", dependencies=[Depends(require_bot)])
+async def bot_board_state(request_id: uuid.UUID, db: AsyncSession = Depends(get_db)) -> dict:
+    capture = await db.get(CaptureRequest, request_id)
+    if capture is None or capture.status != "capturing":
+        raise HTTPException(status_code=404, detail="Active capture not found")
+    board = await board_service.ensure_for_capture(db, capture)
+    await db.commit()
+    return board_service.serialize(board)
+
+
+@router.post("/capture-requests/{request_id}/board/commands", dependencies=[Depends(require_bot)])
+async def bot_board_command(request_id: uuid.UUID, body: LiveBoardCommand, db: AsyncSession = Depends(get_db)) -> dict:
+    try:
+        return await board_service.command_capture_board(db, request_id, body.command_id, body.command)
+    except LookupError as error:
+        raise HTTPException(status_code=404, detail=str(error)) from error
+    except board_service.BoardCommandConflict as error:
+        raise HTTPException(status_code=409, detail=str(error)) from error
+    except ValueError as error:
+        raise HTTPException(status_code=422, detail=str(error)) from error
+
+
 @router.post("/live-answer", dependencies=[Depends(require_bot)])
 async def live_answer(body: LiveQuestion, db: AsyncSession = Depends(get_db)) -> dict:
     """A question typed in the call's chat, answered from that call's own
@@ -567,6 +595,8 @@ async def live_task(body: LiveTask, db: AsyncSession = Depends(get_db)) -> dict:
     usage_ledger.attribute(user_id=capture.user_id)
     task = await asyncio.to_thread(live_assist.parse_task, body.text)
     task["said_at"] = datetime.datetime.now(datetime.UTC).isoformat()
+    capture = (await db.execute(select(CaptureRequest).where(CaptureRequest.id == capture.id)
+        .with_for_update().execution_options(populate_existing=True))).scalar_one()
     capture.live_tasks = [*(capture.live_tasks or []), task]
     await db.commit()
     return {"reply": live_assist.task_confirmation(task), "task": task}
@@ -717,3 +747,84 @@ async def bot_invite(body: BotInvite, db: AsyncSession = Depends(get_db)) -> dic
     except capture_service.InvalidMeetingUrl as error:
         return {"status": "skipped", "reason": str(error)}
     return {"status": "queued", "capture_request_id": str(outcome.capture.id), "joined_existing": outcome.joined_existing}
+
+
+class AgentCaption(BaseModel):
+    speaker: str = Field(default="", max_length=100)
+    text: str = Field(min_length=1, max_length=1500)
+    start: float = Field(default=0, ge=0, le=28800, allow_inf_nan=False)
+
+
+class AgentRequest(BaseModel):
+    command_id: uuid.UUID
+    command: str = Field(min_length=1, max_length=1000)
+    tool: Literal["auto", "open_board", "edit_board", "add_task", "answer"] = "auto"
+    board_active: bool = False
+    present_after: bool = False
+    captions: list[AgentCaption] = Field(default_factory=list, max_length=120)
+
+
+@router.post("/capture-requests/{request_id}/commands", status_code=202, dependencies=[Depends(require_bot)])
+async def submit_agent_command(request_id: uuid.UUID, body: AgentRequest, db: AsyncSession = Depends(get_db)) -> dict:
+    from app.services import meeting_agent
+    try:
+        payload = body.model_dump(exclude={"command_id"})
+        job = await meeting_agent.submit(db, request_id, body.command_id, payload)
+        return meeting_agent.serialize(job)
+    except LookupError as error:
+        raise HTTPException(status_code=404, detail=str(error)) from error
+    except ValueError as error:
+        raise HTTPException(status_code=409, detail=str(error)) from error
+    except meeting_agent.QueueFull as error:
+        raise HTTPException(status_code=429, detail="The meeting agent is busy. Please wait for an active request to finish.", headers={"Retry-After": "2"}) from error
+
+
+@router.get("/capture-requests/{request_id}/commands/{command_id}", dependencies=[Depends(require_bot)])
+async def agent_command_state(request_id: uuid.UUID, command_id: uuid.UUID, db: AsyncSession = Depends(get_db)) -> dict:
+    from app.services import meeting_agent
+    from app.database.models import MeetingAgentJob
+    await meeting_agent.expire_deadlines(db, request_id)
+    job = await db.scalar(select(MeetingAgentJob).where(MeetingAgentJob.capture_request_id == request_id,
+                                                      MeetingAgentJob.command_id == command_id))
+    if job is None:
+        raise HTTPException(status_code=404, detail="Command not found")
+    return meeting_agent.serialize(job)
+
+
+@router.post("/capture-requests/{request_id}/commands/{command_id}/cancel", dependencies=[Depends(require_bot)])
+async def cancel_agent_command(request_id: uuid.UUID, command_id: uuid.UUID, db: AsyncSession = Depends(get_db)) -> dict:
+    from app.services import meeting_agent
+    try:
+        return meeting_agent.serialize(await meeting_agent.cancel(db, request_id, command_id))
+    except LookupError as error:
+        raise HTTPException(status_code=404, detail=str(error)) from error
+
+
+@router.get("/capture-requests/{request_id}/commands", dependencies=[Depends(require_bot)])
+async def outstanding_agent_commands(request_id: uuid.UUID, db: AsyncSession = Depends(get_db)) -> list[dict]:
+    from app.services import meeting_agent
+    from app.database.models import MeetingAgentJob
+    capture = await db.get(CaptureRequest, request_id)
+    if capture is None or capture.status != "capturing":
+        raise HTTPException(status_code=404, detail="Active capture not found")
+    await meeting_agent.expire_deadlines(db, request_id)
+    rows = (await db.scalars(select(MeetingAgentJob).where(
+        MeetingAgentJob.capture_request_id == request_id, MeetingAgentJob.delivered_at.is_(None))
+        .order_by(case((MeetingAgentJob.state.in_(["accepted", "running"]), 0), else_=1),
+                  MeetingAgentJob.created_at).limit(64))).all()
+    return [meeting_agent.serialize(job) for job in rows]
+
+
+@router.post("/capture-requests/{request_id}/commands/{command_id}/delivered", dependencies=[Depends(require_bot)])
+async def agent_command_delivered(request_id: uuid.UUID, command_id: uuid.UUID, db: AsyncSession = Depends(get_db)) -> dict:
+    from app.services import meeting_agent
+    from app.database.models import MeetingAgentJob
+    job = await db.scalar(select(MeetingAgentJob).where(MeetingAgentJob.capture_request_id == request_id,
+        MeetingAgentJob.command_id == command_id).with_for_update())
+    if job is None:
+        raise HTTPException(status_code=404, detail="Command not found")
+    if job.state not in meeting_agent.TERMINAL:
+        raise HTTPException(status_code=409, detail="Command is still running")
+    job.delivered_at = job.delivered_at or datetime.datetime.now(datetime.UTC)
+    await db.commit()
+    return {"delivered": True}

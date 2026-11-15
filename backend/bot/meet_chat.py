@@ -138,7 +138,7 @@ def task_text(question: str) -> str | None:
     return match.group(1).strip() if match and len(match.group(1).strip()) >= 2 else None
 
 
-_QUESTION_RE = re.compile(r"^\s*@?charcha\b[\s,:;.!-]*(.+)$", re.IGNORECASE)
+_QUESTION_RE = re.compile(r"^\s*@?(?:wilco|charcha)\b[\s,:;.!-]*(.+)$", re.IGNORECASE)
 
 
 class ChatWatcher:

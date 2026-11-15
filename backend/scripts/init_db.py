@@ -13,6 +13,7 @@ from app.database.db import Base, engine
 async def main() -> None:
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+        await conn.execute(text("ALTER TABLE meeting_agent_jobs ADD COLUMN IF NOT EXISTS delivered_at TIMESTAMPTZ"))
         # create_all intentionally does not alter existing tables. Keep these
         # lightweight, idempotent additions here until formal migrations are
         # introduced so existing local installs gain centralized integrations.
