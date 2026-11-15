@@ -12,6 +12,9 @@ from app.config import settings
 from app.database.db import async_session
 from app.database.models import AiUsageEvent, MeetingAgentJob, MeetingBoard
 from app.services import tts_service, usage_ledger
+from app.services import gemini_service
+from app.services.board_commands import BoardCommandPlan, SYSTEM_PROMPT
+from google.genai.errors import APIError
 
 
 async def main():
@@ -21,6 +24,17 @@ async def main():
         'model': settings.gnani_tts_model, 'voice': settings.gnani_tts_voice,
         'language': settings.gnani_tts_language, 'interactive_model': settings.gemini_fast_model,
     }}))
+    try:
+        plan, _ = gemini_service.generate_structured(SYSTEM_PROMPT,
+            'Add one idea named Release check. Board: {"nodes":[],"edges":[]}', BoardCommandPlan,
+            model=settings.gemini_fast_model, feature='agent_release_fast_probe', thinking_budget=0,
+            timeout_seconds=8, attempts=1)
+        print(json.dumps({'fast_model_probe': 'ok', 'operations':len(plan.operations)}))
+    except APIError as error:
+        print(json.dumps({'fast_model_probe': 'provider_error', 'code':error.code,
+            'message':str(error.message).replace(settings.gemini_api_key, '[REDACTED]')[:1500]}))
+    except Exception as error:
+        print(json.dumps({'fast_model_probe': 'failed', 'error_type':type(error).__name__}))
     async with async_session() as db:
         jobs = (await db.scalars(select(MeetingAgentJob).order_by(MeetingAgentJob.created_at.desc()).limit(15))).all()
         for job in jobs:
