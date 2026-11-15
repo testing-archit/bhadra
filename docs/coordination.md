@@ -122,3 +122,9 @@ The user explicitly requested pushing, merging and deploying the action-agent br
 ## UI integration checkpoint, 15 November 2026
 
 Home follow-through commit `4a89183` integrates main at `ee8a3ed` in the isolated UI branch. The only merge conflict was concurrent appended handoffs in this document; both were retained. Incoming backend/action-agent and deployment files have no frontend source overlap. This checkpoint retains the reviewed mascot theme, Tasks Flow and Home changes and does not push to production main.
+
+## Memory simplification scope, 15 November 2026
+
+Codex is streamlining Memory in the isolated UI worktree: one composer, compact recent meeting entry points, on-demand history and a draft/apply meeting picker. Preserve existing cited answers, voice input, conversation history, selected meeting boundaries and URL question handoff. Only Memory and scoped styles are owned by this pass; no backend or production deployment.
+
+Memory implementation is complete: production build/TypeScript and 11 local browser scenarios passed with mocked chat/deletion requests. Actual desktop/mobile/light/dark and conversation screenshots are in `docs/screenshots/wilco-memory-*`; details in `docs/memory-workspace.md`. Shared copies were synchronized after checking baselines and applying only scoped CSS.

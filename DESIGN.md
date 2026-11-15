@@ -56,3 +56,7 @@ A connected Flow replaces the rejected deck and disconnected card grid. Keep mul
 Done, Snooze, Reassign, Edit and Undo use existing APIs. Snooze and reassignment use accessible Base UI menus over the working surface. Failed saves preserve selection; Undo remains available after the last task. Restricted meetings never get a link. Search stays visible; advanced filters remain disclosed. List/Board, completed tasks, exports and bulk tools remain available.
 
 Use short transform-only settling after task mutations, no animated backgrounds or looping mascot. Respect reduced motion. The Waiting on strip is derived from accessible delegated tasks and opens the selected owner’s waiting list.
+
+## Memory
+
+Memory uses one central workspace. The initial composer sits beside the approved mascot heading, followed by three short editable question starters and three real recent meetings. Avoid a permanent second sidebar or duplicate explanatory headings. History opens in a labelled dialog; source selection is a draft that applies explicitly, supports up to ten meetings, and preserves the typed question. Cancel leaves the active chat intact; applying unchanged sources preserves the conversation. Answers retain citations, source links and voice controls. The active composer fits above mobile navigation.
