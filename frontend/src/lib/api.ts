@@ -102,6 +102,23 @@ async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> 
   return data;
 }
 
+export interface GnaniModels {
+  prisma: { configured: boolean; model: string; mode: string };
+  timbre: { configured: boolean; fast_model: string; fast_voice: string; english_voice: string; multilingual_model: string; multilingual_voice: string };
+  voice_clone: { configured: boolean; model: string; enrolled: boolean; consented_at: string | null };
+  evon: { configured: boolean; model: string };
+  warp: { configured: boolean };
+}
+
+export interface VoiceUpdate {
+  id: string;
+  meeting_url: string;
+  text: string;
+  created_at: string | null;
+  expires_at: string;
+  delivered_at: string | null;
+}
+
 export const LEARNED_CORRECTIONS_EVENT = "charcha:learned-corrections";
 
 export interface RecapResult {
@@ -1559,6 +1576,30 @@ export const api = {
   },
   /** Text read aloud by Gnani Timbre, as MP3. */
   speak: (text: string, language?: string) => apiPostBlob("/api/tts", { text, language }),
+  /** Built on Gnani: model status and live try-its. */
+  gnaniModels: () => apiFetch<GnaniModels>("/api/gnani/models"),
+  gnaniPrisma: (audio: Blob) => {
+    const form = new FormData();
+    form.append("audio", audio, audio.type.includes("mp4") ? "clip.m4a" : "clip.webm");
+    return apiFetch<{ text: string; language: string | null; model: string; speakers: number; latency_ms: number }>("/api/gnani/prisma", { method: "POST", body: form });
+  },
+  gnaniTimbre: (text: string, language: string) =>
+    apiFetch<{ audio: string; model: string; voice: string; language: string; latency_ms: number }>("/api/gnani/timbre", { method: "POST", body: JSON.stringify({ text, language }) }),
+  enrollVoiceClone: (audio: Blob) => {
+    const form = new FormData();
+    form.append("audio", audio, audio.type.includes("mp4") ? "voice.m4a" : "voice.webm");
+    form.append("consent", "true");
+    return apiFetch<{ enrolled: boolean }>("/api/gnani/voice-clone", { method: "POST", body: form });
+  },
+  deleteVoiceClone: () => apiFetch<{ enrolled: boolean }>("/api/gnani/voice-clone", { method: "DELETE" }),
+  speakInMyVoice: (text: string) =>
+    apiFetch<{ audio: string; model: string; latency_ms: number }>("/api/gnani/voice-clone/speak", { method: "POST", body: JSON.stringify({ text }) }),
+  gnaniEvon: (prompt: string) =>
+    apiFetch<{ reply: string; model: string; latency_ms: number }>("/api/gnani/evon", { method: "POST", body: JSON.stringify({ prompt }) }),
+  voiceUpdates: () => apiFetch<VoiceUpdate[]>("/api/gnani/voice-updates"),
+  createVoiceUpdate: (meetingUrl: string, text: string) =>
+    apiFetch<VoiceUpdate>("/api/gnani/voice-updates", { method: "POST", body: JSON.stringify({ meeting_url: meetingUrl, text }) }),
+  deleteVoiceUpdate: (id: string) => apiFetch<{ deleted: boolean }>(`/api/gnani/voice-updates/${id}`, { method: "DELETE" }),
   /** Notes translated into an Indian language and read aloud (Gemini + Gnani Timbre). */
   speakTranslated: (text: string, language: string) =>
     apiFetch<{ language: string; text: string; audio: string | null; speech_error: string | null }>("/api/tts/translated", {

@@ -61,6 +61,11 @@ class Settings(BaseSettings):
     # voices speak all ten.
     gnani_tts_multilingual_model: str = "timbre-v3.0"
     gnani_tts_multilingual_voice: str = "Shivani"
+    # Gnani Evon v3.3 (Indic LLM, open weights): any OpenAI-compatible server
+    # (vLLM, llama.cpp) running it. Empty = not used; Gemini answers instead.
+    evon_url: str = ""
+    evon_model: str = "gnani/gnani-evon-v3.3-30B-A3B"
+    evon_api_key: str = ""
     # How long one USD→INR quote is reused when pricing AI calls. Each AI
     # call stores the rate it was priced at; the free sources publish daily
     # reference rates, so asking more often than hourly gains nothing.

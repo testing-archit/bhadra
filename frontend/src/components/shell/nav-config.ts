@@ -1,5 +1,6 @@
 import {
   AudioLines,
+  Cpu,
   FileAudio,
   BookOpenCheck,
   SpellCheck,
@@ -36,6 +37,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { href: "/tasks", label: "Tasks", icon: ListChecks },
       { href: "/memory", label: "Memory", icon: Sparkles },
       { href: "/live", label: "Talk to Wilco", icon: AudioLines },
+      { href: "/gnani", label: "Built on Gnani", icon: Cpu },
     ],
   },
   {

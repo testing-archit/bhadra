@@ -82,7 +82,7 @@ def speech_language(detected: str | None) -> str:
     return detected if detected in LANGUAGE_NAMES else "hi-en"
 
 
-def reply(history: list[dict], user_text: str, digest: str, name: str | None, detected: str | None = None) -> str:
+def prompt_for(history: list[dict], user_text: str, digest: str, name: str | None, detected: str | None = None) -> str:
     convo = "\n".join(
         f"{'Person' if turn.get('role') == 'user' else 'Wilco'}: {str(turn.get('content') or '').strip()}"
         for turn in history[-MAX_HISTORY_TURNS:]
@@ -96,8 +96,17 @@ def reply(history: list[dict], user_text: str, digest: str, name: str | None, de
         + (f"Conversation so far:\n{convo}\n\n" if convo else "")
         + f"Person: {user_text.strip()}\nWilco:"
     )
+    return prompt
+
+
+def clean(text: str) -> str:
+    return " ".join(text.replace("*", "").replace("#", "").split()).strip()
+
+
+def reply(history: list[dict], user_text: str, digest: str, name: str | None, detected: str | None = None) -> str:
+    prompt = prompt_for(history, user_text, digest, name, detected)
     text, _usage = gemini_service.generate_text(
         SYSTEM_PROMPT, prompt, max_output_tokens=220, temperature=0.4, thinking_budget=0, feature="live_conversation",
         model=settings.gemini_fast_model, timeout_seconds=12,
     )
-    return " ".join(text.replace("*", "").replace("#", "").split()).strip()
+    return clean(text)

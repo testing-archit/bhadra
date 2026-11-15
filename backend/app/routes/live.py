@@ -12,7 +12,7 @@ from app.database.db import get_db
 from app.database.models import User
 from app.dependencies import get_current_user
 from app.rate_limit import limiter
-from app.services import live_conversation, transcriber, tts_service
+from app.services import evon_service, live_conversation, transcriber, tts_service
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/live", tags=["live"])
@@ -68,10 +68,23 @@ async def live_turn(
         return {"transcript": "", "reply": None, "audio": None}
 
     reply_started = time.monotonic()
+    first_name = (user.name or "").split(" ")[0] or None
+    answer, reply_model = None, settings.gemini_fast_model
+    if evon_service.configured():
+        # Gnani Evon (Indic LLM) when the team hosts it; Gemini otherwise.
+        try:
+            answer = live_conversation.clean(await evon_service.chat(
+                live_conversation.SYSTEM_PROMPT,
+                live_conversation.prompt_for(past, text, digest, first_name, heard.get("language")),
+            ))
+            reply_model = settings.evon_model
+        except Exception:
+            logger.warning("Evon reply failed; answering with Gemini", exc_info=True)
     try:
-        answer = await asyncio.to_thread(
-            live_conversation.reply, past, text, digest, (user.name or "").split(" ")[0] or None, heard.get("language")
-        )
+        if not answer:
+            answer = await asyncio.to_thread(
+                live_conversation.reply, past, text, digest, first_name, heard.get("language")
+            )
     except Exception:
         logger.exception("Wilco Live reply failed")
         answer = "Sorry, abhi jawab nahi de paaya. Ek baar phir boliye?"
@@ -92,5 +105,5 @@ async def live_turn(
                'total_ms': round((time.monotonic()-started)*1000, 2)}
     logger.info('live_turn_timing %s', json.dumps(timings))
     return {"transcript": text, "reply": answer, "audio": encoded, "language": heard.get("language"),
-            'timings': timings, 'speech_provider': 'gnani', 'speech_model': tts_service.voice_for(spoken_language)[0],
+            'timings': timings, 'reply_model': reply_model, 'heard_model': settings.gnani_stt_model, 'speech_provider': 'gnani', 'speech_model': tts_service.voice_for(spoken_language)[0],
             'speech_voice': tts_service.voice_for(spoken_language)[1], 'speech_language': spoken_language}

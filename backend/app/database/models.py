@@ -1205,3 +1205,32 @@ class FigJamDelivery(Base):
     snapshot: Mapped[dict] = mapped_column(JSONB, nullable=False)
     state: Mapped[str] = mapped_column(String, default='pending', nullable=False)
     expires_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True))
+
+
+class VoiceClone(Base):
+    """A person's own consented voice for Gnani voice cloning (Timbre VC).
+
+    Only the speaker embedding is kept (encrypted with secret_box), never the
+    sample audio. Only its owner can use or delete it."""
+    __tablename__ = "voice_clones"
+    user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+    embedding_encrypted: Mapped[str] = mapped_column(Text, nullable=False)
+    shape: Mapped[list] = mapped_column(JSONB, nullable=False)
+    dtype: Mapped[str] = mapped_column(String, nullable=False)
+    consented_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), server_default=func.now())
+
+
+class VoiceUpdate(Base):
+    """A typed update for a call its author will miss, spoken there by Wilco
+    in the author's cloned voice (announced as synthetic) when asked."""
+    __tablename__ = "voice_updates"
+    __table_args__ = (Index("ix_voice_updates_code", "meeting_code", "delivered_at"),)
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    meeting_code: Mapped[str] = mapped_column(String, nullable=False)
+    meeting_url: Mapped[str] = mapped_column(String, nullable=False)
+    text: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), server_default=func.now())
+    expires_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), nullable=False)
+    delivered_at: Mapped[datetime | None] = mapped_column(TIMESTAMP(timezone=True))
