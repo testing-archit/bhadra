@@ -94,7 +94,7 @@ def reply(history: list[dict], user_text: str, digest: str, name: str | None, de
         + (f"The person's name is {name}.\n\n" if name else "")
         + f"Meeting digest:\n{digest}\n\n"
         + (f"Conversation so far:\n{convo}\n\n" if convo else "")
-        + f"Person: {user_text.strip()}\nCharcha:"
+        + f"Person: {user_text.strip()}\nWilco:"
     )
     text, _usage = gemini_service.generate_text(
         SYSTEM_PROMPT, prompt, max_output_tokens=220, temperature=0.4, thinking_budget=0, feature="live_conversation",

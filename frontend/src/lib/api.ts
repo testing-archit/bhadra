@@ -1559,6 +1559,12 @@ export const api = {
   },
   /** Text read aloud by Gnani Timbre, as MP3. */
   speak: (text: string, language?: string) => apiPostBlob("/api/tts", { text, language }),
+  /** Notes translated into an Indian language and read aloud (Gemini + Gnani Timbre). */
+  speakTranslated: (text: string, language: string) =>
+    apiFetch<{ language: string; text: string; audio: string | null; speech_error: string | null }>("/api/tts/translated", {
+      method: "POST",
+      body: JSON.stringify({ text, language }),
+    }),
   /** A short spoken clip (a question) transcribed by Gnani Prisma. */
   transcribeClip: (audio: Blob, language = "hinglish") => {
     const form = new FormData();

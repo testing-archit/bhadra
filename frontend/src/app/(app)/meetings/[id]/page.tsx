@@ -33,7 +33,7 @@ import { DecisionReviewDialog, RiskReviewDialog, SummaryReviewDialog } from "@/c
 import { VerificationBadge } from "@/components/verification-badge";
 import { JiraTaskButton, useJiraStatus } from "@/components/jira-task-button";
 import { FormattedSummary } from "@/components/formatted-summary";
-import { SpeakButton } from "@/components/speak-button";
+import { ListenInLanguage } from "@/components/listen-in-language";
 import { ProjectNameEditor } from "@/components/project-name-editor";
 import {
   ArrowLeft,
@@ -770,9 +770,10 @@ export default function MeetingDetailPage() {
           <Card>
               <CardHeader className="flex-row items-center justify-between gap-3">
                 <div className="flex flex-wrap items-center gap-2"><CardTitle className="flex items-center gap-2 text-base"><NotebookText className="h-4 w-4 text-primary" /> Detailed summary</CardTitle><VerificationBadge verifiedAt={meeting.summary_verified_at} /></div>
-                <div className="flex gap-2">{meeting.summary && <SpeakButton text={meeting.summary} />}<Button size="sm" variant="outline" onClick={() => setSummaryEditing(true)}><Pencil className="h-3.5 w-3.5" /> Review</Button><Button size="sm" variant="outline" onClick={() => void regenerateSummary()} disabled={summaryBusy} title="Generate detailed summary again"><RefreshCw className={`h-3.5 w-3.5 ${summaryBusy ? "animate-spin" : ""}`} /> {summaryBusy ? "Generating" : "Regenerate"}</Button></div>
+                <div className="flex gap-2"><Button size="sm" variant="outline" onClick={() => setSummaryEditing(true)}><Pencil className="h-3.5 w-3.5" /> Review</Button><Button size="sm" variant="outline" onClick={() => void regenerateSummary()} disabled={summaryBusy} title="Generate detailed summary again"><RefreshCw className={`h-3.5 w-3.5 ${summaryBusy ? "animate-spin" : ""}`} /> {summaryBusy ? "Generating" : "Regenerate"}</Button></div>
               </CardHeader>
               <CardContent>
+                {meeting.summary && !summaryEditing && <div className="mb-4"><ListenInLanguage text={meeting.summary} /></div>}
                 {meeting.summary ? <FormattedSummary summary={meeting.summary} /> : <p className="text-sm text-muted-foreground">No summary is available yet.</p>}
                 {summaryError && <p className="mt-3 text-sm text-destructive">{summaryError}</p>}
               </CardContent>
