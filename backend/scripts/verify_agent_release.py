@@ -13,7 +13,7 @@ import uuid
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from httpx import AsyncClient
+from httpx import AsyncClient, TransportError
 from sqlalchemy import select, text
 from app.config import settings
 from app.database.db import async_session
@@ -24,6 +24,18 @@ async def verify(args):
     if not settings.bot_api_secret:
         raise RuntimeError('Bot authentication is not configured')
     report = {'model_canary_requested': args.model_canary}
+    # Container startup runs schema initialization before Uvicorn binds its port.
+    # A started container is not proof that its HTTP listener is ready.
+    async with AsyncClient(base_url=args.base_url, timeout=5) as client:
+        async with asyncio.timeout(90):
+            while True:
+                try:
+                    if (await client.get('/health')).status_code == 200:
+                        break
+                except TransportError:
+                    pass
+                await asyncio.sleep(1)
+    report['http_ready'] = True
     async with async_session() as db:
         report['agent_table'] = bool(await db.scalar(text("SELECT to_regclass('public.meeting_agent_jobs') IS NOT NULL")))
         report['running_job_index'] = bool(await db.scalar(text("SELECT to_regclass('public.uq_agent_running_capture') IS NOT NULL")))
@@ -95,4 +107,6 @@ if __name__=='__main__':
     except Exception as error:
         # Never emit connection strings, API keys, or provider response bodies.
         print('Agent release smoke failed:',type(error).__name__)
+        if isinstance(error, AssertionError):
+            print(str(error)[:200])
         sys.exit(1)
