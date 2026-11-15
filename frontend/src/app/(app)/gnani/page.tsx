@@ -128,7 +128,14 @@ function PrismaCard({ model }: { model?: GnaniModels["prisma"] }) {
         </div>
         {!result && (
           <div className="flex flex-1 items-center justify-center rounded-lg border border-dashed px-4 py-6 text-center text-sm text-muted-foreground">
-            {recorder.recording ? "Listening… tap Stop when you're done." : busy ? "Prisma is transcribing…" : "Your words and the language Prisma detects appear here."}
+            {recorder.recording ? "Listening… tap Stop when you're done." : busy ? "Prisma is transcribing…" : (
+              <span className="flex flex-col gap-2">
+                <span>Your words and the language Prisma detects appear here. Try mixing languages:</span>
+                <span className="text-xs">Hinglish: “Vedant, login bug Friday tak fix kar dena”</span>
+                <span className="text-xs">Tanglish: “Naan Tuesday evening confirm panren, okay-va?”</span>
+                <span className="text-xs">Benglish: “Meeting ta tomorrow postpone kore dao, please”</span>
+              </span>
+            )}
           </div>
         )}
         {result && (
