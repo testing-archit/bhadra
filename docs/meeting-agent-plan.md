@@ -1,7 +1,7 @@
 # Wilco meeting agent implementation plan
 
 Date: 15 November 2026  
-Status: First command-runtime checkpoint implemented on an isolated branch; live acceptance pending.  
+Status: Command runtime, voice whiteboards, and durable action agent deployed at `25fec90`; real-call acceptance pending.  
 Scope: Voice commands, collaborative whiteboards, reliable actions, personalized preparation, latency, and throughput.
 
 ## 1. Product outcome
@@ -363,3 +363,7 @@ Local load check: 20 commands across five simulated sessions, 100 ms simulated i
 Checkpoint 3 validation: 456 tests passed in the full backend suite; focused bot/answer/agent checks passed after routing refinements. Python compilation and whitespace checks passed. Live model accuracy, acoustic-to-response latency, remote Meet presentation, and authenticated Jira/email execution remain open.
 
 Final local runtime benchmark (same 20 requests/five sessions/100 ms simulated inference): acknowledgment p95 398 ms; completion p95 1,863 ms; peak concurrent simulated inference 2. Initial and intermediate observations are retained in the report; variation and code changes prevent treating this as an isolated causal speedup or a production guarantee.
+
+### Production test release
+
+The user authorized push, merge and deployment. Application commit `25fec90` is live; [release workflow](https://github.com/testing-archit/bhadra/actions/runs/43661300614) passed with 457 backend tests and a real model-backed command/job/board canary. That single container-local request measured admission 33.69 ms and completion 2,904.18 ms; it is not an audio-to-response or throughput measurement. The server has presentation enabled for the user's real-call test. See [release evidence and remaining acceptance](meeting-action-agent.md#production-release-15-november-2026). Personalized history and authenticated Jira/email execution remain future phases.

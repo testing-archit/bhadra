@@ -1,6 +1,6 @@
 # Meeting action agent
 
-Status: implemented on `codex/meeting-agent-pipeline`; not deployed. Date: 15 November 2026.
+Status: deployed to production at `25fec90`; real-call acceptance pending. Date: 15 November 2026.
 
 ## Behavior
 
@@ -81,7 +81,7 @@ Defaults:
 | Bot result polling | 500 milliseconds |
 | Speech queue | 8 replies; speech older than 10 seconds is skipped |
 
-Provider calls use a fixed-size thread pool; cancellation of an asyncio waiter does not create unlimited underlying SDK threads. The SDK's own request timeout and single-attempt setting bound calls that are already running. Interactive planner/board generation disables optional thinking through the existing Gemini wrapper. Existing batch generation defaults remain unchanged, and usage attribution/recording is preserved.
+Provider calls use a fixed-size thread pool; cancellation of an asyncio waiter does not create unlimited underlying SDK threads. The SDK's own request timeout and single-attempt setting bound calls that are already running. Interactive planner/board generation requests a zero optional thinking budget through the existing Gemini wrapper; model-specific minimum behavior still applies. Existing batch generation defaults remain unchanged, and usage attribution/recording is preserved.
 
 The existing 2.5-second caption-settling rule remains for actions. Exact short control commands bypass that wait; this is safe for interrupting playback, not a claim of reliable speech endpointing. Streaming transcription, model first-token measurement, and streaming TTS remain follow-up work.
 
@@ -98,6 +98,14 @@ Admission is a short transaction. It checks prior results, capture state, queue 
 Controls bypass normal task execution. Cancellation and playback interruption are separate operations. The bot keeps handling subsequent commands after either operation.
 
 ## Validation
+
+### Production release, 15 November 2026
+
+Merged PRs #1–#3 and deployed application commit `25fec901b995ded0a540f3bd922758a92b01432f`. [Release workflow](https://github.com/testing-archit/bhadra/actions/runs/43661300614) passed tests, image build, deployment, and live verification. **457 backend tests passed** in CI. The live canary exercised authenticated admission, durable worker execution, real Gemini generation, board persistence, result delivery acknowledgment, and cleanup of its synthetic records. Its one request measured admission **33.69 ms** and completion **2,904.18 ms**, over container-local HTTP; this excludes voice, caption settling, Meet, WAN, and speech playback and is not a percentile or throughput claim.
+
+Public app and health returned HTTP 200; unauthenticated access to the new command API returned 401. The running backend/notetaker images matched their release tags; bot runtime imports passed and Google auth state was present. Presentation is **enabled on this server for the user-authorized acceptance test**, while the product default remains off. Two-person Meet reception, English/Hinglish command recognition, interruptions, and acoustic-to-response latency still require a real call.
+
+The live check caught a Google SDK schema serialization rejection. The shared wrapper now sends JSON Schema directly and still validates with the original Pydantic schema, including forbidden operation fields. A regression test uses the actual SDK HTTP serializer and confirms that unexpected fields are rejected. Rollback images/environment snapshots are retained; the earliest pre-agent image tags use suffix `rollback-43658908720`.
 
 The full backend suite passed **456 tests**; additional focused bot/answer/agent checks passed after tightening action routing. Automated tests use local Postgres, mocked inference, and synthetic content. They cover admission/authentication, retry deduplication after a lost response, capacity limits, concurrent claims, cancellation before/during execution, deadlines, lease recovery, partial-step recovery, task/receipt atomicity, playback interruption, worker shutdown, caption controls, bounded context, usage-wrapper configuration, and the bot-to-API-to-worker-to-delivery flow.
 
