@@ -6,7 +6,7 @@
   const ctx = canvas.getContext('2d');
   const original = navigator.mediaDevices?.getDisplayMedia?.bind(navigator.mediaDevices);
   let armed = false, stream = null, version = null, lastBoard = null, frameTimer = null;
-  let nativeImage = null, nativeSource = null;
+  let nativeImage = null, nativeSource = null, cameraVisible = false;
   const color = (token, fallback) => getComputedStyle(document.documentElement).getPropertyValue(token).trim() || fallback;
   function wrap(text, x, y, width, lines) {
     const words = String(text || '').split(/\s+/); let line = '', count = 0;
@@ -74,9 +74,12 @@
   }
   window.__wilcoBoard = {
     draw,
+    showInCamera(board) { draw(board); cameraVisible = true; },
+    hideCamera() { cameraVisible = false; },
+    cameraCanvas() { return cameraVisible ? canvas : null; },
     arm(board) { draw(board); armed = true; },
-    stop() { armed = false; clearInterval(frameTimer); frameTimer = null; if (stream) stream.getTracks().forEach(t => t.stop()); stream = null; },
-    state() { return {armed, active: !!stream?.getVideoTracks().some(t => t.readyState === 'live'), version}; },
+    stop() { cameraVisible = false; armed = false; clearInterval(frameTimer); frameTimer = null; if (stream) stream.getTracks().forEach(t => t.stop()); stream = null; },
+    state() { return {armed, cameraVisible, active: !!stream?.getVideoTracks().some(t => t.readyState === 'live'), version}; },
     preview() { return canvas.toDataURL('image/png'); },
   };
   if (original) navigator.mediaDevices.getDisplayMedia = async (...args) => {

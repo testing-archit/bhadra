@@ -289,6 +289,11 @@ AVATAR_CAMERA_JS = """
   let tick = 0;
   setInterval(() => {
     tick += 1;
+    const board = window.__wilcoBoard?.cameraCanvas();
+    if (board) {
+      ctx.drawImage(board, 0, 0, canvas.width, canvas.height);
+      return;
+    }
     // Alternate the voice bars while speaking; keep the mascot steady.
     const face = window.__charchaSpeaking && tick % 2 === 0 ? speaking : idle;
     if (face.complete && face.naturalWidth) ctx.drawImage(face, 0, 0, canvas.width, canvas.height);
@@ -949,8 +954,7 @@ class MeetingSession:
             tool = 'open_board' if opening_only(question) else ('auto' if compound else 'edit_board')
             return await self.submit_agent_command(page, command, tool)
         elif self.capture_request_id and intent == "edit":
-            if not self._board_active:
-                command.follow_up = 'present_board'
+            command.follow_up = 'present_board'
             self._board_active = True
             compound = requires_plan(question)
             return await self.submit_agent_command(page, command, "auto" if compound else "edit_board")
@@ -1231,18 +1235,33 @@ class MeetingSession:
         if not config.PRESENT_BOARD or not self.USES_GOOGLE_LOGIN:
             return "Automatic presentation isn't enabled here. Open the board link and share that tab in Meet."
         try:
-            if self._figjam_browser and self._figjam_browser.file_url:
-                frame = await self._figjam_browser.frame()
-                if frame:
+            native = bool(self._figjam_browser and self._figjam_browser.file_url)
+            if native:
+                board = await self._figjam_browser.frame()
+                if not board:
                     async with self._browser_lock:
-                        started = await board_presenter.start(page, frame)
-                    return 'Meet shows FigJam as presenting.' if started else 'I could not start presenting FigJam. Open its link and share that tab.'
-            board = await asyncio.to_thread(uploader.board_state, self.capture_request_id)
-            if board and board.get('external_url'):
-                return 'Your board is in FigJam. Open its shared link and present that tab in Meet.'
+                        await board_presenter.stop(page)
+                    return "I can't show the FigJam canvas right now. Open its link to check access."
+            else:
+                board = await asyncio.to_thread(uploader.board_state, self.capture_request_id)
+                if board and board.get('external_url'):
+                    return 'Open the FigJam link and share that tab; its signed-in canvas is unavailable to me.'
+            if not board:
+                return "There isn't a whiteboard to show yet. Ask me to open one first."
             async with self._browser_lock:
-                started = await board_presenter.start(page, board) if board else False
-            return "Meet shows the board as presenting." if started else "I couldn't start presenting. Open the board link and share that tab in Meet."
+                state = await page.evaluate('() => window.__wilcoBoard.state()')
+                # Keep an existing camera fallback stable on subsequent edits.
+                if state.get('cameraVisible') and self.avatar_camera:
+                    await page.evaluate('(board) => window.__wilcoBoard.showInCamera(board)', board)
+                    return "The whiteboard is visible in my camera tile. Pin Wilco to enlarge it."
+                started = await board_presenter.start(page, board)
+                if started:
+                    await page.evaluate('() => window.__wilcoBoard.hideCamera()')
+                    return "Meet shows the whiteboard as presenting."
+                if self.avatar_camera:
+                    await page.evaluate('(board) => window.__wilcoBoard.showInCamera(board)', board)
+                    return "Screen sharing wasn't available, so the whiteboard is in my camera tile. Pin Wilco to enlarge it."
+            return "I couldn't start presenting. Open the board link and share that tab in Meet."
         except asyncio.CancelledError:
             try:
                 async with self._browser_lock:
@@ -1336,7 +1355,7 @@ class MeetingSession:
             try:
                 if config.PRESENT_BOARD and self.USES_GOOGLE_LOGIN and self.capture_request_id:
                     state = await page.evaluate('() => window.__wilcoBoard?.state()')
-                    if state and state.get('active'):
+                    if state and (state.get('active') or state.get('cameraVisible')):
                         if self._figjam_browser and self._figjam_browser.file_url:
                             frame = await self._figjam_browser.frame()
                             if frame:

@@ -20,7 +20,7 @@ class AgentClient:
     async def submit(self, command, tool, captions, board_active):
         payload = {'command_id': command.id, 'command': command.question[:1000], 'tool': tool,
                    'captions': compact_captions(captions), 'board_active': board_active,
-                   'present_after': command.follow_up == 'present_board' or tool == 'open_board', 'board_provider': 'figjam',
+                   'present_after': command.follow_up == 'present_board' or tool in {'open_board', 'edit_board'}, 'board_provider': 'figjam',
                    'browser_executor': True}
         for attempt in range(2):
             try:
