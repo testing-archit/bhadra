@@ -181,3 +181,27 @@ async def test_company_question_without_meetings_or_vector_store_says_unavailabl
     with patch("app.services.memory_retriever.answer_query", side_effect=ConnectionError("down")):
         response = await client.post("/api/chat", json={"query": "Anything?"}, headers=auth_headers(member_user))
     assert response.status_code == 503
+
+
+async def test_fallback_finds_older_adr_before_limit_and_keeps_access_rules(client, member_user, other_member_user, make_meeting):
+    import datetime
+    from sqlalchemy import update
+    from app.database.db import async_session
+    from app.database.models import Meeting
+    older = await make_meeting(member_user, "Billing ledger architecture", None, "PostgreSQL provides atomic writes for the billing ledger.")
+    confidential = await make_meeting(member_user, "PostgreSQL billing ledger confidential", None)
+    hidden = await make_meeting(other_member_user, "PostgreSQL billing ledger private", None)
+    async with async_session() as db:
+        await db.execute(update(Meeting).where(Meeting.id == older.id).values(date=datetime.datetime.now(datetime.UTC) - datetime.timedelta(days=42)))
+        await db.execute(update(Meeting).where(Meeting.id == confidential.id).values(confidential=True))
+        await db.commit()
+    for n in range(11):
+        await make_meeting(member_user, f"Unrelated release sync {n}", None)
+    with patch("app.services.memory_retriever.answer_query", side_effect=ConnectionError("down")), patch("app.services.memory_retriever.answer_query_for_meetings") as grounded:
+        grounded.return_value = {"answer": "Atomic writes.", "sources": [], "usage": _NO_USAGE}
+        response = await client.post("/api/chat", json={"query": "Why did we choose PostgreSQL for the billing ledger?"}, headers=auth_headers(member_user))
+    assert response.status_code == 200
+    rows = grounded.call_args.args[1]
+    assert len(rows) == 10
+    assert rows[0]["id"] == str(older.id)
+    assert not {str(confidential.id), str(hidden.id)}.intersection(row["id"] for row in rows)
