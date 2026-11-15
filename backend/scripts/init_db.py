@@ -13,6 +13,7 @@ from app.database.db import Base, engine
 async def main() -> None:
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+        await conn.execute(text("ALTER TABLE figjam_connections ADD COLUMN IF NOT EXISTS transport VARCHAR NOT NULL DEFAULT 'plugin'"))
         # AI stand-in (voice_updates came from create_all on 15 Nov without these).
         await conn.execute(text("ALTER TABLE voice_updates ADD COLUMN IF NOT EXISTS briefing TEXT"))
         await conn.execute(text("ALTER TABLE voice_updates ADD COLUMN IF NOT EXISTS qa JSONB NOT NULL DEFAULT '[]'::jsonb"))

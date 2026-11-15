@@ -1195,6 +1195,25 @@ class FigJamConnection(Base):
     pair_expires_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True))
     expires_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True))
     last_seen_at: Mapped[datetime | None] = mapped_column(TIMESTAMP(timezone=True))
+    transport: Mapped[str] = mapped_column(String, nullable=False, default='plugin', server_default='plugin')
+
+
+class MeetingBrowserAction(Base):
+    """Typed outbox for a notetaker's browser; no model-generated scripts."""
+    __tablename__ = 'meeting_browser_actions'
+    __table_args__ = (UniqueConstraint('capture_request_id', 'command_id', name='uq_browser_capture_command'),
+                     Index('ix_browser_capture_state', 'capture_request_id', 'state'))
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    capture_request_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey('capture_requests.id', ondelete='CASCADE'))
+    job_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey('meeting_agent_jobs.id', ondelete='CASCADE'))
+    command_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
+    operation: Mapped[str] = mapped_column(String, nullable=False)
+    payload: Mapped[dict] = mapped_column(JSONB, nullable=False)
+    state: Mapped[str] = mapped_column(String, nullable=False, default='pending')
+    result: Mapped[dict | None] = mapped_column(JSONB)
+    claim_token: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True))
+    expires_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), server_default=func.now())
 
 
 class FigJamDelivery(Base):

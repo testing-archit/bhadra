@@ -765,6 +765,7 @@ class AgentRequest(BaseModel):
     board_active: bool = False
     present_after: bool = False
     board_provider: Literal['internal', 'figjam'] = 'internal'
+    browser_executor: bool = False
     captions: list[AgentCaption] = Field(default_factory=list, max_length=120)
 
 
@@ -832,6 +833,50 @@ async def agent_command_delivered(request_id: uuid.UUID, command_id: uuid.UUID, 
     job.delivered_at = job.delivered_at or datetime.datetime.now(datetime.UTC)
     await db.commit()
     return {"delivered": True}
+
+
+@router.post('/capture-requests/{request_id}/browser-actions/claim', dependencies=[Depends(require_bot)])
+async def claim_browser_action(request_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
+    from app.services import browser_actions
+    capture = await db.get(CaptureRequest, request_id)
+    if not capture or capture.status != 'capturing':
+        raise HTTPException(404, 'Active capture not found')
+    return {'action': await browser_actions.claim(db, request_id)}
+
+
+class BrowserActionCheck(BaseModel):
+    claim_token: uuid.UUID
+
+
+class BrowserActionResult(BrowserActionCheck):
+    outcome: Literal['applied', 'auth_required', 'editor_unavailable', 'unsupported_edit', 'uncertain']
+    file_url: str | None = Field(default=None, max_length=500)
+
+
+@router.post('/capture-requests/{request_id}/browser-actions/{action_id}/check', dependencies=[Depends(require_bot)])
+async def check_browser_action(request_id: uuid.UUID, action_id: uuid.UUID, body: BrowserActionCheck,
+                               db: AsyncSession = Depends(get_db)):
+    from app.services import browser_actions
+    try:
+        await browser_actions.validate(db, request_id, action_id, body.claim_token)
+        await db.commit()
+        return {'active': True}
+    except LookupError as error:
+        raise HTTPException(409, str(error)) from error
+
+
+@router.post('/capture-requests/{request_id}/browser-actions/{action_id}/complete', dependencies=[Depends(require_bot)])
+async def complete_browser_action(request_id: uuid.UUID, action_id: uuid.UUID, body: BrowserActionResult,
+                                  db: AsyncSession = Depends(get_db)):
+    from app.services import browser_actions
+    try:
+        await browser_actions.complete(db, request_id, action_id, body.claim_token,
+                                      body.model_dump(exclude={'claim_token'}))
+        return {'recorded': True}
+    except LookupError as error:
+        raise HTTPException(409, str(error)) from error
+    except ValueError as error:
+        raise HTTPException(422, str(error)) from error
 
 
 # ---- Voice updates: an absent teammate's update in their cloned voice ---------

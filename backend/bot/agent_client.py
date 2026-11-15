@@ -8,6 +8,7 @@ import config
 class AgentClient:
     def __init__(self, capture_id, *, transport=None):
         self.base = f'/api/bot/capture-requests/{capture_id}/commands'
+        self.browser_base = f'/api/bot/capture-requests/{capture_id}/browser-actions'
         self.client = httpx.AsyncClient(base_url=config.BACKEND_URL,
             headers={'Authorization': f"Bot {config.require('BOT_API_SECRET')}"},
             timeout=httpx.Timeout(5, connect=2), limits=httpx.Limits(max_connections=4, max_keepalive_connections=4),
@@ -19,7 +20,8 @@ class AgentClient:
     async def submit(self, command, tool, captions, board_active):
         payload = {'command_id': command.id, 'command': command.question[:1000], 'tool': tool,
                    'captions': compact_captions(captions), 'board_active': board_active,
-                   'present_after': command.follow_up == 'present_board', 'board_provider': 'figjam'}
+                   'present_after': command.follow_up == 'present_board' or tool == 'open_board', 'board_provider': 'figjam',
+                   'browser_executor': True}
         for attempt in range(2):
             try:
                 response = await self.client.post(self.base, json=payload)
@@ -45,6 +47,21 @@ class AgentClient:
 
     async def delivered(self, command_id):
         response = await self.client.post(self.base + f'/{command_id}/delivered')
+        response.raise_for_status()
+
+    async def claim_browser(self):
+        response = await self.client.post(self.browser_base + '/claim')
+        response.raise_for_status()
+        return response.json()['action']
+
+    async def check_browser(self, action):
+        response = await self.client.post(self.browser_base + f'/{action["id"]}/check',
+                                         json={'claim_token': action['claim_token']})
+        response.raise_for_status()
+
+    async def complete_browser(self, action, result):
+        response = await self.client.post(self.browser_base + f'/{action["id"]}/complete',
+                                         json={'claim_token': action['claim_token'], **result})
         response.raise_for_status()
 
 
