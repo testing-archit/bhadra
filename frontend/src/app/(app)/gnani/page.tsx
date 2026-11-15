@@ -248,9 +248,15 @@ function VoiceCloneCard({ status, demo, onChange }: { status?: GnaniModels["voic
       </CardHeader>
       <CardContent className="flex flex-1 flex-col gap-4">
         {demo ? (
-          <div className="flex flex-1 flex-col justify-center gap-1 rounded-lg border border-dashed px-4 py-6 text-center text-sm text-muted-foreground">
-            <p className="font-medium text-foreground">Needs a free account</p>
-            <p>Your voice is only ever yours, so cloning isn&apos;t available in the shared demo. Everything else on this page works.</p>
+          <div className="flex flex-1 flex-col gap-3">
+            <ol className="flex flex-col gap-2 rounded-lg bg-muted px-3 py-3 text-sm" aria-label="How a stand-in sounds in a call">
+              <li><span className="font-medium">Wilco:</span> AI stand-in here for Vedant. It speaks in an AI copy of his voice and answers only from his briefing.</li>
+              <li><span className="font-medium">Ravi:</span> Wilco, ask Vedant, is KYC done?</li>
+              <li><span className="font-medium">Vedant&apos;s AI stand-in</span> <span className="text-xs text-muted-foreground">(AI voice)</span>: KYC is waiting on the sandbox keys; I&apos;ll confirm once they arrive.</li>
+              <li><span className="font-medium">Ravi:</span> Can he take the Jira migration?</li>
+              <li><span className="font-medium">Vedant&apos;s AI stand-in</span> <span className="text-xs text-muted-foreground">(AI voice)</span>: I don&apos;t have that from Vedant. I&apos;ll pass it on.</li>
+            </ol>
+            <p className="text-center text-xs text-muted-foreground">Cloning needs a free account, because your voice is only ever yours. Vedant sees every question afterwards.</p>
           </div>
         ) : !enrolled ? (
           <div className="flex flex-col gap-3">
