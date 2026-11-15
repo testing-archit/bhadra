@@ -8,6 +8,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ProcessingPanel } from "@/components/meeting/processing-panel";
 import { TranscriptWorkspace, TranscriptFocus } from "@/components/meeting/transcript-workspace";
 import { EvidenceChips } from "@/components/meeting/evidence-chips";
+import { MeetingDebrief } from "@/components/meeting/meeting-debrief";
+import { DebriefStrip, meetingMarks } from "@/components/meeting/debrief-strip";
+import { type TranscriptSegment } from "@/lib/api";
 import { GuidedReview } from "@/components/meeting/guided-review";
 import { MeetingBoard } from "@/components/meeting/meeting-board";
 import { AskAiPanel } from "@/components/meeting/ask-ai-panel";
@@ -15,6 +18,8 @@ import { AnalyticsPanel } from "@/components/meeting/analytics-panel";
 import { ResolvedCitation } from "@/components/cited-markdown";
 import { formatClock } from "@/lib/media-time";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Menu, MenuContent, MenuGroup, MenuItem, MenuTrigger } from "@/components/ui/menu";
+import { MoreHorizontal } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -71,9 +76,9 @@ import {
 import { SOURCE_LABELS } from "@/lib/labels";
 
 import { STATUS_LABELS } from "@/lib/labels";
-import "../../../hackathon-intelligence.css";
-type TabId = "summary" | "transcript" | "actions" | "board" | "ask" | "insights";
-const TAB_IDS: TabId[] = ["summary", "transcript", "actions", "board", "ask", "insights"];
+
+type TabId = "summary" | "transcript" | "actions" | "board" | "ask" | "insights" | "people";
+const TAB_IDS: TabId[] = ["summary", "transcript", "actions", "board", "ask", "insights", "people"];
 type DeleteTarget = {
   type: "meeting" | "task" | "decision" | "risk";
   id: string;
@@ -95,6 +100,9 @@ export default function MeetingDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const [meeting, setMeeting] = useState<MeetingDetail | null>(null);
+  const [stripSegments,setStripSegments]=useState<TranscriptSegment[]>([]);
+  const [selectedMoment,setSelectedMoment]=useState<string|null>(null);
+  useEffect(()=>{let active=true;void api.getTranscript(id,{limit:500}).then(page=>{if(active)setStripSegments(page.segments);}).catch(()=>{});return()=>{active=false;};},[id]);
   const [related, setRelated] = useState<RelatedMeeting[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [editingTask, setEditingTask] = useState<EditableTask | null>(null);
@@ -576,7 +584,7 @@ export default function MeetingDetailPage() {
     ? "This meeting and its Company Memory search data will move to the Recycle Bin. You can restore it from Settings until it is permanently deleted."
     : `“${deleteTarget?.label ?? ""}” will move to the Recycle Bin and disappear from Company Memory search. The meeting and transcript will remain.`;
 
-  if (error) return <div className="signal-intelligence-page signal-detail-page"><p role="alert" className="text-sm text-destructive">{error}</p><Link href="/meetings" className="mt-4 inline-flex items-center gap-2 text-sm text-primary"><ArrowLeft className="size-4" />Back to meetings</Link></div>;
+  if (error) return <div className="signal-intelligence-page signal-detail-page"><p role="alert" className="text-sm text-destructive">{error}</p><Link href="/meetings" className="mt-4 inline-flex items-center gap-2 text-sm text-primary"><ArrowLeft className="size-4" />Meetings</Link></div>;
 
   if (!meeting) {
     return (
@@ -591,8 +599,8 @@ export default function MeetingDetailPage() {
   const templates = assistantStatus?.templates ?? [];
 
   return (
-    <div className="signal-intelligence-page signal-detail-page flex flex-col gap-5">
-      <div className="signal-intelligence-hero flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+    <div className="meeting-engagement flex flex-col gap-5">
+      <div className="meeting-header ink-panel flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
           <Link
             href="/meetings"
@@ -620,9 +628,10 @@ export default function MeetingDetailPage() {
             </div>
           )}
           <p className="mt-1 flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
+            <Badge variant={meeting.confidential?"rose":"lilac"}>{meeting.confidential?"Confidential":`Invited only · ${meeting.attendees.length} people`}</Badge>
             <span className="flex items-center gap-1">
               <CalendarDays className="h-3.5 w-3.5" />
-              {new Date(meeting.date).toLocaleString(undefined, { weekday: "short", day: "numeric", month: "short", year: "numeric", hour: "numeric", minute: "2-digit" })}
+              {new Date(meeting.date).toLocaleString(undefined, { weekday: "short", day: "numeric", month: "short", year: "numeric", hour: "numeric", minute: "2-digit", timeZone:"Asia/Kolkata" })} IST
             </span>
             <span className="flex items-center gap-1">
               <Clock className="h-3.5 w-3.5" />
@@ -637,23 +646,16 @@ export default function MeetingDetailPage() {
             )}
           </p>
         </div>
-        <div className="flex shrink-0 flex-wrap items-center gap-2">
-          <MarkConfidentialButton meeting={meeting} onChanged={() => void reloadMeeting()} />
+        <div className="meeting-header-actions flex shrink-0 flex-wrap items-center gap-2">
+          {jira?.connected&&!meeting.confidential&&<Button variant="signal" disabled={jiraBusy||!unsentTasks} onClick={()=>void sendAllToJira()}>{jiraBusy?"Sending…":unsentTasks?`Send ${unsentTasks} to Jira`:`In Jira · ${meeting.tasks.filter(task=>task.jira_issue_key).length}`}</Button>}
+
           {meeting.can_manage_access && !meeting.confidential && (
             <Button variant="outline" size="sm" onClick={() => void copyShareLink()} disabled={shareBusy} title="Copy an external, no-login link to this meeting's summary">
               {shareCopied ? <Check className="h-4 w-4" /> : <Share2 className="h-4 w-4" />}
-              {shareCopied ? "Link copied" : shareBusy ? "Creating link" : "Copy share link"}
+              {shareCopied ? "Link copied" : shareBusy ? "Creating link" : "Share"}
             </Button>
           )}
-          <Button variant="outline" size="sm" onClick={() => void exportMeeting()} disabled={exportBusy} title="Export branded meeting PDF">
-            <Download className="h-4 w-4" />
-            {exportBusy ? "Preparing PDF" : "Export PDF"}
-          </Button>
-          {meeting.can_manage_access && (
-            <Button variant="outline" size="sm" className="text-destructive hover:text-destructive" onClick={() => setDeleteTarget({ type: "meeting", id, label: meeting.title })}>
-              <Trash2 className="h-4 w-4" /> Delete meeting
-            </Button>
-          )}
+          <Menu><MenuTrigger render={<Button variant="outline" size="icon" aria-label="More meeting actions"/>}><MoreHorizontal/></MenuTrigger><MenuContent><MenuGroup><MenuItem onClick={()=>void exportMeeting()} disabled={exportBusy}><Download/>Export PDF</MenuItem>{meeting.can_manage_access&&<MenuItem onClick={()=>setDeleteTarget({type:"meeting",id,label:meeting.title})}><Trash2/>Delete meeting</MenuItem>}</MenuGroup></MenuContent></Menu>
         </div>
       </div>
       {exportError && <p className="text-sm text-destructive">{exportError}</p>}
@@ -702,28 +704,15 @@ export default function MeetingDetailPage() {
         </div>
       )}
 
-      <GuidedReview
-        meeting={meeting}
-        onChanged={reloadMeeting}
-        onEvidence={openEvidence}
-        onShare={() => void copyShareLink()}
-        shareBusy={shareBusy}
-        shareCopied={shareCopied}
-        onOpenFullMeeting={() => setDetailsOpen(true)}
-      />
-
-      <details className="meeting-details" open={detailsOpen} onToggle={(event) => setDetailsOpen(event.currentTarget.open)}>
-        <summary className="flex cursor-pointer list-none items-center justify-between gap-3 rounded-xl border px-5 py-4 text-sm font-medium focus-visible:outline-2 focus-visible:outline-ring">
-          Full meeting <span className="text-xs font-normal text-muted-foreground">{detailsOpen ? "Close details −" : "Transcript, notes & insights +"}</span>
-        </summary>
+      <div className="meeting-strip-band ink-panel"><DebriefStrip segments={stripSegments} marks={meetingMarks(meeting,stripSegments)} duration_ms={meeting.duration_minutes*60000} variant="ink" size="lg" selectedId={selectedMoment} onMarkClick={mark=>setSelectedMoment(mark.id)}/></div>
+      <div className="meeting-details">
       <Tabs className="pt-5" value={tab} onValueChange={(value) => setTab(value as TabId)}>
         <TabsList className="h-auto! w-full flex-wrap justify-start sm:w-fit">
-          <TabsTrigger value="summary"><NotebookText /> Summary</TabsTrigger>
+          <TabsTrigger value="summary"><NotebookText /> Debrief</TabsTrigger>
           <TabsTrigger value="transcript"><FileText /> Transcript</TabsTrigger>
-          <TabsTrigger value="actions"><ListChecks /> Action items ({meeting.tasks.length + meeting.decisions.length + meeting.risks.length})</TabsTrigger>
-          <TabsTrigger value="board"><Network /> Board</TabsTrigger>
-          <TabsTrigger value="ask"><MessagesSquare /> Ask Wilco</TabsTrigger>
           <TabsTrigger value="insights"><BarChart3 /> Insights</TabsTrigger>
+          <TabsTrigger value="people"><Users /> People</TabsTrigger>
+          <Menu><MenuTrigger render={<Button variant="ghost" size="sm"/>}>More</MenuTrigger><MenuContent><MenuGroup><MenuItem onClick={()=>setTab("actions")}><ListChecks/>Items</MenuItem><MenuItem onClick={()=>setTab("board")}><Network/>Board</MenuItem><MenuItem onClick={()=>setTab("ask")}><MessagesSquare/>Ask Wilco</MenuItem></MenuGroup></MenuContent></Menu>
         </TabsList>
 
         {learnedNotice && (
@@ -735,6 +724,19 @@ export default function MeetingDetailPage() {
         )}
 
         <TabsContent value="summary" className="flex flex-col gap-4 pt-3">
+          <MeetingDebrief meeting={meeting} segments={stripSegments} selectedId={selectedMoment} onSelect={setSelectedMoment} onEvidence={openEvidence}>
+      <GuidedReview compact
+        meeting={meeting}
+        onChanged={reloadMeeting}
+        onEvidence={openEvidence}
+        onShare={() => void copyShareLink()}
+        shareBusy={shareBusy}
+        shareCopied={shareCopied}
+        onOpenFullMeeting={() => setTab("insights")}
+      />
+
+          </MeetingDebrief>
+          <details className="advanced-meeting-notes"><summary>Meeting details</summary>
           <div className="flex flex-wrap items-center gap-2 rounded-lg border px-3 py-2">
             {meeting.insights_stale ? (
               <p className="flex items-center gap-1.5 text-sm text-foreground">
@@ -922,7 +924,10 @@ export default function MeetingDetailPage() {
             </CardContent>
           </Card>
 
+          </details>
         </TabsContent>
+
+        <TabsContent value="people"><MarkConfidentialButton meeting={meeting} onChanged={()=>void reloadMeeting()}/><MeetingAttendees meetingId={meeting.id} attendees={meeting.attendees??[]} canManage={meeting.can_manage_access} onChange={attendees=>setMeeting(current=>current?{...current,attendees}:current)}/></TabsContent>
 
         <TabsContent value="transcript" className="pt-3">
           {meeting.transcript || meeting.recording ? (
@@ -1236,7 +1241,7 @@ export default function MeetingDetailPage() {
 
         </TabsContent>
       </Tabs>
-      </details>
+      </div>
 
       {editingTask && (
         <TaskEditDialog

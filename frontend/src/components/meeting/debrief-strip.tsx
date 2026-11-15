@@ -11,7 +11,7 @@ export function meetingMarks(meeting: Pick<MeetingDetail, "tasks" | "decisions" 
     ...meeting.risks.map(item=>({item,kind:"risk" as const,label:item.description}))]).flatMap(({item,kind,label})=>{
       const evidence=item.evidence?.[0], segment=evidence && timed.get(evidence.segment_id);
       return segment ? [{id:item.id,at_ms:segment.start_ms!,kind,label,segmentId:segment.id}] : [];
-    });
+    }).sort((a,b)=>a.at_ms-b.at_ms);
 }
 
 export function DebriefStrip({ segments, marks=[], duration_ms, variant="sheet", size="md", selectedId, onMarkClick }: {
