@@ -30,6 +30,10 @@ on:
         description: "Rebuild every image from scratch (ignores the build cache)"
         type: boolean
         default: false
+      reseed_demo:
+        description: "Rebuild the synthetic demo meetings for the accounts that already have them (no deploy)"
+        type: boolean
+        default: false
 
 # Tests and image builds of a new push run while the previous push is still
 # deploying; only the deploy job itself is one-at-a-time (see its
@@ -72,10 +76,26 @@ jobs:
           PYDIAG
           REMOTE
 
+  reseed-demo:
+    if: github.event_name == 'workflow_dispatch' && inputs.reseed_demo
+    runs-on: ubuntu-latest
+    env:
+      VM: ${{ secrets.CHARCHA_VM_USER }}@${{ secrets.CHARCHA_VM_HOST }}
+    steps:
+      - name: Rebuild the demo meetings on the VM
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.CHARCHA_VM_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -T 10 -H "${{ secrets.CHARCHA_VM_HOST }}" >> ~/.ssh/known_hosts
+          ssh -o BatchMode=yes -o ConnectTimeout=15 -i ~/.ssh/id_ed25519 "$VM" \
+            'cd ~/charcha && docker compose -f docker-compose.prod.yml exec -T backend python scripts/seed_demo.py --reset --existing'
+
   # Nothing reaches the VM unless this passes.
   # What this push touched, so each job below does only the work it needs.
   changes:
-    if: github.event_name != 'workflow_dispatch' || !inputs.diagnostics_only
+    if: github.event_name != 'workflow_dispatch' || (!inputs.diagnostics_only && !inputs.reseed_demo)
     runs-on: ubuntu-latest
     outputs:
       backend: ${{ steps.diff.outputs.backend }}

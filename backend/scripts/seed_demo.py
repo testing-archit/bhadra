@@ -6,6 +6,7 @@ see the same workspace. Accounts must already exist (sign up first).
 
     python scripts/seed_demo.py owner@example.com teammate@example.com
     python scripts/seed_demo.py --reset owner@example.com ...   # replace
+    python scripts/seed_demo.py --reset --existing   # rebuild for whoever has it
 
 Re-running without --reset does nothing if the demo is already there.
 """
@@ -41,7 +42,9 @@ async def main(emails: list[str], reset: bool) -> None:
             users.append(user)
         owner, mate = users[0], users[1] if len(users) > 1 else users[0]
 
-        existing = (await db.scalars(select(Meeting).where(Meeting.client_meeting_id.like(f"{SEED_PREFIX}%")))).all()
+        # Only this owner's demo: guests of the no-sign-up demo have their own copies.
+        existing = (await db.scalars(select(Meeting).where(Meeting.client_meeting_id.like(f"{SEED_PREFIX}%"),
+                                                           Meeting.user_id == owner.id))).all()
         if existing and not reset:
             # Top up: add demo decisions missing from the seeded meetings,
             # leaving everything people have changed untouched.
@@ -64,7 +67,8 @@ async def main(emails: list[str], reset: bool) -> None:
         else:
             skip = set()
         if existing and reset:
-            await db.execute(delete(Meeting).where(Meeting.client_meeting_id.like(f"{SEED_PREFIX}%")))
+            await db.execute(delete(Meeting).where(Meeting.client_meeting_id.like(f"{SEED_PREFIX}%"),
+                                                   Meeting.user_id == owner.id))
             await db.flush()
 
         counts = await seed_workspace(db, owner, mate if mate.id != owner.id else None, skip)
@@ -72,8 +76,29 @@ async def main(emails: list[str], reset: bool) -> None:
         print("Seeded demo data:", ", ".join(f"{v} {k}" for k, v in counts.items()))
 
 
-if __name__ == "__main__":
-    args = [a for a in sys.argv[1:] if not a.startswith("--")]
+async def existing_accounts() -> list[str]:
+    """Owner first, then the teammates, of the demo meetings already seeded:
+    lets the server rebuild its demo without anyone typing emails."""
+    async with async_session() as db:
+        meeting = await db.scalar(select(Meeting).where(Meeting.client_meeting_id.like(f"{SEED_PREFIX}%"),
+                                                        ~Meeting.user_id.in_(select(User.id).where(User.email.like("%@demo.wilco.invalid"))))
+                                  .order_by(Meeting.created_at).limit(1))
+        if meeting is None:
+            return []
+        owner = await db.get(User, meeting.user_id)
+        mates = (await db.scalars(select(User.email).join(MeetingAttendee, MeetingAttendee.user_id == User.id)
+                                  .where(MeetingAttendee.meeting_id == meeting.id, User.id != owner.id))).all()
+        return [owner.email, *mates[:1]]
+
+
+async def run(args: list[str], reset: bool, existing: bool) -> None:
+    if existing and not args:
+        args = await existing_accounts()
+        print("Rebuilding the demo for", len(args), "existing account(s)")
     if not args:
         sys.exit(__doc__)
-    asyncio.run(main(args, reset="--reset" in sys.argv))
+    await main(args, reset)
+
+
+if __name__ == "__main__":
+    asyncio.run(run([a for a in sys.argv[1:] if not a.startswith("--")], "--reset" in sys.argv, "--existing" in sys.argv))
