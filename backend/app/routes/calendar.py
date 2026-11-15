@@ -80,7 +80,7 @@ async def oauth_callback(
         return back("error", str(failure))
     user = await db.get(User, user_id)
     if user is None or user.status != "active":
-        return back("error", "Your Charcha account isn't active")
+        return back("error", "Your Wilco account isn't active")
 
     connection = await db.get(CalendarConnection, user_id)
     if connection is None:
@@ -230,7 +230,7 @@ async def schedule(
     past_days: int = 14, future_days: int = 14, user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)
 ) -> dict:
     """The person's own Google Calendar, past and upcoming, for the Meetings
-    page — each event with what Charcha did about it and, once recorded, a
+    page — each event with what Wilco did about it and, once recorded, a
     link to the notes. Notes are matched by the notetaker visit, else by the
     same Meet link around the same time, and only when the person can read
     them."""

@@ -505,7 +505,7 @@ async def regenerate(
     segments = await transcript_service.ensure_segments(db, meeting)
     if not segments and not meeting.transcript:
         raise ValueError("This meeting has no transcript to analyze")
-    # Every correction the team has taught Charcha goes into the transcript
+    # Every correction the team has taught Wilco goes into the transcript
     # first, and the model is told how names and terms are spelled — so
     # notes never bring back a mishearing someone already fixed.
     notes_vocabulary = await vocabulary_service.prepare_for_notes(db, meeting)

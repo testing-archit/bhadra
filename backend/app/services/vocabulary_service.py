@@ -238,7 +238,7 @@ def _name_keys(names: list[str | None]) -> set[str]:
 
 
 async def protected_names(db: AsyncSession, meeting_id: uuid.UUID | None = None) -> set[str]:
-    """Lower-cased names (and name parts) of everyone with a Charcha account,
+    """Lower-cased names (and name parts) of everyone with a Wilco account,
     the guests listed under Teammates, and the meeting's attendees — real
     people, never "misheard"."""
     names = list((await db.execute(select(User.name).where(User.name.is_not(None)))).scalars().all())
@@ -261,7 +261,7 @@ class Propagation:
 
 async def propagate(db: AsyncSession, meeting: Meeting, rules: list[Rule], user: User | None) -> Propagation:
     """Apply the rules to everything in one meeting that holds its words.
-    `user` is None when Charcha applies them itself."""
+    `user` is None when Wilco applies them itself."""
     result = Propagation()
     user_id = user.id if user is not None else None
     now = datetime.datetime.now(datetime.UTC)
@@ -359,7 +359,7 @@ async def learn(db: AsyncSession, rules: list[Rule], user: User, meeting_id: uui
                 existing.right = right
             existing.times_confirmed += 1
             existing.disabled_at = None
-        # Someone fixed by hand what Charcha only suspected.
+        # Someone fixed by hand what Wilco only suspected.
         await db.execute(
             update(TermSuggestion)
             .where(func.lower(TermSuggestion.wrong) == wrong.lower(), TermSuggestion.status == "pending")
@@ -500,7 +500,7 @@ async def fix_past_meetings(
     rules: list[Rule], user_id: uuid.UUID | None, meeting_ids: list[uuid.UUID] | None = None
 ) -> int:
     """Apply rules someone just added to every existing meeting that still
-    has the wrong term (or only to `meeting_ids`; `user_id` None when Charcha
+    has the wrong term (or only to `meeting_ids`; `user_id` None when Wilco
     applies a suggestion itself). Runs in the background; returns meetings
     fixed."""
     from sqlalchemy import or_
@@ -667,7 +667,7 @@ class NotesVocabulary:
 async def prepare_for_notes(db: AsyncSession, meeting: Meeting) -> NotesVocabulary:
     """Before (re)writing a meeting's notes: apply every current correction
     to its transcript and items — so notes regenerated after someone taught
-    Charcha a name use it — and build the spelling hint for the model."""
+    Wilco a name use it — and build the spelling hint for the model."""
     from app.config import settings
 
     vocabulary = await active_vocabulary()
@@ -849,7 +849,7 @@ async def _meeting_captions(db: AsyncSession, meeting_id: uuid.UUID) -> list[dic
 
 
 def auto_apply_threshold(captions: bool) -> int | None:
-    """Meetings a suggestion must be heard in before Charcha applies it."""
+    """Meetings a suggestion must be heard in before Wilco applies it."""
     from app.config import settings
 
     needed = settings.vocabulary_auto_apply_meetings
@@ -953,7 +953,7 @@ async def accept_suggestion(db: AsyncSession, suggestion: TermSuggestion, user: 
     if entry is None:
         entry = TermCorrection(
             wrong=suggestion.wrong, right=suggestion.right, source="suggested", created_by=user.id,
-            source_meeting_id=suggestion.last_meeting_id, note=f"Suggested by Charcha, confirmed by {user.name or user.email}",
+            source_meeting_id=suggestion.last_meeting_id, note=f"Suggested by Wilco, confirmed by {user.name or user.email}",
         )
         db.add(entry)
     elif entry.source != "manual":
@@ -1021,7 +1021,7 @@ def title_keywords(titles: list[str]) -> list[str]:
 
 
 async def _derived_keywords(db: AsyncSession) -> dict[str, str]:
-    """{term: where it came from}: Charcha projects, Jira projects, and words
+    """{term: where it came from}: Wilco projects, Jira projects, and words
     recurring in the last 90 days' meeting titles."""
     from app.services import jira_service
 

@@ -1,4 +1,4 @@
-// Runs on the Charcha dashboard page. Content scripts execute in an isolated
+// Runs on the Wilco dashboard page. Content scripts execute in an isolated
 // JS world but share the page's actual localStorage (it's storage-layer, not
 // JS-heap), so we can read/write the dashboard's session directly here and
 // mirror it against the extension's own session via the background worker —

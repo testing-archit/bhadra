@@ -24,7 +24,7 @@ NOTETAKER_EMAIL = _env("NOTETAKER_EMAIL", "notetaker@example.com").lower()
 # Shown in Meet when the signed-in session has expired and the bot has to
 # fall back to joining as a named guest. When signed in, Meet shows the Google
 # account's own profile name instead — set that to the same thing.
-BOT_DISPLAY_NAME = _env("BOT_DISPLAY_NAME", "Charcha Notetaker")
+BOT_DISPLAY_NAME = _env("BOT_DISPLAY_NAME", "Wilco Notetaker")
 MEETING_LANGUAGE = _env("MEETING_LANGUAGE", "hinglish")
 
 STATE_DIR = Path(_env("STATE_DIR", str(Path(__file__).parent / "data")))
@@ -61,7 +61,7 @@ MAX_MEETING_MINUTES = int(_env("MAX_MEETING_MINUTES", "240"))
 TEAMS_LOGO_CAMERA = _env("TEAMS_LOGO_CAMERA").lower() in {"1", "true", "yes"}
 TEAMS_LOGO_IMAGE = Path(_env("TEAMS_LOGO_IMAGE", str(Path(__file__).parent / "assets" / "logo_card.png")))
 
-# Google Meet: show the Charcha avatar as the notetaker's camera (it opens
+# Google Meet: show the Wilco avatar as the notetaker's camera (it opens
 # its mouth while speaking). Off with MEET_AVATAR_CAMERA=0.
 MEET_AVATAR_CAMERA = _env("MEET_AVATAR_CAMERA", "1").lower() not in {"0", "false", "no"}
 AVATAR_IDLE = Path(__file__).parent / "assets" / "avatar_idle.png"
@@ -71,7 +71,7 @@ AVATAR_SPEAKING = Path(__file__).parent / "assets" / "avatar_speaking.png"
 # invited the notetaker, that it records, how to make it leave), like any
 # well-behaved notetaker. Off with ANNOUNCE_IN_CHAT=0.
 ANNOUNCE_IN_CHAT = _env("ANNOUNCE_IN_CHAT", "1").lower() not in {"0", "false", "no"}
-# Answer chat messages that start with "Charcha" from the call so far
+# Answer chat messages that start with "Wilco" from the call so far
 # (needs ANNOUNCE_IN_CHAT: the panel is opened by the notice).
 ANSWER_IN_CHAT = _env("ANSWER_IN_CHAT", "1").lower() not in {"0", "false", "no"}
 # Also say the answers out loud in the call (Gnani Timbre through a virtual
@@ -80,7 +80,7 @@ SPEAK_IN_CALL = _env("SPEAK_IN_CALL", "1").lower() not in {"0", "false", "no"}
 
 EXIT_PHRASES = [
     p.strip().lower()
-    for p in _env("EXIT_PHRASES", "notetaker please leave,note taker please leave,charcha please leave").split(",")
+    for p in _env("EXIT_PHRASES", "notetaker please leave,note taker please leave,wilco please leave,charcha please leave").split(",")
     if p.strip()
 ]
 

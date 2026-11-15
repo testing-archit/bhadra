@@ -1,10 +1,10 @@
-// Runs on Google Meet. Shows one small Charcha control in the call: invite the
+// Runs on Google Meet. Shows one small Wilco control in the call: invite the
 // notetaker, see whether it's waiting, recording or done, and stop it.
 // All backend calls go through background.js (Meet's CORS blocks them here).
 
 const CHECK_URL_MS = 1_500;
 const POLL_MS = 8_000;
-// How soon an auto-invite is retried after Charcha couldn't be reached.
+// How soon an auto-invite is retried after Wilco couldn't be reached.
 const AUTO_INVITE_RETRY_MS = 30_000;
 
 const ICON = {
@@ -60,7 +60,7 @@ let joinedCodes = new Set();
 let state = { loading: true };
 let busy = false;
 let lastError = null;
-// Set while Charcha can't be reached; cleared by the next successful check.
+// Set while Wilco can't be reached; cleared by the next successful check.
 let connectionError = null;
 let pollTimer = null;
 let collapsed = sessionStorage.getItem("charcha-collapsed") === "1";
@@ -84,12 +84,12 @@ function send(type, payload = {}) {
   return new Promise((resolve) => {
     try {
       chrome.runtime.sendMessage({ type, ...payload }, (response) => {
-        if (chrome.runtime.lastError) resolve({ ok: false, error: "Reload this tab to reconnect Charcha." });
+        if (chrome.runtime.lastError) resolve({ ok: false, error: "Reload this tab to reconnect Wilco." });
         else resolve(response || { ok: false });
       });
     } catch {
       // The extension was updated or reloaded underneath this page.
-      resolve({ ok: false, error: "Reload this tab to reconnect Charcha." });
+      resolve({ ok: false, error: "Reload this tab to reconnect Wilco." });
     }
   });
 }
@@ -127,10 +127,10 @@ function view() {
   if (state.loading) return null;
   if (!state.loggedIn) {
     return {
-      pill: "Charcha: sign in",
+      pill: "Wilco: sign in",
       status: null,
-      body: "Sign in to Charcha to send the notetaker into this call.",
-      actions: [{ label: "Open Charcha", kind: "primary", run: () => send("open-workspace", { path: "/login" }) }],
+      body: "Sign in to Wilco to send the notetaker into this call.",
+      actions: [{ label: "Open Wilco", kind: "primary", run: () => send("open-workspace", { path: "/login" }) }],
     };
   }
   if (!capture || ["cancelled", "denied", "timed_out", "failed"].includes(capture.status)) {
@@ -138,7 +138,7 @@ function view() {
       ? `Last attempt: ${capture.status_label}${capture.status_detail ? `. ${capture.status_detail}` : ""}`
       : null;
     return {
-      pill: "Take notes with Charcha",
+      pill: "Take notes with Wilco",
       status: null,
       body: "Invite the notetaker to transcribe this call and pull out tasks and decisions.",
       note: previous || "Everyone in the call will see it join. Anyone can ask it to leave.",
@@ -149,7 +149,7 @@ function view() {
   if (capture.subscribed === false && ["requested", "joining", "waiting_for_admission", "capturing"].includes(capture.status)) {
     const who = capture.requested_by ? `${capture.requested_by}'s notetaker` : "A colleague's notetaker";
     return {
-      pill: "Charcha is already here",
+      pill: "Wilco is already here",
       status: { label: capture.status === "capturing" ? "Already recording this call" : "Already on its way", dot: capture.status === "capturing" ? "live" : "" },
       body: `${who} covers this call, so it's recorded once for everyone. Get the notes too?`,
       actions: [{ label: "Get the notes too", kind: "primary", run: invite }],
@@ -157,9 +157,9 @@ function view() {
   }
   if (capture.status === "capturing") {
     return {
-      pill: "Charcha is taking notes",
+      pill: "Wilco is taking notes",
       status: { label: "Recording this call", dot: "live" },
-      body: "Notes, tasks and decisions appear in Charcha a few minutes after the call ends.",
+      body: "Notes, tasks and decisions appear in Wilco a few minutes after the call ends.",
       actions: [
         { label: capture.stop_requested ? "Leaving…" : "Stop notetaker", kind: "danger", run: stop, disabled: capture.stop_requested },
       ],
@@ -169,7 +169,7 @@ function view() {
     return {
       pill: "Notes ready",
       status: { label: "Notes are ready", dot: "done" },
-      body: capture.title ? `“${capture.title}” is in Charcha.` : "This call's transcript and notes are in Charcha.",
+      body: capture.title ? `“${capture.title}” is in Wilco.` : "This call's transcript and notes are in Wilco.",
       actions: [
         { label: "Open notes", kind: "primary", run: () => send("open-workspace", { path: `/meetings/${capture.meeting_id}` }) },
         { label: "Record again", kind: "ghost", run: invite },
@@ -178,7 +178,7 @@ function view() {
   }
   if (capture.status === "stopped") {
     return {
-      pill: "Charcha is writing notes",
+      pill: "Wilco is writing notes",
       status: { label: "Writing up notes", dot: "" },
       body: "The notetaker has left. Transcription and notes usually take a few minutes.",
       actions: [],
@@ -186,7 +186,7 @@ function view() {
   }
   const waiting = capture.status === "waiting_for_admission";
   return {
-    pill: waiting ? "Admit the Charcha notetaker" : "Notetaker joining",
+    pill: waiting ? "Admit the Wilco notetaker" : "Notetaker joining",
     status: { label: waiting ? "Waiting to be let in" : capture.status_label || "Joining", dot: "" },
     body: waiting
       ? "It's in the lobby. Admit it from the people panel, or the host can let it in."
@@ -208,7 +208,7 @@ function render() {
       el("button", {
         class: "pill",
         type: "button",
-        "aria-label": `${model.pill}. Show Charcha controls`,
+        "aria-label": `${model.pill}. Show Wilco controls`,
         onclick: () => {
           collapsed = false;
           sessionStorage.setItem("charcha-collapsed", "0");
@@ -219,10 +219,10 @@ function render() {
     return;
   }
 
-  const card = el("div", { class: "card", role: "region", "aria-label": "Charcha notetaker" }, [
+  const card = el("div", { class: "card", role: "region", "aria-label": "Wilco notetaker" }, [
     el("div", { class: "head" }, [
       el("span", { class: "mark", html: ICON.logo }),
-      el("span", { class: "title" }, "Charcha"),
+      el("span", { class: "title" }, "Wilco"),
       el("button", {
         class: "icon-btn",
         type: "button",
@@ -258,7 +258,7 @@ async function refresh() {
     state = { loading: false, loggedIn: false };
     lastError = response.error || null;
   } else if (response.error) {
-    // Charcha is unreachable: keep showing what we last knew (a notetaker
+    // Wilco is unreachable: keep showing what we last knew (a notetaker
     // already in the call must not turn into a "Send notetaker" button) and
     // say so until the next successful check clears it.
     state = { ...state, loading: false, loggedIn: response.loggedIn, autoInvite: response.autoInvite };
@@ -338,7 +338,7 @@ setInterval(() => {
         state.capture = response.capture;
         render();
       }
-      // Charcha was unreachable: try the auto-invite again in a little while.
+      // Wilco was unreachable: try the auto-invite again in a little while.
       if (response?.retry) setTimeout(() => joinedCodes.delete(code), AUTO_INVITE_RETRY_MS);
     });
   }

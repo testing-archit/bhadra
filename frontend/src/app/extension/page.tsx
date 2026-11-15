@@ -20,7 +20,7 @@ const storeUrl = process.env.NEXT_PUBLIC_CHROME_WEB_STORE_URL?.trim();
 // Must match the "version" in the root manifest.json and the zip name in
 // frontend/public/downloads/ — nothing enforces this automatically, so a
 // bump here is a required step of every extension release, not optional.
-const extensionVersion = "2.1.3";
+const extensionVersion = "2.2.0";
 
 const features = [
   { icon: Bot, title: "Invite the notetaker from the call", copy: "A small Wilco control sits in every Google Meet. One click sends the notetaker; it shows when it's waiting to be admitted, recording, or done." },

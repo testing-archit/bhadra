@@ -123,7 +123,7 @@ def _footer(canvas, doc) -> None:
     canvas.line(18 * mm, 14 * mm, width - 18 * mm, 14 * mm)
     canvas.setFillColor(MUTED)
     canvas.setFont(_register_fonts()[0], 7.5)
-    canvas.drawString(18 * mm, 9 * mm, "CHARCHA  |  Built by team Bhadra")
+    canvas.drawString(18 * mm, 9 * mm, "WILCO  |  Built by team Bhadra")
     canvas.drawRightString(width - 18 * mm, 9 * mm, f"Page {doc.page}")
     canvas.restoreState()
 
@@ -139,14 +139,14 @@ def build_meeting_pdf(meeting, insight, recording) -> bytes:
         topMargin=17 * mm,
         bottomMargin=20 * mm,
         title=meeting.title,
-        author="Charcha by team Bhadra",
+        author="Wilco by team Bhadra",
         subject="Meeting intelligence report",
     )
     story = []
 
-    logo_path = Path(__file__).resolve().parents[1] / "assets" / "charcha-logo.png"
+    logo_path = Path(__file__).resolve().parents[1] / "assets" / "wilco-logo.png"
     logo = Image(str(logo_path), width=12 * mm, height=12 * mm) if logo_path.exists() else Spacer(12 * mm, 12 * mm)
-    brand = Paragraph("CHARCHA<br/><font size='8' color='#6B6889'>BUILT BY TEAM BHADRA</font>", styles["Brand"])
+    brand = Paragraph("WILCO<br/><font size='8' color='#6B6889'>BUILT BY TEAM BHADRA</font>", styles["Brand"])
     brand_row = Table([[logo, brand]], colWidths=[15 * mm, 60 * mm], hAlign="LEFT")
     brand_row.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "MIDDLE"), ("LEFTPADDING", (0, 0), (-1, -1), 0), ("RIGHTPADDING", (0, 0), (-1, -1), 0), ("TOPPADDING", (0, 0), (-1, -1), 0), ("BOTTOMPADDING", (0, 0), (-1, -1), 0)]))
     story.extend([brand_row, Spacer(1, 8 * mm), Paragraph(_text(meeting.title), styles["DocumentTitle"]), Paragraph("Meeting intelligence report", styles["Meta"]), Spacer(1, 6 * mm)])

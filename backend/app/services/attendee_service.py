@@ -72,7 +72,7 @@ def normalize_input(raw: list) -> list[dict]:
 
 
 async def resolve(db: AsyncSession, raw: list) -> list[dict]:
-    """Match each attendee to a Charcha account by id, then email, then an
+    """Match each attendee to a Wilco account by id, then email, then an
     exact case-insensitive name match.
 
     Name matching is deliberately exact and deliberately skipped when the name

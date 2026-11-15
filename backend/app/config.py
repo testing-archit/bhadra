@@ -49,7 +49,7 @@ class Settings(BaseSettings):
     speaker_embedding_model_path: str = "models/wespeaker_en_voxceleb_resnet34.onnx"
     speaker_match_threshold: float = 0.72
     speaker_match_margin: float = 0.12
-    # Gnani Timbre text-to-speech: Charcha reads answers and summaries aloud
+    # Gnani Timbre text-to-speech: Wilco reads answers and summaries aloud
     # with the same Gnani key. v2.5 answers in ~1 s; "hi-en" speaks Hinglish
     # (Roman-script Hindi mixed with English) naturally.
     gnani_tts_url: str = "https://api.vachana.ai/api/v1/tts/inference"
@@ -69,7 +69,7 @@ class Settings(BaseSettings):
     # outbox still records what would have gone out).
     brevo_api_key: str = ""
     email_from: str = "charcha@example.com"
-    email_from_name: str = "Charcha"
+    email_from_name: str = "Wilco"
     email_reply_to: str = "connect@example.com"
     # Brevo's free plan sends 300 a day; stay under it and keep room for
     # password resets, which are never held back.
@@ -111,7 +111,7 @@ class Settings(BaseSettings):
     # ready, tasks from it, "added to a meeting") just for being on it. Anyone
     # else — e.g. a client with an account who was on the calendar invite —
     # only gets them once the recorder, organizer or an admin shares the
-    # meeting with them in Charcha. Empty: everyone with access.
+    # meeting with them in Wilco. Empty: everyone with access.
     internal_email_domains: str = "example.com"
     # A vocabulary suggestion (a word that sounds like an invitee's name) is
     # applied without waiting for anyone once heard in this many meetings —

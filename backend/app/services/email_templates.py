@@ -1,4 +1,4 @@
-"""Charcha's email look: one branded layout, rendered to HTML + plain text.
+"""Wilco's email look: one branded layout, rendered to HTML + plain text.
 
 Email clients ignore CSS variables and most <style> rules, so everything is
 inline, table-based and in the app's brand colours (the hex equivalents of
@@ -159,7 +159,7 @@ def layout(
     manage_url: str | None = None,
 ) -> tuple[str, str]:
     """(html, text) for one email."""
-    logo = app_url("/charcha-apple-touch-icon.png")
+    logo = app_url("/wilco-apple-touch-icon.png")
     cta_html = button(*cta) if cta else ""
     links = []
     if manage_url:
@@ -195,7 +195,7 @@ def layout(
     <tr><td style="padding:0 4px 16px;">
       <a href="{esc(app_url("/dashboard"))}" style="text-decoration:none;">
         <img src="{esc(logo)}" width="32" height="32" alt="" style="vertical-align:middle;border-radius:8px;border:0;">
-        <span style="vertical-align:middle;margin-left:8px;font:600 18px {FONT};color:{BRAND["text"]};" class="muted">Charcha</span>
+        <span style="vertical-align:middle;margin-left:8px;font:600 18px {FONT};color:{BRAND["text"]};" class="muted">Wilco</span>
       </a>
     </td></tr>
     <tr><td class="card" style="background:{BRAND["card"]};border:1px solid {BRAND["border"]};border-radius:14px;padding:32px 32px 26px;">
@@ -205,7 +205,7 @@ def layout(
     </td></tr>
     <tr><td style="padding:18px 6px 0;">
       {footer}
-      <p class="muted" style="margin:10px 0 0;font:12px/1.5 {FONT};color:{BRAND["muted"]};">Charcha by Bhadra · your team's meeting memory</p>
+      <p class="muted" style="margin:10px 0 0;font:12px/1.5 {FONT};color:{BRAND["muted"]};">Wilco by Bhadra · your team's meeting memory</p>
     </td></tr>
   </table>
 </td></tr></table>
@@ -219,5 +219,5 @@ def layout(
         text_parts += [f"Email preferences: {manage_url}"]
     if unsubscribe_url:
         text_parts += [f"Unsubscribe: {unsubscribe_url}"]
-    text_parts += ["", "Charcha by Bhadra"]
+    text_parts += ["", "Wilco by Bhadra"]
     return document, "\n".join(text_parts).strip() + "\n"

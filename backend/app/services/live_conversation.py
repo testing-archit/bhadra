@@ -1,4 +1,4 @@
-"""Charcha Live: a spoken back-and-forth about your meetings, like Gemini
+"""Wilco Live: a spoken back-and-forth about your meetings, like Gemini
 Live, built on Gnani. Each turn is one utterance: Gnani Prisma hears it,
 Gemini answers in a sentence or two, and Gnani Timbre says the answer.
 
@@ -21,9 +21,9 @@ DIGEST_TTL_SECONDS = 300
 MAX_HISTORY_TURNS = 8
 _digests: dict[uuid.UUID, tuple[float, str]] = {}
 
-SYSTEM_PROMPT = """You are Charcha, talking with someone out loud about their team's meetings, like a helpful colleague on a call.
+SYSTEM_PROMPT = """You are Wilco, talking with someone out loud about their team's meetings, like a helpful colleague on a call.
 
-Your personality: Charcha is a warm, sharp teammate from India. Friendly and a little witty, never cheesy or over the top. Polite in an Indian way ("ji" where natural), confident about what was said, honest when something wasn't said. Short sentences that sound good read aloud.
+Your personality: Wilco is a warm, sharp teammate from India. Friendly and a little witty, never cheesy or over the top. Polite in an Indian way ("ji" where natural), confident about what was said, honest when something wasn't said. Short sentences that sound good read aloud.
 
 - Speak, don't write: one to three short sentences, no lists, no markdown, no citations, no emoji.
 - Reply in the language the person used. For Hindi or Hinglish, reply in Hinglish written in Roman script (for example "Sharma ji ka 1,240 rupaye baaki hai"), because your reply is read aloud. For English, reply in English. For Tamil, Telugu, Kannada, Malayalam, Marathi, Bengali, Gujarati or Punjabi, reply in that language in its own script.
@@ -84,7 +84,7 @@ def speech_language(detected: str | None) -> str:
 
 def reply(history: list[dict], user_text: str, digest: str, name: str | None, detected: str | None = None) -> str:
     convo = "\n".join(
-        f"{'Person' if turn.get('role') == 'user' else 'Charcha'}: {str(turn.get('content') or '').strip()}"
+        f"{'Person' if turn.get('role') == 'user' else 'Wilco'}: {str(turn.get('content') or '').strip()}"
         for turn in history[-MAX_HISTORY_TURNS:]
         if str(turn.get("content") or "").strip()
     )

@@ -1,10 +1,28 @@
-# Bhadra Notetaker bot
+# Wilco notetaker bot
+
+## In the call
+
+Once admitted, the bot shows the Wilco mascot on camera, turns on captions and posts a join notice in chat. People address it as **"Wilco, …"**, spoken or typed in chat. The old wake word, "Charcha", still works.
+
+| Say or type | What happens |
+|---|---|
+| "Wilco, what did we decide about pricing?" | Answers from this call's captions, in chat and out loud (Gnani Timbre) |
+| "Wilco recap" | Key points, decisions and action items so far |
+| "Wilco, add task: Vedant to send the invoice by Friday" | Holds a task that becomes real when the notes are created |
+| "Wilco, draw a signup, verification and payment flow" | Draws on the meeting board, or in the paired FigJam file |
+| "Wilco, undo that" / "move payment after verification" | Edits the board |
+| "status", "cancel that", "cancel all requests", "stop speaking" | Controls running requests |
+| "Wilco, please leave" or "notetaker please leave" | The bot leaves the call |
+
+Requests run as durable jobs on the backend (`app/services/meeting_agent.py`; see `docs/meeting-action-agent.md`). Board and FigJam details are in `docs/voice-whiteboard.md` and `docs/voice-figjam-reliability.md`. The bot's speech goes through an isolated Web Audio microphone (`browser_voice.py`), so meeting audio never feeds back into it.
+
+## Joining from a calendar invite
 
 Works like Fireflies' `fred@fireflies.ai`: **add `notetaker@example.com` as a guest
 on any Google Calendar event with a Meet link**, and the notetaker joins the call a minute
-before it starts. It records the call and sends it to Charcha, which files the meeting under
-the event organizer (or the first invitee with a Charcha account). Every invitee with a
-Charcha account can then read it.
+before it starts. It records the call and sends it to Wilco, which files the meeting under
+the event organizer (or the first invitee with a Wilco account). Every invitee with a
+Wilco account can then read it.
 
 Nobody has to install the extension or connect their own calendar.
 
@@ -21,11 +39,11 @@ scheduler.py (polls every 30s via Calendar API)┘── RSVPs "yes", then 60s b
          • scrapes Meet's live captions for speaker names + timings
          • leaves 30 s after everyone else has left (ALONE_TIMEOUT_SECONDS), when the
            host removes it, someone says "notetaker please leave", Stop is pressed in
-           Charcha, or the event runs 60 min over
+           Wilco, or the event runs 60 min over
          • "Send notetaker" requests are picked up within ~3 s (CAPTURE_POLL_SECONDS)
    └─► POST /api/bot/ingest (audio + captions + calendar invitees)
          • Gnani Prisma transcribes the audio; caption timings put real names on the speakers
-         • normal Charcha pipeline: summary, tasks, decisions, attendee access, playback
+         • normal Wilco pipeline: summary, tasks, decisions, attendee access, playback
 ```
 
 If an upload fails it stays in `data/pending_uploads/` and is retried every 10 minutes.
@@ -38,7 +56,7 @@ Accepted: `teams.microsoft.com/meet/<id>?p=<passcode>`, `teams.live.com/meet/<id
 
 - It joins as an **anonymous guest** named `BOT_DISPLAY_NAME`, with no Microsoft account, so
   usually someone has to admit it from the lobby. A meeting or tenant that turns off anonymous
-  join refuses it, and Charcha says so (`Blocked by Google Meet or Teams` in Admin → Notetaker).
+  join refuses it, and Wilco says so (`Blocked by Google Meet or Teams` in Admin → Notetaker).
 - Calendar invites and linked calendars still only auto-join Google Meet.
 - Speaker names come from Teams' live captions. A tenant can turn those off; the transcript then
   keeps `Speaker 1/2/…`, as with Meet.
@@ -128,7 +146,7 @@ docker compose -f docker-compose.prod.yml logs -f notetaker
   meeting. Set `NOTETAKER_INSTANCE_NAME` to tell them apart; Admin → Notetaker shows each one's
   size, load and last check-in. Keeping notetakers off the API VM also keeps Chromium's memory
   away from the backend.
-- **Meetings with no Charcha user on the invite** are dropped, because there is nobody to file
+- **Meetings with no Wilco user on the invite** are dropped, because there is nobody to file
   them under.
 - **Speaker names** come from Meet's caption DOM, whose class names Google changes now and
   then. When they break, transcripts still come through with `Speaker 1/2/…`, and people

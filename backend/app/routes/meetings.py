@@ -487,7 +487,7 @@ async def get_meeting(
         # Anyone in it can mark it; only the recorder or organizer can unmark.
         "can_unmark_confidential": user.id in (meeting.user_id, meeting.organizer_user_id),
         # Who decides who else may read it: the recorder, the calendar
-        # organizer and Charcha admins.
+        # organizer and Wilco admins.
         "can_manage_access": await user_can_manage_meeting_access(db, user, meeting),
         # True when the viewer only sees this because they are an admin.
         "viewing_as_admin": not own_access and is_admin(user),
@@ -608,7 +608,7 @@ async def set_meeting_attendees(
     db: AsyncSession = Depends(get_db),
 ) -> list[dict]:
     """Replace the attendee list. Only the people who decide access — the
-    recorder, the calendar organizer, or a Charcha admin — may do this, since
+    recorder, the calendar organizer, or a Wilco admin — may do this, since
     adding someone here lets them read the notes. The meeting's owner is
     re-added automatically, so this cannot lock the recorder out."""
     meeting = await db.get(Meeting, meeting_id)
@@ -617,7 +617,7 @@ async def set_meeting_attendees(
     if not await user_can_manage_meeting_access(db, user, meeting):
         raise HTTPException(
             status_code=403,
-            detail="Only the meeting's organizer, the person who recorded it, or a Charcha admin can change who has access",
+            detail="Only the meeting's organizer, the person who recorded it, or a Wilco admin can change who has access",
         )
 
     resolved = await attendee_service.resolve(db, [item.model_dump() for item in body.attendees])
@@ -729,7 +729,7 @@ async def _managed_meeting(db: AsyncSession, user: User, meeting_id: uuid.UUID) 
     if not await user_can_manage_meeting_access(db, user, meeting):
         raise HTTPException(
             status_code=403,
-            detail="Only the meeting's organizer, the person who recorded it, or a Charcha admin can share it",
+            detail="Only the meeting's organizer, the person who recorded it, or a Wilco admin can share it",
         )
     return meeting
 
@@ -793,7 +793,7 @@ async def delete_meeting(
     if not await user_can_manage_meeting_access(db, user, meeting):
         raise HTTPException(
             status_code=403,
-            detail="Only the meeting's organizer, the person who recorded it, or a Charcha admin can delete it",
+            detail="Only the meeting's organizer, the person who recorded it, or a Wilco admin can delete it",
         )
 
     # Remove searchable memory first. If Qdrant is unavailable, keep the
@@ -1296,7 +1296,7 @@ async def ingest_meeting(
     # lazy-reload that crashes on an async session (MissingGreenlet).
     user_id = user.id
     user_department = user.department
-    # Integration configuration belongs to the Charcha account, not to a
+    # Integration configuration belongs to the Wilco account, not to a
     # particular extension installation. Form values remain accepted for
     # backwards compatibility, but the authenticated user's shared settings
     # are authoritative.
@@ -1327,7 +1327,7 @@ async def ingest_meeting(
             if not transcript.strip():
                 raise HTTPException(status_code=422, detail="The recording did not contain recognizable speech")
 
-        # Corrections the team taught Charcha (a provider transcript already
+        # Corrections the team taught Wilco (a provider transcript already
         # has them; pasted text and Meet captions don't), and how the
         # meeting's people and terms are spelled, for the notes model.
         vocabulary = await vocabulary_service.active_vocabulary()
@@ -1393,7 +1393,7 @@ async def ingest_meeting(
         )
 
         # Who may read this meeting. The recorder is always included; anyone
-        # else only gains access if their name/email resolves to a Charcha
+        # else only gains access if their name/email resolves to a Wilco
         # account (see attendee_service.resolve).
         _, newly_added = await attendee_service.apply_to_meeting(
             db,

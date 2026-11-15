@@ -1,4 +1,4 @@
-// Charcha's extension no longer records audio itself: a notetaker bot joins the
+// Wilco's extension no longer records audio itself: a notetaker bot joins the
 // Meet and the backend does transcription and notes. This worker keeps the
 // session in sync with the dashboard, sends/stops the notetaker, watches its
 // progress (badge + notifications), and exports finished notes to Google Sheets.
@@ -18,9 +18,9 @@ async function init() {
   await chrome.storage.local.remove(["meetingHistory", "pendingCaptures", "activeMeetings"]);
   chrome.alarms.create(POLL_ALARM, { periodInMinutes: 1 });
   chrome.contextMenus.removeAll(() => {
-    chrome.contextMenus.create({ id: "ask-charcha", title: "Ask Charcha about “%s”", contexts: ["selection"] });
+    chrome.contextMenus.create({ id: "ask-charcha", title: "Ask Wilco about “%s”", contexts: ["selection"] });
   });
-  chrome.omnibox.setDefaultSuggestion({ description: "Ask Charcha: <match>%s</match>" });
+  chrome.omnibox.setDefaultSuggestion({ description: "Ask Wilco: <match>%s</match>" });
   void pollCaptures();
 }
 
@@ -58,7 +58,7 @@ async function loginWithGoogle() {
     body: JSON.stringify({ google_access_token: googleToken }),
   });
   const data = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(data.detail || "Charcha couldn't sign you in with Google.");
+  if (!response.ok) throw new Error(data.detail || "Wilco couldn't sign you in with Google.");
   await storeSession(data.token);
 }
 
@@ -173,10 +173,10 @@ async function runPoll() {
   } catch (error) {
     if (error instanceof ApiError && error.status === 503) return; // notetaker not configured on this server
     if (error instanceof ApiError && (error.status === 0 || error.status >= 500)) {
-      // Don't leave a stale "REC" up while Charcha can't be reached.
+      // Don't leave a stale "REC" up while Wilco can't be reached.
       await chrome.action.setBadgeBackgroundColor({ color: "#6b7280" });
       await chrome.action.setBadgeText({ text: "!" });
-      await chrome.action.setTitle({ title: "Charcha can't be reached right now. Retrying every minute." });
+      await chrome.action.setTitle({ title: "Wilco can't be reached right now. Retrying every minute." });
     }
     return;
   }
@@ -198,12 +198,12 @@ async function runPoll() {
     const name = request.title || request.meeting_code;
 
     if (request.status === "capturing") {
-      notify(`capture-${request.id}`, "Charcha is taking notes", `The notetaker is recording “${name}”.`, null);
+      notify(`capture-${request.id}`, "Wilco is taking notes", `The notetaker is recording “${name}”.`, null);
     } else if (request.status === "waiting_for_admission") {
-      notify(`admit-${request.id}`, "Admit the Charcha notetaker", `It's waiting in the lobby of “${name}”. Let it in from the call.`, request.meeting_url);
+      notify(`admit-${request.id}`, "Admit the Wilco notetaker", `It's waiting in the lobby of “${name}”. Let it in from the call.`, request.meeting_url);
     } else if (request.status === "completed" && request.meeting_id) {
       if (settings.notifyReady) {
-        notify(`ready-${request.id}`, "Meeting notes are ready", `“${name}”: transcript, summary and tasks are in Charcha.`, workspaceUrl(`/meetings/${request.meeting_id}`));
+        notify(`ready-${request.id}`, "Meeting notes are ready", `“${name}”: transcript, summary and tasks are in Wilco.`, workspaceUrl(`/meetings/${request.meeting_id}`));
       }
       if (settings.sheetsExport) void exportToSheets(request.meeting_id);
     } else if (["denied", "timed_out", "failed"].includes(request.status)) {
@@ -219,14 +219,14 @@ async function setBadge(items) {
   if (recording) {
     await chrome.action.setBadgeBackgroundColor({ color: "#dc2626" });
     await chrome.action.setBadgeText({ text: "REC" });
-    await chrome.action.setTitle({ title: "Charcha: the notetaker is recording" });
+    await chrome.action.setTitle({ title: "Wilco: the notetaker is recording" });
   } else if (pending) {
     await chrome.action.setBadgeBackgroundColor({ color: "#b7791f" });
     await chrome.action.setBadgeText({ text: String(pending) });
-    await chrome.action.setTitle({ title: "Charcha: notetaker on its way in or processing" });
+    await chrome.action.setTitle({ title: "Wilco: notetaker on its way in or processing" });
   } else {
     await chrome.action.setBadgeText({ text: "" });
-    await chrome.action.setTitle({ title: "Charcha" });
+    await chrome.action.setTitle({ title: "Wilco" });
   }
 }
 
@@ -249,7 +249,7 @@ chrome.notifications.onClicked.addListener(async (id) => {
 
 // ---------------------------------------------------------------- Google Sheets export
 
-/** Appends a finished meeting to the spreadsheet set in Charcha settings: one
+/** Appends a finished meeting to the spreadsheet set in Wilco settings: one
  * row per task on the tasks tab, one row for the meeting on the notes tab,
  * both formatted tables (src/sheets.js). Runs here because Google Sheets
  * access belongs to the person's browser sign-in. */
@@ -357,7 +357,7 @@ async function maybeAutoInvite(url, title) {
     if (captureForCode(items, code) && isLive(captureForCode(items, code))) return null;
     return await inviteNotetaker(url, title);
   } catch (error) {
-    // Charcha down or unreachable: forget this attempt so the Meet tab can
+    // Wilco down or unreachable: forget this attempt so the Meet tab can
     // retry, and say so once rather than on every retry.
     const transient = error instanceof ApiError && (error.status === 0 || error.status >= 500);
     const warnedKey = `autoInviteWarned:${code}:${day}`;
@@ -367,7 +367,7 @@ async function maybeAutoInvite(url, title) {
       if (transient) await chrome.storage.local.set({ [warnedKey]: true });
       notify(
         `auto-${code}`,
-        "Charcha couldn't send the notetaker",
+        "Wilco couldn't send the notetaker",
         transient ? `${error.message} It will keep trying while you're in the call.` : error.message,
         null,
       );
@@ -376,7 +376,7 @@ async function maybeAutoInvite(url, title) {
   }
 }
 
-// ---------------------------------------------------------------- ask Charcha
+// ---------------------------------------------------------------- ask Wilco
 
 chrome.contextMenus.onClicked.addListener((info) => {
   if (info.menuItemId === "ask-charcha" && info.selectionText) {
@@ -476,7 +476,7 @@ const handlers = {
       return {};
     }
     if (!backendUrlForDashboardOrigin(message.pageOrigin || DASHBOARD_URL)) {
-      throw new Error("This page is not a supported Charcha workspace");
+      throw new Error("This page is not a supported Wilco workspace");
     }
     await storeSession(message.token);
     return {};

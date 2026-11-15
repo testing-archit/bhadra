@@ -25,5 +25,5 @@ async def speak(request: Request, body: SpeechRequest, user: User = Depends(get_
     except ValueError as error:
         raise HTTPException(status_code=422, detail=str(error)) from error
     except Exception as error:
-        raise HTTPException(status_code=502, detail="Charcha couldn't read this aloud right now. Try again.") from error
+        raise HTTPException(status_code=502, detail="Wilco couldn't read this aloud right now. Try again.") from error
     return Response(content=audio, media_type="audio/mpeg", headers={"Cache-Control": "private, max-age=86400"})

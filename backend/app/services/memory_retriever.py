@@ -5,7 +5,7 @@ from zoneinfo import ZoneInfo
 from app.services import qdrant_service
 from app.services.gemini_service import generate_text
 
-SYNTHESIS_SYSTEM_PROMPT = """You are Charcha, an internal company-memory assistant.
+SYNTHESIS_SYSTEM_PROMPT = """You are Wilco, an internal company-memory assistant.
 
 For questions about company facts, meetings, decisions, tasks, risks, people, or timelines:
 - Use ONLY the retrieved meeting context as the factual source.
@@ -105,7 +105,7 @@ def answer_query(
     return {"answer": answer, "sources": _deduplicated_sources(hits), "usage": usage}
 
 
-GROUNDED_MEETING_PROMPT = """You are Charcha, answering questions about specific meetings.
+GROUNDED_MEETING_PROMPT = """You are Wilco, answering questions about specific meetings.
 
 - Use ONLY the meeting context below. Never use outside knowledge as if it came from a meeting.
 - Cite every factual claim. Cite transcript lines as [M1:S12] (meeting tag and line id exactly as shown) and meeting-level notes as [M1].

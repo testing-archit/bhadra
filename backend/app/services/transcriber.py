@@ -25,7 +25,7 @@ _AUTO_LID = "indic-auto"
 _LANGUAGE_MAP = {"en": "en-IN", "hi": "hi-IN", "hinglish": _AUTO_LID, "auto": _AUTO_LID}
 
 # Prisma accepts only these containers (UNSUPPORTED_AUDIO_FORMAT otherwise).
-# Everything Charcha records is WebM (Opus), so it is repackaged as Ogg:
+# Everything Wilco records is WebM (Opus), so it is repackaged as Ogg:
 # the same Opus audio in a container Prisma takes, copied, not re-encoded.
 _SUPPORTED_UPLOADS = {
     "audio/ogg": "ogg", "audio/opus": "ogg", "audio/mpeg": "mp3", "audio/mp3": "mp3",

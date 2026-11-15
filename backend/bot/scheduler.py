@@ -33,7 +33,7 @@ CALENDAR_SETTINGS = ("GOOGLE_OAUTH_CLIENT_ID", "GOOGLE_OAUTH_CLIENT_SECRET", "GO
 class Scheduler:
     def __init__(self) -> None:
         # Without calendar credentials the bot still serves "add the
-        # notetaker to this link" requests from Charcha; it just can't see
+        # notetaker to this link" requests from Wilco; it just can't see
         # calendar invites.
         self.calendar: GoogleCalendar | None = None
         if all(config._env(name) for name in CALENDAR_SETTINGS):
@@ -83,7 +83,7 @@ class Scheduler:
                     log.warning("Could not accept %s: %s", meeting.event_id, error)
 
     def dispatch_due(self) -> None:
-        """Hand invites that are about to start to Charcha's queue rather than
+        """Hand invites that are about to start to Wilco's queue rather than
         joining directly. One queue means one bot per meeting: if a
         colleague's linked calendar or a pasted link already covers this call,
         the backend just adds the organizer to that visit. The bot then picks
@@ -122,7 +122,7 @@ class Scheduler:
         log.info("Joining %r at %s (pid %d)", job.get("title"), loggable_url(job["meet_url"]), process.pid)
 
     def dispatch_capture_requests(self) -> None:
-        """Meetings someone pasted into Charcha's "Add notetaker" box. The
+        """Meetings someone pasted into Wilco's "Add notetaker" box. The
         claim call doubles as this bot's heartbeat, so it runs every tick
         even at capacity (claiming nothing)."""
         capacity = max(0, config.MAX_CONCURRENT_MEETINGS - len(self.running))

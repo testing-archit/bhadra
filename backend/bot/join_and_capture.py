@@ -8,7 +8,7 @@ Requires auth.json in this directory (see generate_auth.py). Writes the
 captured transcript to transcript_<timestamp>.json when the meeting ends,
 the bot is told to leave, or the timeout is hit.
 
-This is a standalone script, not wired into the Charcha backend yet — the
+This is a standalone script, not wired into the Wilco backend yet — the
 point is to prove the join + caption-capture technique actually works
 against the current Google Meet UI before investing in the full pipeline.
 """

@@ -36,7 +36,7 @@ Keep this file updated when a stage changes.
 | (Not in Claude) In-person conversations | `/record` in-person recorder, code-mixed speech-to-text | existing | ✅ |
 | Claude reads your data via connectors | Charcha **is** an MCP server for Claude: `search_meetings`, `get_meeting`, `list_my_tasks`, `list_decisions`, `ask_memory`, `create_task`. Token from Settings → Connect Claude | `app/mcp_server.py`, `/api/mcp` | ✅ Tested over HTTP |
 | (Not in Claude) **Charcha Live** | Hands-free spoken conversation about your meetings, like Gemini Live. Voice detection in the browser, interrupt to cut it off, replies in the detected language (11 languages) | `components/live-session.tsx`, `POST /api/live/turn`, `live_conversation.py` | ✅ Tested end to end (Hinglish 4.4 s, Tamil 10 s per turn) |
-| Live docs, whiteboards, slides | Not built | — | ⏳ Future |
+| Live docs, whiteboards, slides | "Wilco, draw …" edits a live meeting board or native shapes in a paired FigJam file (move, rename, connect, undo by voice). Docs and slides not built | `bot/board_intent.py`, `app/services/meeting_agent.py`, `board_service.py`, `figjam_service.py`, `integrations/figjam/` | ✅ Deployed; real-call FigJam acceptance pending |
 | Speaks in the call | The notetaker says its answers aloud: Timbre audio goes into a virtual microphone, unmuting only while it speaks. Questions said aloud ("Charcha, …") are picked up from captions | `meeting_session.speak`, `spoken_questions`, `POST /api/bot/speak` | ✅ Deployed, not yet heard in a real call |
 
 ## How to try each piece

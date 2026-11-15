@@ -26,3 +26,15 @@ sys.path.pop(0)
 ])
 def test_routes_only_explicit_board_requests(question, active, task, expected):
     assert board_intent(question, active, task) == expected
+
+
+@pytest.mark.parametrize('question,expected', [
+    ('draw a signup, verification and payment flow', 'edit'),
+    ('sketch the architecture', 'edit'),
+    ('map out the payment flow', 'edit'),
+    ('create a signup flow', 'open'),
+    ('make sure the flow works', None),
+    ('add a task to draw the flow', None),
+])
+def test_drawing_requests_route_to_the_board_before_one_is_open(question, expected):
+    assert board_intent(question, False) == expected

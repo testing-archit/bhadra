@@ -8,6 +8,8 @@
 
 ## 🎯 Current target (read first, 15 Nov 2026)
 
+**The product is now called Wilco** (formerly Charcha; logo in `frontend/public/wilco-*`, extension icons in `icons/`). Use "Wilco" in all user-facing text. Keep lowercase `charcha` identifiers (storage keys, env vars, the Jira `charcha` label, compose project, secrets): renaming them breaks existing sessions, Jira sync and deploys. The bot answers to both "Wilco" and "Charcha".
+
 We are entering **Gnani AI's "Great Indian AI Internship Challenge"** (https://www.gnani.ai/internship). The Scaler hackathon below is maybe-later.
 - **Deadline:** 15 Nov 2026, 18:00 IST.
 - **Requirement:** a working app built on Gnani models. Charcha uses **Prisma v3** for speech-to-text and **Timbre v2.5** for text-to-speech.

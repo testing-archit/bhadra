@@ -51,7 +51,7 @@ their profile. Meeting audio remains subject to the normal recording controls.
 The Docker image downloads the pinned model during its build. For a local
 Python server, run `python scripts/download_speaker_model.py` from `backend/`
 and install `requirements.txt`. `GET /api/voice/profile` reports whether the
-model is available. Prisma supplies anonymous speaker turns; Charcha compares
+model is available. Prisma supplies anonymous speaker turns; Wilco compares
 those turns only against enrolled, eligible meeting participants. Weak or
 ambiguous matches stay unnamed. The meeting review lets a person correct
 names; confirming their own speaker turn can improve their profile when that

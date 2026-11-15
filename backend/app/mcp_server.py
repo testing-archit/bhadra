@@ -1,4 +1,4 @@
-"""Charcha as an MCP server, so Claude (Desktop, Code, claude.ai) and other
+"""Wilco as an MCP server, so Claude (Desktop, Code, claude.ai) and other
 assistants can read a person's meetings, tasks and decisions and ask memory.
 
 Mounted inside the API at /api/mcp (streamable HTTP). Each person creates a
@@ -69,10 +69,10 @@ class ConnectorTokenVerifier:
 
 
 server = MCPServer(
-    name="Charcha",
-    title="Charcha meeting memory",
+    name="Wilco",
+    title="Wilco meeting memory",
     instructions=(
-        "Charcha holds this person's meetings: summaries, transcripts, tasks, decisions and risks, much of it in "
+        "Wilco holds this person's meetings: summaries, transcripts, tasks, decisions and risks, much of it in "
         "Hindi, English or Hinglish. Use search_meetings or list_decisions to find things, get_meeting for detail, "
         "and ask_memory for questions that span meetings. Cite meeting titles and dates in answers."
     ),
@@ -91,10 +91,10 @@ READ = ToolAnnotations(read_only_hint=True, destructive_hint=False, open_world_h
 async def _user(db) -> User:
     token = get_access_token()
     if token is None or not token.subject:
-        raise PermissionError("Not signed in to Charcha")
+        raise PermissionError("Not signed in to Wilco")
     user = await db.get(User, uuid.UUID(token.subject))
     if user is None or user.status != "active":
-        raise PermissionError("This Charcha account is not active")
+        raise PermissionError("This Wilco account is not active")
     return user
 
 
@@ -200,7 +200,7 @@ async def ask_memory(question: str) -> dict:
         user = await _user(db)
         meetings = await _recent_readable_meetings(db, user)
         if not meetings:
-            return {"answer": "There are no meetings in Charcha yet that this person can read.", "meetings": []}
+            return {"answer": "There are no meetings in Wilco yet that this person can read.", "meetings": []}
         payload = [await _meeting_payload(db, meeting) for meeting in meetings]
     result = await asyncio.to_thread(memory_retriever.answer_query_for_meetings, question, payload, [])
     return {"answer": result["answer"], "meetings": [{"title": m["title"], "date": m["date"][:10]} for m in payload]}
@@ -211,7 +211,7 @@ async def ask_memory(question: str) -> dict:
     annotations=ToolAnnotations(read_only_hint=False, destructive_hint=False, idempotent_hint=False, open_world_hint=False),
 )
 async def create_task(description: str, owner: str = "", deadline: str = "") -> dict:
-    """Adds a task to this person's Charcha task list (like adding one by hand)."""
+    """Adds a task to this person's Wilco task list (like adding one by hand)."""
     from app.routes.tasks import TaskCreate
     from app.routes.tasks import create_task as create_task_route
 

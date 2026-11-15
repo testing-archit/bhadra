@@ -152,7 +152,7 @@ PARTICIPANT_COUNT_JS = """
 # Captions this recent mean someone else is in the call (the bot never
 # speaks), whatever the participant count says.
 SPEECH_IS_COMPANY_SECONDS = 30
-# "Charcha, <question>" said aloud. Captions spell the name a few ways.
+# "Wilco, <question>" said aloud. Captions spell the name a few ways.
 WAKE_RE = re.compile(r"\b(?:hey\s+)?(?:will?\s?co|wilko|vilco|char\s?cha+|charchaa|carcha|charchya)\b[\s,:.!-]+(.+?)(?=$|\b(?:hey\s+)?(?:will?\s?co|wilko|vilco|char\s?cha+|charchaa|carcha)\b)", re.IGNORECASE)
 # A spoken question is answered once its speaker has paused this long.
 SPOKEN_QUESTION_PAUSE_SECONDS = 0.8
@@ -279,7 +279,7 @@ AVATAR_CAMERA_JS = """
   media.enumerateDevices = async () => {
     const devices = await enumerateDevices();
     if (devices.some((device) => device.kind === "videoinput")) return devices;
-    const camera = { deviceId: "charcha-avatar", groupId: "charcha", kind: "videoinput", label: "Charcha", toJSON() { return this; } };
+    const camera = { deviceId: "charcha-avatar", groupId: "charcha", kind: "videoinput", label: "Wilco", toJSON() { return this; } };
     return [...devices, camera];
   };
 })();
@@ -304,7 +304,7 @@ _LEAVE_RE = re.compile(
 
 def wants_exit(text: str) -> bool:
     """True when someone asks the notetaker to leave, however captions
-    punctuate it: the configured phrases, or notetaker/Charcha followed
+    punctuate it: the configured phrases, or notetaker/Wilco followed
     within a couple of words by "leave", "chale jao", "bye"."""
     plain = _plain(text)
     return any(_plain(phrase) in plain for phrase in config.EXIT_PHRASES) or bool(_LEAVE_RE.search(plain))
@@ -351,7 +351,7 @@ class CaptionLog:
         self.exit_requested = asyncio.Event()
         self.changed = asyncio.Event()
         # Meet block id -> (speaker, latest text, last change); read by the
-        # spoken wake word ("Charcha, ...") detector.
+        # spoken wake word ("Wilco, ...") detector.
         self.latest: dict[int, tuple[str, str, float]] = {}
 
     def heard_within(self, seconds: float) -> bool:
@@ -667,7 +667,7 @@ class MeetingSession:
             if time.monotonic() - last_stop_check > STOP_CHECK_SECONDS:
                 last_stop_check = time.monotonic()
                 if await asyncio.to_thread(self.stop_requested):
-                    raise StopRequested("Stopped from Charcha before the host admitted the notetaker")
+                    raise StopRequested("Stopped from Wilco before the host admitted the notetaker")
             await page.wait_for_timeout(2000)
         await self.shot(page, "03_lobby_timeout")
         raise AdmissionTimeout(f"Not admitted within {config.LOBBY_TIMEOUT_SECONDS // 60} minutes")
@@ -791,7 +791,7 @@ class MeetingSession:
 
     async def post_reply(self, page: Page, reply: str | None, kind: str) -> None:
         if not reply:
-            log.warning("No %s reply came back from Charcha", kind)
+            log.warning("No %s reply came back from Wilco", kind)
             return
         self.chat.remember_sent(reply)
         sent = await meet_chat.send(page, reply)
@@ -801,23 +801,34 @@ class MeetingSession:
         await self.shot(page, f"06_chat_{kind}_{self.replies}")
 
     def spoken_questions(self) -> list[tuple[str, str]]:
-        """(speaker, question) for each "Charcha, ..." said aloud, once the
+        """(speaker, question) for each "Wilco, ..." said aloud, once the
         speaker has paused, so the whole question is in the captions."""
         found = []
         handled = getattr(self, "_spoken_handled", set())
         self._spoken_handled = handled
+        # Meet trims the start of long caption blocks and revises words, so a
+        # character offset alone shifts and re-fires the same command. Also
+        # remember each block's handled questions by their text.
+        asked = getattr(self, "_spoken_asked", {})
+        self._spoken_asked = asked
         now = time.monotonic()
         for block_id, (speaker, text, changed) in list(self.captions.latest.items()):
-            if speaker.strip().lower() in {"you", config.BOT_DISPLAY_NAME.lower()}:
+            if speaker.strip().lower() in {"you", config.BOT_DISPLAY_NAME.lower(), "charcha notetaker", "wilco notetaker", "wilco"}:
                 continue  # the notetaker's own voice
             for match in WAKE_RE.finditer(text):
                 question = re.split(r"(?<=[.!?])\s", match.group(1).strip())[0].strip(" ,.?!")
-                if now - changed < SPOKEN_QUESTION_PAUSE_SECONDS and normalize(question) not in CONTROL_COMMANDS:
+                plain = normalize(question)
+                if now - changed < SPOKEN_QUESTION_PAUSE_SECONDS and plain not in CONTROL_COMMANDS:
                     continue
                 key = (block_id, match.start())
                 if key in handled or len(question) < 4:
                     continue
                 handled.add(key)
+                earlier = asked.setdefault(block_id, [])
+                # Same words (offset shifted), or the same request still growing.
+                if any(plain == seen or plain.startswith(seen) or seen.startswith(plain) for seen in earlier):
+                    continue
+                earlier.append(plain)
                 if wants_exit(f"charcha {question}"):
                     continue
                 found.append((speaker, question))
@@ -950,6 +961,15 @@ class MeetingSession:
                         results = await asyncio.wait_for(asyncio.gather(*(
                             self._agent.cancel(identifier) for identifier in dict.fromkeys(identifiers))), timeout=3)
                         message = "That request already finished; its changes were kept." if all(row['state'] == 'succeeded' for row in results) else "Stopped the request. Completed changes were kept."
+                        # This reply already reports the cancellation; don't post
+                        # the job's own "Stopped this request" again from the results loop.
+                        for row in results:
+                            if row['state'] == 'cancelled':
+                                try:
+                                    await self._agent.delivered(row['command_id'])
+                                    self._pending_commands.pop(row['command_id'], None)
+                                except Exception:
+                                    pass
                     except Exception:
                         message = "Stopped speaking. I couldn't confirm task cancellation; say ‘status’ to check."
                 else:
@@ -1147,7 +1167,7 @@ class MeetingSession:
             if time.monotonic() - last_stop_check > STOP_CHECK_SECONDS:
                 last_stop_check = time.monotonic()
                 if await asyncio.to_thread(self.stop_requested):
-                    return "stopped from Charcha"
+                    return "stopped from Wilco"
             if self.captions.exit_requested.is_set():
                 return "asked to leave"
             if time.monotonic() > hard_stop():
@@ -1429,7 +1449,7 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--job", type=Path, help="Job JSON written by the scheduler")
     parser.add_argument("--url", help="Join this Meet or Teams link directly (ad hoc)")
-    parser.add_argument("--organizer", help="Ad hoc only: Charcha email to file the meeting under")
+    parser.add_argument("--organizer", help="Ad hoc only: Wilco email to file the meeting under")
     args = parser.parse_args()
     if args.job:
         job = json.loads(args.job.read_text(encoding="utf-8"))
@@ -1457,7 +1477,7 @@ def main() -> int:
     except StopRequested as error:
         log.info("%s", error)
         # Never got in, so there's no recording to wait for: "stopped" would
-        # leave Charcha showing "processing the recording" until it times out.
+        # leave Wilco showing "processing the recording" until it times out.
         session.report("cancelled", str(error))
     except MeetingUnavailable as error:
         log.warning("Meeting unavailable: %s", error)

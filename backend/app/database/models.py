@@ -115,8 +115,8 @@ class Meeting(Base):
     # evicted mid-request and re-run finalize five minutes later — resolves to
     # the meeting that was already created instead of duplicating it.
     client_meeting_id: Mapped[str | None] = mapped_column(String)
-    # The calendar organizer, when they have a Charcha account. Together with
-    # the owner (user_id) and Charcha admins, they decide who else may read it.
+    # The calendar organizer, when they have a Wilco account. Together with
+    # the owner (user_id) and Wilco admins, they decide who else may read it.
     organizer_user_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL")
     )
@@ -331,7 +331,7 @@ class TaskComment(Base):
     # and for ones written in Jira the Jira author's name.
     jira_comment_id: Mapped[str | None] = mapped_column(String, unique=True)
     author_name: Mapped[str | None] = mapped_column(String)
-    source: Mapped[str | None] = mapped_column(String)  # None (Charcha) | "jira"
+    source: Mapped[str | None] = mapped_column(String)  # None (Wilco) | "jira"
     created_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), server_default=func.now())
 
 
@@ -346,7 +346,7 @@ class TaskHistory(Base):
     field: Mapped[str] = mapped_column(String, nullable=False)
     old_value: Mapped[str | None] = mapped_column(Text)
     new_value: Mapped[str | None] = mapped_column(Text)
-    # None for a Charcha user's edit; "jira" when the Jira sync changed it.
+    # None for a Wilco user's edit; "jira" when the Jira sync changed it.
     source: Mapped[str | None] = mapped_column(String)
     changed_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), server_default=func.now())
 
@@ -474,7 +474,7 @@ class RecordingSession(Base):
     language: Mapped[str] = mapped_column(String, nullable=False, default="hinglish")
     participants: Mapped[list[str] | None] = mapped_column(ARRAY(String))
     # Structured form of `participants`: one entry per attendee, carrying the
-    # Charcha user_id when the attendee has an account and NULL when they are an
+    # Wilco user_id when the attendee has an account and NULL when they are an
     # external guest. `participants` keeps only display names, which is all the
     # speaker-count and PDF code needs; this is what becomes MeetingAttendee
     # rows once the recording is linked to a meeting.
@@ -589,9 +589,9 @@ class MeetingAttendee(Base):
     meeting) is what grants a user visibility of the meeting and everything
     derived from it. Two kinds of row live in this table:
 
-    * internal — `user_id` points at a Charcha account. These grant access.
+    * internal — `user_id` points at a Wilco account. These grant access.
     * external — `user_id` is NULL. A guest, client, or vendor who was in the
-      room but has no Charcha login. Recorded for the meeting record only;
+      room but has no Wilco login. Recorded for the meeting record only;
       they can never sign in, so they grant nothing.
     """
 
@@ -610,7 +610,7 @@ class MeetingAttendee(Base):
     display_name: Mapped[str] = mapped_column(String, nullable=False)
     email: Mapped[str | None] = mapped_column(String)
     # "internal" | "external" — derivable from user_id, stored explicitly so an
-    # external guest who later gets a Charcha account is not silently upgraded.
+    # external guest who later gets a Wilco account is not silently upgraded.
     kind: Mapped[str] = mapped_column(String, nullable=False, server_default="internal")
     # "manual" | "meet" | "recorder" — where this attendee came from, so a
     # name auto-matched from Google Meet captions can be told apart from one a
@@ -619,10 +619,10 @@ class MeetingAttendee(Base):
     # "granted" | "pending". Only granted rows let a colleague read the
     # meeting. People the notetaker saw in the call who were not on the
     # invite are recorded as "pending" until the meeting's organizer or a
-    # Charcha admin shares it with them — see attendee_service.
+    # Wilco admin shares it with them — see attendee_service.
     access: Mapped[str] = mapped_column(String, nullable=False, server_default="granted")
     # When the recorder, organizer or an admin deliberately shared the meeting
-    # with this person in Charcha (share, grant, or the attendee editor) — not
+    # with this person in Wilco (share, grant, or the attendee editor) — not
     # set by a calendar invite or by being heard in the call. Someone outside
     # INTERNAL_EMAIL_DOMAINS is only emailed about the meeting once it's set.
     shared_at: Mapped[datetime | None] = mapped_column(TIMESTAMP(timezone=True))
@@ -720,7 +720,7 @@ class TermCorrection(Base):
 
 
 class KnownPerson(Base):
-    """Someone without a Charcha account whose name transcription should get
+    """Someone without a Wilco account whose name transcription should get
     right — a client, vendor or regular guest (Vocabulary → Teammates).
     Accounts need no row here: their names are used automatically."""
 
@@ -736,7 +736,7 @@ class KnownPerson(Base):
 
 
 class TermSuggestion(Base):
-    """A probable mishearing Charcha noticed on its own (vocabulary_service.
+    """A probable mishearing Wilco noticed on its own (vocabulary_service.
     learn_from_meeting): a word in a transcript that sounds like an invitee's
     name but isn't spelled like it, optionally backed by Meet's captions.
     Someone accepts or dismisses it on the Vocabulary page; heard in enough
@@ -898,7 +898,7 @@ class CaptureRequest(Base):
     scheduled_start: Mapped[datetime | None] = mapped_column(TIMESTAMP(timezone=True))
     scheduled_end: Mapped[datetime | None] = mapped_column(TIMESTAMP(timezone=True))
     series_key: Mapped[str | None] = mapped_column(String)
-    # Tasks someone added from the call's chat ("Charcha, add task: ..."),
+    # Tasks someone added from the call's chat ("Wilco, add task: ..."),
     # held here until the meeting exists, then created as origin="live".
     live_tasks: Mapped[list | None] = mapped_column(JSONB)
     created_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), server_default=func.now())
@@ -1052,7 +1052,7 @@ class AiUsageEvent(Base):
 
 
 class EmailOutbox(Base):
-    """Every email Charcha sends, queued in the same transaction as the event
+    """Every email Wilco sends, queued in the same transaction as the event
     that caused it and sent by email_service's loop. Rendered at send time, so
     it reflects the latest data and the person's current preferences."""
 
@@ -1114,12 +1114,12 @@ class JiraConnection(Base):
     refresh_token_encrypted: Mapped[str | None] = mapped_column(Text)
     access_token_encrypted: Mapped[str | None] = mapped_column(Text)
     access_token_expires_at: Mapped[datetime | None] = mapped_column(TIMESTAMP(timezone=True))
-    # Jira project key for tasks whose Charcha project isn't mapped. Empty
+    # Jira project key for tasks whose Wilco project isn't mapped. Empty
     # right after Connect with Jira, until an admin picks one.
     default_project_key: Mapped[str | None] = mapped_column(String)
     # {charcha project id: Jira project key}
     project_map: Mapped[dict] = mapped_column(JSONB, nullable=False, server_default=text("'{}'::jsonb"))
-    # When meeting notes are ready: "off" | "mapped" (tasks in a mapped Charcha
+    # When meeting notes are ready: "off" | "mapped" (tasks in a mapped Wilco
     # project) | "all" — send the open tasks to Jira without a click.
     auto_send: Mapped[str] = mapped_column(String, nullable=False, server_default="off")
     account_name: Mapped[str | None] = mapped_column(String)
@@ -1133,7 +1133,7 @@ class JiraConnection(Base):
 
 
 class JiraUserLink(Base):
-    """Which Jira user a Charcha person is, for assignees and comment authors.
+    """Which Jira user a Wilco person is, for assignees and comment authors.
     Jira Free usually hides emails, so links are matched by email or exact
     display name ("auto") and an admin can set or clear them ("manual"); a
     manual link is never overwritten by auto-matching."""

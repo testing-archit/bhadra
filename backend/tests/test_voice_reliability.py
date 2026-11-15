@@ -74,3 +74,36 @@ async def test_browser_playback_cancellation_stops_the_isolated_microphone(tmp_p
     await asyncio.wait_for(ready.wait(), 1)
     task.cancel(); await asyncio.gather(task, return_exceptions=True)
     assert 'window.__wilcoMic?.stop()' in page.calls
+
+
+def test_command_is_not_repeated_when_meet_trims_the_caption_block(tmp_path, monkeypatch):
+    monkeypatch.setattr(meeting_session.config, 'SESSIONS_DIR', tmp_path)
+    monkeypatch.setattr(meeting_session.time, 'monotonic', lambda: 10)
+    session = meeting_session.MeetingSession({})
+    session.captions.latest[1] = ('Ravi', 'so as I said Wilco draw signup and payment', 8)
+    assert session.spoken_questions() == [('Ravi', 'draw signup and payment')]
+    # Meet scrolls the start of a long block away: the offset changes, the words don't.
+    session.captions.latest[1] = ('Ravi', 'said Wilco draw signup and payment', 8)
+    assert session.spoken_questions() == []
+    # The same request continuing after a pause is not a second command.
+    session.captions.latest[1] = ('Ravi', 'said Wilco draw signup and payment flow', 8)
+    assert session.spoken_questions() == []
+
+
+async def test_cancel_reports_once_and_marks_the_cancelled_job_delivered(tmp_path, monkeypatch):
+    monkeypatch.setattr(meeting_session.config, 'SESSIONS_DIR', tmp_path)
+    session = meeting_session.MeetingSession({'capture_request_id': 'test'})
+    sent = []
+    async def send(page, message):
+        sent.append(message)
+        return True
+    session.send_agent_message = send
+    job = '11111111-1111-1111-1111-111111111111'
+    session._pending_commands[job] = meeting_session.Command('', 'draw the flow', id=job)
+    agent = AsyncMock()
+    agent.cancel.return_value = {'command_id': job, 'state': 'cancelled'}
+    session._agent = agent
+    assert await session.handle_control(None, meeting_session.Command('', 'cancel that'))
+    assert sent == ['Stopped the request. Completed changes were kept.']
+    agent.delivered.assert_awaited_once_with(job)
+    assert job not in session._pending_commands

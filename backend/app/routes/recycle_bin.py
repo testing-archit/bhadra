@@ -148,7 +148,7 @@ async def restore_item(
     if item_type == "meeting" and not await user_can_manage_meeting_access(db, user, item):
         raise HTTPException(
             status_code=403,
-            detail="Only the meeting's organizer, the person who recorded it, or a Charcha admin can restore it",
+            detail="Only the meeting's organizer, the person who recorded it, or a Wilco admin can restore it",
         )
     if item_type in {"task", "decision", "risk"}:
         meeting = await db.get(Meeting, item.meeting_id)
@@ -181,7 +181,7 @@ async def permanently_delete_item(
         if not await user_can_manage_meeting_access(db, user, item):
             raise HTTPException(
                 status_code=403,
-                detail="Only the meeting's organizer, the person who recorded it, or a Charcha admin can delete it",
+                detail="Only the meeting's organizer, the person who recorded it, or a Wilco admin can delete it",
             )
         await asyncio.to_thread(qdrant_service.delete_meeting, str(item.id))
         await db.execute(update(Trace).where(Trace.meeting_id == item.id).values(meeting_id=None))

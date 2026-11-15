@@ -175,7 +175,7 @@ async def expire_unclaimed(db: AsyncSession, *, throttle: bool = False) -> None:
         .where(CaptureRequest.status == "stopped", CaptureRequest.updated_at < _now() - STOPPED_TIMEOUT)
         .values(
             status="failed",
-            status_detail="The notetaker left, but its recording never reached Charcha, so there are no notes.",
+            status_detail="The notetaker left, but its recording never reached Wilco, so there are no notes.",
             updated_at=_now(),
         )
     )
