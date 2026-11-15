@@ -39,3 +39,15 @@ def test_empty_meeting_ids_short_circuits_without_calling_qdrant(mock_search, mo
 
     mock_search.assert_not_called()
     assert result["sources"] == []
+
+
+@patch("app.services.memory_retriever._synthesize_grounded")
+def test_grouped_citations_validate_each_reference_and_keep_timed_evidence(synthesize):
+    synthesize.return_value = ("Atomic writes [M1, M1:S2, M99:S1, M1:S999].", _usage())
+    result = memory_retriever.answer_query_for_meetings("Why PostgreSQL?", [{
+        "id": "ledger", "title": "Billing ADR", "date": "2026-10-01", "summary": "Atomic writes",
+        "segments": [{"id": "line-two", "seq": 2, "start_ms": 1200, "speaker": "Riya", "text": "Atomic writes prevent duplicate invoices."}],
+    }])
+    assert "[M1]" in result["answer"] and "[M1:S2]" in result["answer"]
+    assert "M99" not in result["answer"] and "S999" not in result["answer"]
+    assert result["sources"][0]["segments"][0]["segment_id"] == "line-two"

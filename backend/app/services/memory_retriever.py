@@ -116,6 +116,7 @@ GROUNDED_MEETING_PROMPT = """You are Wilco, answering questions about specific m
 - For greetings or questions about the conversation itself, reply naturally without citations.
 Use concise markdown. Lead with the direct answer."""
 
+_CITATION_GROUP_RE = re.compile(r"\[((?:M\d+(?::S\d+)?)(?:\s*,\s*M\d+(?::S\d+)?)+)\]")
 _CITATION_RE = re.compile(r"\[M(\d+)(?::S(\d+))?\]")
 TOTAL_TRANSCRIPT_BUDGET = 240_000
 _WORD_RE = re.compile(r"[\w']+")
@@ -215,6 +216,8 @@ def answer_query_for_meetings(
             )
         return match.group(0)
 
+    # Providers sometimes group refs: [M1, M1:S2]. Validate each separately.
+    answer = _CITATION_GROUP_RE.sub(lambda match: " ".join(f"[{ref.strip()}]" for ref in match.group(1).split(",")), answer)
     answer = _CITATION_RE.sub(keep, answer)
     indexes = sorted(cited) or list(range(1, len(meetings) + 1))
     sources = [
