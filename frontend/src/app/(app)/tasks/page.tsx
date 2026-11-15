@@ -52,6 +52,7 @@ import { TaskEditDialog, type EditableTask } from "@/components/task-edit-dialog
 import { DeleteConfirmationDialog } from "@/components/delete-confirmation-dialog";
 import { VerificationBadge } from "@/components/verification-badge";
 import { JiraTaskButton, useJiraStatus } from "@/components/jira-task-button";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { TaskWorkspace, TaskWaitingStrip, type TaskQuickUpdate } from "@/components/task-workspace";
 import "../../signal-work.css";
 
@@ -154,7 +155,7 @@ export default function TasksPage() {
     const urlScope = params.get("scope");
     if (urlScope && SCOPES.some((item) => item.value === urlScope)) setScope(urlScope as Scope);
     else if (params.get("owner") === "all") setScope("all");
-    if (params.get("due") === "overdue") setDueFilter("overdue");
+    if (DUE_BUCKETS.some(bucket=>bucket.value===params.get("due"))) setDueFilter(params.get("due") as DueBucket);
     if (params.get("new") === "1") setAddingTask(true);
     try {
       setNotDuplicates(new Set(JSON.parse(readStorage(DISMISSED_KEY) ?? "[]") as string[]));
@@ -278,6 +279,7 @@ export default function TasksPage() {
   async function updateQuickTask(task: TaskListItem, fields: TaskQuickUpdate) {
     // Commit after success so a rejected action keeps the current card in place.
     const updated = await api.updateTask(task.id, fields);
+    window.dispatchEvent(new Event("wilco:tasks-changed"));
     patchTasks({ ...updated, ...(fields.owner !== undefined ? { mine: undefined, delegated: undefined } : {}) });
     if (fields.owner !== undefined) {
       // Ownership affects both Mine and Waiting; refresh the server-computed relationship.
@@ -447,37 +449,16 @@ export default function TasksPage() {
   const scopeInfo = SCOPES.find((item) => item.value === scope)!;
 
   return (
-    <div className="signal-work flex flex-col gap-4">
-      <div className="signal-work-intro">
-        <span className="signal-work-kicker">From conversation to delivery</span>
-        <header className="flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <h1 className="leading-tight font-bold">Tasks</h1>
-            <p className="mt-2 max-w-xl text-sm">Keep owners, deadlines, and release follow-ups moving in one place.</p>
-          </div>
-          <Button variant="brand" onClick={() => setAddingTask(true)}><Plus data-icon="inline-start" /> Add task</Button>
-        </header>
-      </div>
+    <div className="engagement-tasks flex flex-col gap-5">
+      <header className="tasks-page-heading"><h1 className="two-tone">Tasks<span> · {tasks?`${tasks.filter(task=>mineOf(task)&&task.status!=="done").length} yours, ${tasks.filter(task=>task.delegated&&task.status!=="done").length} waiting`:"Your next move."}</span></h1><Button onClick={()=>setAddingTask(true)}><Plus data-icon="inline-start"/>Add task</Button></header>
 
       <div className="signal-work-toolbar grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-2 sm:flex sm:flex-wrap">
-        <label className="flex min-w-0 items-center gap-2">
-          <span className="sr-only">Whose tasks</span>
-          <select aria-label="Whose tasks" value={scope} onChange={(event) => changeScope(event.target.value as Scope)} className={cn(selectClass, "max-w-full")}>
-            {SCOPES.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
-          </select>
-        </label>
+        <ToggleGroup value={[scope]} onValueChange={values=>{if(values[0])changeScope(values[0] as Scope);}} aria-label="Whose tasks" className="task-scope"><ToggleGroupItem value="mine">Mine</ToggleGroupItem><ToggleGroupItem value="waiting" aria-label="Waiting on others">Waiting</ToggleGroupItem><ToggleGroupItem value="unassigned">Unassigned</ToggleGroupItem><ToggleGroupItem value="all">Everyone</ToggleGroupItem></ToggleGroup>
         <div className="relative order-last col-span-3 sm:order-none sm:ml-auto sm:w-60">
           <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
           <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Find a task" className="pl-9" aria-label="Search tasks" />
         </div>
-        <label className="flex items-center gap-2">
-          <span className="sr-only">Layout</span>
-          <select aria-label="Layout" value={view} onChange={(event) => changeView(event.target.value as View)} className={selectClass}>
-            <option value="workspace">Flow</option>
-            <option value="list">List</option>
-            <option value="board">Board</option>
-          </select>
-        </label>
+        <ToggleGroup value={[view==="board"?"board":"workspace"]} onValueChange={values=>{if(values[0])changeView(values[0] as View);}} aria-label="Layout"><ToggleGroupItem value="workspace">List</ToggleGroupItem><ToggleGroupItem value="board">Board</ToggleGroupItem></ToggleGroup>
         <Button variant="outline" aria-expanded={showFilters} aria-controls="task-filters" onClick={() => setShowFilters(!showFilters)}>
           <SlidersHorizontal data-icon="inline-start" /> Filters{filtersActive ? " · on" : ""}
         </Button>
@@ -525,6 +506,7 @@ export default function TasksPage() {
           )}
         </div>
 
+        <Button variant="ghost" onClick={()=>changeView("list")}>Table</Button>
         <Button className="mt-3" variant="ghost" onClick={exportCsv} disabled={!filtered?.length}><Download data-icon="inline-start" /> Export CSV</Button>
       </div>
       {notice && (
@@ -558,8 +540,10 @@ export default function TasksPage() {
       )}
 
       {view === "workspace" && filtered && (
-        <TaskWorkspace
+        <div className="task-work-columns"><TaskWorkspace
           key={scope}
+          jira={jira}
+          onJiraSent={(id,key,status)=>patchTasks({id,jira_issue_key:key,jira_status:status})}
           tasks={filtered}
           completedCount={(inScope ?? []).filter((task) => task.status === "done").length}
           showingCompleted={statusFilter === "done"}
@@ -572,10 +556,7 @@ export default function TasksPage() {
           filtered={filtersActive}
           onClearFilters={clearFilters}
         />
-      )}
-
-      {view === "workspace" && tasks && scope === "mine" && (
-        <TaskWaitingStrip tasks={tasks.filter((task) => task.delegated && task.status !== "done")} onOwner={(owner) => { changeScope("waiting"); setOwnerFilter(owner); }} onAll={() => changeScope("waiting")} />
+        <TaskWaitingStrip tasks={(tasks??[]).filter(task=>task.delegated&&task.status!=="done")} onOwner={owner=>{changeScope("waiting");setOwnerFilter(owner);}} onAll={()=>changeScope("waiting")}/></div>
       )}
 
       {view === "list" && filtered && filtered.length > 0 && (
