@@ -36,6 +36,22 @@ async def main():
             'message':str(error.message).replace(settings.gemini_api_key, '[REDACTED]')[:1500]}))
     except Exception as error:
         print(json.dumps({'fast_model_probe': 'failed', 'error_type':type(error).__name__}))
+    for budget in (None, 0):
+        try:
+            reply, _ = gemini_service.generate_text('Reply with Ready.', 'Say Ready.', max_output_tokens=128,
+                model=settings.gemini_fast_model, thinking_budget=budget, temperature=None,
+                timeout_seconds=15, feature='voice_release_model_compatibility')
+            print(json.dumps({'fast_text_probe': 'ok', 'thinking_budget':budget, 'reply_present':bool(reply)}))
+        except APIError as error:
+            print(json.dumps({'fast_text_probe':'provider_error', 'thinking_budget':budget,'code':error.code,
+                'message':str(error.message).replace(settings.gemini_api_key,'[REDACTED]')[:1000]}))
+    try:
+        provider = gemini_service._client(15)
+        names = [entry.name for entry in provider.models.list() if 'flash' in entry.name and ('lite' in entry.name or '3.' in entry.name)][:20]
+        provider.close()
+        print(json.dumps({'available_flash_models':names}))
+    except Exception as error:
+        print(json.dumps({'model_catalog_error':type(error).__name__}))
     async with async_session() as db:
         jobs = (await db.scalars(select(MeetingAgentJob).order_by(MeetingAgentJob.created_at.desc()).limit(15))).all()
         for job in jobs:
