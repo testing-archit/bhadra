@@ -25,13 +25,18 @@ The loop is: **Prisma hears, Gemini thinks, Timbre speaks.**
   - **"Wilco, draw a signup, verification and payment flow"** draws on a live meeting whiteboard, or as native shapes in your own **FigJam** file through the Wilco plugin ([docs/voice-figjam-reliability.md](docs/voice-figjam-reliability.md)). Move, rename, connect, remove and "undo that" work by voice too.
   - **"Wilco recap"** gives the key points, decisions and action items so far. **"Wilco, add task: Vedant to send the invoice by Friday"** creates a real task.
   - Requests run as durable jobs with progress messages. "Status", "cancel that" and "stop speaking" control them, and "Wilco, please leave" sends the bot out.
-- **Wilco Live: talk to your meetings, like Gemini Live, built on Gnani.** Tap once and talk, in Hindi, English, Hinglish or 8 more Indian languages. An audio-reactive mascot listens, answers from your meetings in your language, and stops when you interrupt.
+- **AI stand-in for an absent teammate.** Record your voice once (opt-in), brief your stand-in, and send it to a call you'll miss: it plays your update in an AI copy of your voice and answers "Wilco, ask Vedant, …" only from your briefing, always disclosed as AI, and reports every question back to you (Gnani Timbre voice cloning).
+- **Voice khata for shops.** "Gupta ji ne 500 ka atta udhaar liya" becomes a ledger entry; balances per customer; polite reminders in the customer's language as WhatsApp text or a Timbre voice note; ask "Gupta ji ka kitna baaki hai?" out loud.
+- **Built on Gnani page** (`/gnani`): try Prisma, Timbre v2.5/v3 and voice cloning live; see where each model runs.
+- **Try the demo, no sign-up:** a private sample workspace (kirana, Tanglish distributor call, ASHA intake) from the login page.
+- **Wilco Live: talk to your meetings, built on Gnani.** Tap once and talk, in Hindi, English, Hinglish or 8 more Indian languages. An audio-reactive mascot listens, answers from your meetings in your language, and stops when you interrupt.
 - **Ask by voice, hear the answer.** Ask "Sharma ji ka kitna udhaar baaki hai?" and get an answer from your meetings, with line-level citations, read aloud.
 - **Notes that hold up.** Summaries, tasks with owners and due dates, decisions with reasons and rejected alternatives, reversals and risks, each backed by a quote from the transcript. A guided review lets you confirm them quickly.
 - **Follow-through.** Home shows what needs you today, task cards and focus mode keep owners moving, and stand-up digests track blockers across a series.
 - **In-person recorder** for shops, field visits and gram sabhas, recording in 5-minute segments that survive patchy networks.
 - **Claude connector (MCP).** Claude Desktop, Claude Code or claude.ai can search your meetings, read tasks and decisions, ask memory and add tasks: Settings → Connect Claude.
 - **Privacy by default.** Only the people in a meeting can read it, confidential meetings stay closed even to admins, and live answers in a call never reveal company memory to guests.
+- Notes can be heard in 11 Indian languages and sent on WhatsApp as text or a voice note.
 - Also included: Jira two-way sync, Google Calendar auto-join, pre-meeting briefs, Google Sheets export, a policy assistant, consent-based voice enrolment for speaker names, and learned name corrections for Indian names.
 
 ## Screenshots
