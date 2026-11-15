@@ -103,7 +103,11 @@ def generate_structured(
                 config=types.GenerateContentConfig(
                     system_instruction=system_instruction,
                     response_mime_type="application/json",
-                    response_schema=schema,
+                    # The SDK's legacy OpenAPI Schema serializer emits nested
+                    # additional_properties for Pydantic extra='forbid', which
+                    # the API rejects. Send JSON Schema directly and retain
+                    # Pydantic validation below, including forbidden fields.
+                    response_json_schema=schema.model_json_schema(),
                     max_output_tokens=budget,
                     temperature=0.1,
                     thinking_config=types.ThinkingConfig(thinking_budget=thinking_budget) if thinking_budget is not None else None,

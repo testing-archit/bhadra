@@ -21,7 +21,7 @@ on:
   workflow_dispatch:
     inputs:
       diagnostics_only:
-        description: "Read sanitized deployment and agent diagnostics without deploying"
+        description: "Check live services and run a synthetic model probe without deploying"
         type: boolean
         default: false
       no_cache:
@@ -68,15 +68,7 @@ jobs:
           from google.genai.errors import APIError
           import asyncio
           import inspect
-          from types import SimpleNamespace
           print({"model": settings.gemini_model, "model_key_configured": bool(settings.gemini_api_key), "public_app_url_configured": bool(settings.public_app_url), "structured_generation_options": list(inspect.signature(gemini_service.generate_structured).parameters)})
-          original_config = gemini_service.types.GenerateContentConfig
-          def json_schema_config(**kwargs):
-              schema = kwargs.pop('response_schema', None)
-              if schema is not None:
-                  kwargs['response_json_schema'] = schema.model_json_schema()
-              return original_config(**kwargs)
-          gemini_service.types = SimpleNamespace(GenerateContentConfig=json_schema_config, ThinkingConfig=gemini_service.types.ThinkingConfig)
           async def probe():
               try:
                   plan, _ = gemini_service.generate_structured(
