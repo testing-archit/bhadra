@@ -14,16 +14,17 @@ export function meetingMarks(meeting: Pick<MeetingDetail, "tasks" | "decisions" 
     }).sort((a,b)=>a.at_ms-b.at_ms);
 }
 
-export function DebriefStrip({ segments, marks=[], duration_ms, variant="sheet", size="md", selectedId, onMarkClick }: {
+export function DebriefStrip({ segments, marks=[], duration_ms, variant="sheet", size="md", selectedId, onMarkClick, playback, buckets }: {
   segments: StripSegment[]; marks?: DebriefMark[]; duration_ms: number;
   variant?: "ink" | "sheet"; size?: "sm" | "md" | "lg"; selectedId?: string | null;
   onMarkClick?: (mark: DebriefMark) => void;
+  playback?:number; buckets?:number;
 }) {
-  const strip=buildStrip(segments,marks,duration_ms,size==="sm"?40:size==="md"?64:120);
+  const strip=buildStrip(segments,marks,duration_ms,buckets??(size==="sm"?40:size==="md"?64:120));
   if(!strip) return null;
   return <div className={cn("debrief-strip",`debrief-${variant}`,`debrief-${size}`)}>
     <div className="debrief-track">
-      <div className="debrief-bars" aria-hidden="true">{strip.bars.map((height,index)=><i key={index} style={{height:`${height*100}%`}}/>)}</div>
+      <div className="debrief-bars" aria-hidden="true">{strip.bars.map((height,index)=><i key={index} data-played={playback!==undefined&&index/strip.bars.length<=playback} style={{height:`${height*100}%`}}/>)}</div>
       {strip.marks.map(mark=>onMarkClick ? <button key={mark.id} className="debrief-tick" style={{left:`${mark.position}%`}} aria-label={`${formatMoment(mark.at_ms)} ${mark.kind}: ${mark.label}`} aria-pressed={selectedId===mark.id} onClick={()=>onMarkClick(mark)}/> : <i key={mark.id} className="debrief-tick" aria-hidden="true" style={{left:`${mark.position}%`}}/>) }
     </div>
     {size==="lg"&&<><div className="debrief-axis" aria-hidden="true"><span>00:00</span><span>{formatMoment(duration_ms/2)}</span><span>{formatMoment(duration_ms)}</span></div><ul className="debrief-mark-list" aria-label="Meeting moments">{strip.marks.map(mark=><li key={mark.id}><button onClick={()=>onMarkClick?.(mark)} aria-pressed={selectedId===mark.id}><time>{formatMoment(mark.at_ms)}</time><span>{mark.kind}</span>{mark.label}</button></li>)}</ul></>}

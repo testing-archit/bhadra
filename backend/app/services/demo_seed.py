@@ -272,6 +272,34 @@ def _decision(meeting_id, project_id, entry, speakers) -> Decision:
 
 
 
+def build_demo_turns(spec, who):
+    """One authored conversation shared by database seeding and public previews."""
+    turns = []
+    for line in spec["transcript"].splitlines():
+        speaker, _, text = line.partition(":")
+        speaker = who("me")[0] if speaker == "Archit" else who("mate")[0] if speaker == "Vedant" else speaker
+        if text.strip(): turns.append((speaker, text.strip()))
+    task_turns, decision_turns, risk_turns = [], [], []
+    lead = who("me")[0]
+    for entry in spec["decisions"]:
+        text, reason, *rest = entry
+        alternatives = (rest[0] if rest else []) or []
+        decision_turns.append(len(turns))
+        turns.append((lead, f"Decision: {text}. Reason: {reason}." + (" Considered: " + "; ".join(alternatives) + "." if alternatives else "")))
+    turns.append((lead, "Final action owners and calendar dates replace the relative dates mentioned earlier. These are the agreed follow-ups."))
+    for key, text, due, priority, status in spec["tasks"]:
+        name, _ = who(key)
+        task_turns.append(len(turns))
+        turns.append((name or lead, f"Action: {text}. Owner: {name or 'not yet assigned'}. Due: {days(due).isoformat() if due is not None else 'not agreed'}. Status: {status.replace('_', ' ')}."))
+    for text, severity in spec["risks"]:
+        risk_turns.append(len(turns))
+        turns.append(("Sam", f"Risk to watch: {text}. Severity: {severity}."))
+    questions = spec.get("questions") or ["What evidence will confirm the remaining release checks are complete?"]
+    turns.extend(("Riya", f"Open question: {question}") for question in questions)
+    turns.append((lead, "These notes are a synthetic software-team scenario for the demo. No customer account, external ticket or email was created."))
+    return turns, task_turns, decision_turns, risk_turns, questions
+
+
 async def seed_workspace(db, owner: User, mate: User | None = None, skip: set[int] | None = None,
                          mate_name: str = "Vedant Moghe") -> dict:
     """Adds the demo meetings to `owner`'s workspace (and `mate`'s, if given).
@@ -324,29 +352,7 @@ async def seed_workspace(db, owner: User, mate: User | None = None, skip: set[in
             ))
         # Illustrative timings belong to authored synthetic turns, never to a
         # recording/provider. The UI reads these stored segments, not random bars.
-        turns = []
-        for line in spec["transcript"].splitlines():
-            speaker, _, text = line.partition(":")
-            speaker = who("me")[0] if speaker == "Archit" else who("mate")[0] if speaker == "Vedant" else speaker
-            if text.strip(): turns.append((speaker, text.strip()))
-        task_turns, decision_turns, risk_turns = [], [], []
-        lead = who("me")[0]
-        for entry in spec["decisions"]:
-            text, reason, *rest = entry
-            alternatives = (rest[0] if rest else []) or []
-            decision_turns.append(len(turns))
-            turns.append((lead, f"Decision: {text}. Reason: {reason}." + (" Considered: " + "; ".join(alternatives) + "." if alternatives else "")))
-        turns.append((lead, "Final action owners and calendar dates replace the relative dates mentioned earlier. These are the agreed follow-ups."))
-        for key, text, due, priority, status in spec["tasks"]:
-            name, _ = who(key)
-            task_turns.append(len(turns))
-            turns.append((name or lead, f"Action: {text}. Owner: {name or 'not yet assigned'}. Due: {days(due).isoformat() if due is not None else 'not agreed'}. Status: {status.replace('_', ' ')}."))
-        for text, severity in spec["risks"]:
-            risk_turns.append(len(turns))
-            turns.append(("Sam", f"Risk to watch: {text}. Severity: {severity}."))
-        questions = spec.get("questions") or ["What evidence will confirm the remaining release checks are complete?"]
-        turns.extend(("Riya", f"Open question: {question}") for question in questions)
-        turns.append((lead, "These notes are a synthetic software-team scenario for the demo. No customer account, external ticket or email was created."))
+        turns, task_turns, decision_turns, risk_turns, questions = build_demo_turns(spec, who)
         duration = spec["minutes"] * 60000
         step = duration / len(turns)
         segments = [TranscriptSegment(id=uuid.uuid4(), meeting_id=meeting.id, seq=i,

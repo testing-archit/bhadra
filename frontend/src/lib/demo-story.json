@@ -1,0 +1,144 @@
+{
+  "meeting": "Release go/no-go: tenant workspaces",
+  "duration_ms": 960000,
+  "segments": [
+    {
+      "id": "sample-0",
+      "start_ms": 0,
+      "end_ms": 56914,
+      "text": "The core invite flow is ready. Safari and expired SSO certificates are the two remaining checks."
+    },
+    {
+      "id": "sample-1",
+      "start_ms": 68571,
+      "end_ms": 125486,
+      "text": "I can finish Safari today; Sam owns certificate rotation."
+    },
+    {
+      "id": "sample-2",
+      "start_ms": 137143,
+      "end_ms": 194057,
+      "text": "Rotation works on staging. We still need the rollback rehearsal."
+    },
+    {
+      "id": "sample-3",
+      "start_ms": 205714,
+      "end_ms": 262629,
+      "text": "Release to five pilot tenants only after both checks pass. Riya, collect the QA sign-off. I will own the final rollout checklist."
+    },
+    {
+      "id": "sample-4",
+      "start_ms": 274286,
+      "end_ms": 331200,
+      "text": "Decision: Gate the workspace pilot on Safari and SSO rollback checks. Reason: Both checks protect the primary sign-in path. Considered: Release to every tenant; Skip the rollback rehearsal."
+    },
+    {
+      "id": "sample-5",
+      "start_ms": 342857,
+      "end_ms": 399771,
+      "text": "Decision: Start the workspace pilot with five tenants. Reason: A small reversible cohort limits the blast radius."
+    },
+    {
+      "id": "sample-6",
+      "start_ms": 411429,
+      "end_ms": 468343,
+      "text": "Final action owners and calendar dates replace the relative dates mentioned earlier. These are the agreed follow-ups."
+    },
+    {
+      "id": "sample-7",
+      "start_ms": 480000,
+      "end_ms": 536914,
+      "text": "Action: Approve the tenant-workspace rollout checklist. Owner: Archit Gupta. Due: 2026-11-15. Status: pending."
+    },
+    {
+      "id": "sample-8",
+      "start_ms": 548571,
+      "end_ms": 605486,
+      "text": "Action: Finish Safari invite and SSO smoke tests. Owner: Vedant Moghe. Due: 2026-11-15. Status: in progress."
+    },
+    {
+      "id": "sample-9",
+      "start_ms": 617143,
+      "end_ms": 674057,
+      "text": "Action: Collect QA sign-off for the five-tenant pilot. Owner: Riya. Due: 2026-11-16. Status: pending."
+    },
+    {
+      "id": "sample-10",
+      "start_ms": 685714,
+      "end_ms": 742629,
+      "text": "Action: Rehearse certificate rotation and rollback. Owner: Sam. Due: 2026-11-16. Status: pending."
+    },
+    {
+      "id": "sample-11",
+      "start_ms": 754286,
+      "end_ms": 811200,
+      "text": "Risk to watch: An untested certificate rollback could interrupt pilot sign-ins. Severity: High."
+    },
+    {
+      "id": "sample-12",
+      "start_ms": 822857,
+      "end_ms": 879771,
+      "text": "Open question: Who is the backup approver if the release owner is unavailable?"
+    },
+    {
+      "id": "sample-13",
+      "start_ms": 891429,
+      "end_ms": 948343,
+      "text": "These notes are a synthetic software-team scenario for the demo. No customer account, external ticket or email was created."
+    }
+  ],
+  "moments": [
+    {
+      "id": "moment-7",
+      "at_ms": 480000,
+      "kind": "task",
+      "label": "Approve the tenant-workspace rollout checklist",
+      "segmentId": "sample-7",
+      "line": "Action: Approve the tenant-workspace rollout checklist. Owner: Archit Gupta.",
+      "owner": "Archit"
+    },
+    {
+      "id": "moment-4",
+      "at_ms": 274286,
+      "kind": "decision",
+      "label": "Gate the workspace pilot on Safari and SSO rollback checks",
+      "segmentId": "sample-4",
+      "line": "Decision: Gate the workspace pilot on Safari and SSO rollback checks. Reason: Both checks protect the primary sign-in path. Considered: Release to every tenant; Skip the rollback rehearsal.",
+      "owner": "Team"
+    },
+    {
+      "id": "moment-8",
+      "at_ms": 548571,
+      "kind": "task",
+      "label": "Finish Safari invite and SSO smoke tests",
+      "segmentId": "sample-8",
+      "line": "Action: Finish Safari invite and SSO smoke tests. Owner: Vedant Moghe.",
+      "owner": "Vedant"
+    }
+  ],
+  "answers": [
+    {
+      "question": "Why PostgreSQL?",
+      "answer": "The team chose PostgreSQL for atomic ledger writes, unique constraints and reliable invoice reconciliation.",
+      "source": "Architecture council: the billing ledger",
+      "ago": 42,
+      "at_ms": 0
+    },
+    {
+      "question": "What’s blocking the release?",
+      "answer": "Safari smoke tests, certificate rollback and QA sign-off are the remaining gates for the five-tenant pilot.",
+      "source": "Release go/no-go: tenant workspaces",
+      "ago": 0,
+      "at_ms": 0
+    },
+    {
+      "question": "Why defer Redis?",
+      "answer": "The metadata index met the target in a synthetic benchmark, so the team deferred Redis and its invalidation complexity.",
+      "source": "Architecture follow-up: defer the search cache",
+      "ago": 1,
+      "at_ms": 0
+    }
+  ],
+  "language_decision": "Use PostgreSQL",
+  "language_reason": "Atomic writes and reliable invoice reconciliation."
+}
