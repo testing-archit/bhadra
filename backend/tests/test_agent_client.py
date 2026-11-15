@@ -92,6 +92,11 @@ async def test_bot_ack_worker_result_and_delivery_receipt_form_one_workflow(capt
             assert messages[0].startswith('Working on that')
             await asyncio.wait_for(done.wait(),3)
             assert 'Updated your shared FigJam board' in spoken[0]
+            # Speech intentionally arrives before chat/delivery acknowledgment.
+            # Verify eventual delivery without coupling that faster path to chat.
+            async with asyncio.timeout(3):
+                while await session._agent.outstanding():
+                    await asyncio.sleep(.02)
             assert await session._agent.outstanding()==[]
         finally:
             worker.cancel(); monitor.cancel(); bridge.cancel()

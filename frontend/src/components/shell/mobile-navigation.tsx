@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 
 export function MobileNavigation() {
   const pathname = usePathname();
-  const params=useSearchParams();
+  const params = useSearchParams();
   const { openNotetaker } = useShell();
   // Keep core meeting and follow-up work one tap away on phones.
   const items = [
@@ -22,13 +22,14 @@ export function MobileNavigation() {
       href: "/meetings",
       label: "Meetings",
       icon: Video,
-      active: pathname.startsWith("/meetings") && params.get("view")!=="calendar",
+      active:
+        pathname.startsWith("/meetings") && params.get("view") !== "calendar",
     },
     {
       href: "/meetings?view=calendar",
       label: "Calendar",
       icon: CalendarDays,
-      active: pathname === "/meetings" && params.get("view")==="calendar",
+      active: pathname === "/meetings" && params.get("view") === "calendar",
     },
     {
       href: "/memory",

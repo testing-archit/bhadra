@@ -70,16 +70,13 @@ Keep these updated, and commit doc changes with the code: the whole team works t
 - The policy assistant (`/policy`) runs on **sample** content in `backend/app/data/company_policies.py` (the "Sample Team Handbook"). It holds no real company data. Replace it with your own, then run `scripts/ingest_policies.py`.
 - The org or company name shown in the UI and prompts is "Bhadra".
 
-### Design system ("night glow")
-- **`DESIGN.md` at the repo root is the source of truth.** It covers the dark sky with neel, violet and gulabi glows plus a genda-marigold accent, frosted-glass surfaces, Baloo 2 and Mukta type with Devanagari, the `.glass` and `.text-glow` utilities, and the rule "bold at the door, calm in the room".
-- Tokens live in `frontend/src/app/globals.css`. Components use tokens only, never raw hex values.
-- The redesign followed the impeccable skill (github.com/pbakaus/impeccable): its craft floor, the "Operate" mode for working screens, and its bans (no eyebrow labels above headings, no thick coloured side borders).
-- Brand components are in `frontend/src/components/brand.tsx`: `BrandMark`, `Wordmark` and `VoiceDisc`.
-- Voice components:
-  - `components/prompt-hero.tsx`: the Home prompt.
-  - `components/voice-ask-button.tsx`: Gnani Prisma questions.
-  - `components/speak-button.tsx`: Gnani Timbre "Listen".
-- The extension popup (`src/popup.css`) and the in-Meet overlay (`src/content.js`) still use the earlier warm palette as hex values.
+### Design system (Claude engagement pass)
+- `docs/design/redesign-spec.md`, especially section 3b, pins the requested design. `DESIGN.md` documents the built result. Ink frame, stone tray, bright working sheets and one signal-yellow voice/action accent replace the previous night-glow direction.
+- Tokens live in `frontend/src/app/globals.css`. Use existing Base UI components, Geist/Mukta, labelled tint chips and Doto only for Home counts. No new raw component colours, gradient text, glass or decorative waveforms.
+- Timed debrief strips derive from actual API transcript segments; marks resolve item evidence IDs. No timing means no strip. The software-company demo contains authored synthetic timings and linked evidence, explicitly labelled as sample content.
+- Keep Home free of generation on load. Question clicks initiate requests. Done, Undo, confirmations, scope changes and Jira writes retain existing APIs and privacy checks. Never simulate an external write as successful.
+- Render desktop/mobile/light/dark and test the interactions before handoff. Reduced motion stops sequences and auto-advance. The supplied external Claude canvas is Cloudflare-blocked here; exact visual comparison remains unverified until it is accessible.
+- The extension palette is outside this pass. Preserve colleagues' bot, latency, FigJam and Live-task functionality.
 
 ### Dev quickstart
 - Frontend: `cd frontend && npm ci && npm run dev`. Then run `npm run typecheck`. ESLint is currently broken upstream because typescript-eslint does not support TS 7.

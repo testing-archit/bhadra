@@ -6,6 +6,7 @@ import { SpeakButton } from "@/components/speak-button";
 
 export function ChatActions({ content, onRetry, speak = false }: { content: string; onRetry: () => void; speak?: boolean }) {
   const [copied, setCopied] = useState(false);
+  const [copyError,setCopyError]=useState(false);
 
   useEffect(() => {
     if (!copied) return;
@@ -14,12 +15,13 @@ export function ChatActions({ content, onRetry, speak = false }: { content: stri
   }, [copied]);
 
   async function copyAnswer() {
-    await navigator.clipboard.writeText(content);
-    setCopied(true);
+    try { await navigator.clipboard.writeText(content);setCopied(true);setCopyError(false); }
+    catch {setCopyError(true);}
   }
 
   return (
     <div className="mt-2 flex items-center gap-1 text-muted-foreground">
+      {copyError&&<span role="alert" className="text-xs text-destructive">Could not copy. Try again.</span>}
       <SpeakButton text={content} compact autoPlay={speak} />
       <button
         type="button"

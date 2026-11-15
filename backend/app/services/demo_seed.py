@@ -364,7 +364,7 @@ async def seed_workspace(db, owner: User, mate: User | None = None, skip: set[in
         speakers = {speaker for speaker,_ in turns}
         invited = {user.name or user.email.split("@")[0] for user in users}
         for speaker in sorted(speakers - invited):
-            db.add(MeetingAttendee(meeting_id=meeting.id, display_name=speaker, kind="internal", source="caption", access="pending"))
+            db.add(MeetingAttendee(meeting_id=meeting.id, display_name=speaker, kind="internal", source="manual", access="pending"))
         def evidence(turn):
             row = segments[turn]
             return [{"segment_id":str(row.id),"seq":row.seq,"start_ms":row.start_ms,"end_ms":row.end_ms,
@@ -397,7 +397,7 @@ async def seed_workspace(db, owner: User, mate: User | None = None, skip: set[in
             key_topics=[spec["project"], "Software delivery", "Owned follow-ups"],
             open_questions=questions, highlights=[entry[0] for entry in spec["decisions"]],
             next_steps=[task[1] for task in spec["tasks"]],
-            speaker_activity=[{"speaker":speaker,"words":sum(len(text.split()) for name,text in turns if name==speaker)} for speaker in sorted(speakers)],
-            sections=[{"title":"Decisions","summary":spec["decisions"][0][0],"evidence":evidence(decision_turns[0])}] if decision_turns else [],
+            speaker_activity=[{"speaker":speaker,"words":sum(len(text.split()) for name,text in turns if name==speaker),"share":round(sum(len(text.split()) for name,text in turns if name==speaker)/max(1,sum(len(text.split()) for _,text in turns)),4)} for speaker in sorted(speakers)],
+            sections=[{"title":"Decisions","text":spec["decisions"][0][0],"summary":spec["decisions"][0][0],"evidence":evidence(decision_turns[0])}] if decision_turns else [],
             follow_up_draft="Draft — synthetic demo only.\n" + spec["summary"] + "\n" + "\n".join("• " + task[1] for task in spec["tasks"])))
     return counts
