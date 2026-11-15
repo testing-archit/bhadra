@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.15.0/dist/gsap.min.js"></script>
+    <style>
+      :root { --ground:#efede8; --ink:#0b0b0b; --muted:#5a5650; --signal:#ffd60a; --font-display:"Inter"; }
+      * { margin:0; padding:0; box-sizing:border-box; }
+      html, body { margin:0; width:1920px; height:1080px; overflow:hidden; background:var(--ink); }
+      #root { width:100%; height:100%; position:relative; font-family:var(--font-display); color:var(--ink); overflow:hidden; }
+      .full { position:absolute; inset:0; width:1920px; height:1080px; object-fit:cover; }
+      .chip { position:absolute; left:64px; bottom:64px; background:var(--ink); color:#fff; border:3px solid #fff; border-radius:999px; padding:14px 30px; font-size:32px; font-weight:700; white-space:nowrap; z-index:10; box-shadow:0 10px 30px rgba(0,0,0,.35); }
+      .chip b { color:var(--signal); margin-right:12px; font-variant-numeric:tabular-nums; }
+      .chip.top { top:18px; bottom:auto; left:560px; font-size:28px; padding:10px 24px; }
+      .note { position:absolute; right:64px; bottom:70px; background:var(--signal); color:var(--ink); border-radius:12px; padding:8px 18px; font-size:24px; font-weight:700; z-index:10; }
+      .friday { position:absolute; left:50%; top:46%; transform:translate(-50%,-50%); background:var(--signal); color:var(--ink); font-size:220px; font-weight:900; letter-spacing:-0.05em; padding:0 50px; border-radius:40px; border:6px solid var(--ink); z-index:11; }
+      .card { position:absolute; inset:0; padding:150px 140px; display:flex; flex-direction:column; justify-content:center; }
+      .card.l { background:var(--ground); color:var(--ink); }
+      .card.d { background:var(--ink); color:#fff; }
+      .card.y { background:var(--signal); color:var(--ink); }
+      .card .n { font-size:64px; font-weight:900; font-variant-numeric:tabular-nums; }
+      .card.l .n, .card.d .n { color:var(--signal); -webkit-text-stroke:2px var(--ink); }
+      .card.d .n { -webkit-text-stroke:0; }
+      .card h2 { font-size:128px; font-weight:900; letter-spacing:-0.045em; line-height:1.0; margin-top:18px; max-width:1640px; }
+      .card p { font-size:44px; font-weight:500; margin-top:34px; max-width:1500px; line-height:1.3; opacity:.8; }
+      .card .q { display:inline-block; margin-top:34px; font-size:40px; font-weight:600; border:3px solid currentColor; border-radius:22px; padding:16px 28px; }
+      #ints { position:absolute; inset:0; background:var(--ground); }
+      #ints h2 { position:absolute; left:120px; top:110px; font-size:96px; font-weight:900; letter-spacing:-0.04em; }
+      #ints h2 span { background:var(--signal); padding:0 16px; border-radius:18px; }
+      #igrid { position:absolute; left:120px; top:300px; width:1680px; display:grid; grid-template-columns:repeat(5,1fr); gap:24px; }
+      .ic { background:#fff; border:3px solid var(--ink); border-radius:22px; box-shadow:8px 8px 0 var(--ink); height:250px; padding:28px; display:flex; flex-direction:column; justify-content:space-between; }
+      .ic h3 { font-size:40px; font-weight:800; letter-spacing:-0.02em; line-height:1.05; }
+      .ic p { font-size:24px; font-weight:500; color:var(--muted); line-height:1.25; }
+      .ic.dk { background:var(--ink); color:#fff; } .ic.dk h3 { color:var(--signal); } .ic.dk p { color:#cfcac2; }
+      #end { position:absolute; inset:0; background:var(--ink); color:#fff; }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="60" data-width="1920" data-height="1080">
+
+      <!-- real footage -->
+      <video id="v-hook" class="clip full" src="assets/hook.mp4" muted data-start="0" data-duration="5.3" data-track-index="0"></video>
+      <video id="v-board" class="clip full" src="assets/board.mp4" muted data-start="5.3" data-duration="9.2" data-track-index="0"></video>
+      <video id="v-recap" class="clip full" src="assets/recap.mp4" muted data-start="14.5" data-duration="6.7" data-track-index="0"></video>
+      <video id="v-debrief" class="clip full" src="assets/debrief.mp4" muted data-start="21.2" data-duration="4.5" data-track-index="0"></video>
+      <video id="v-tasks" class="clip full" src="assets/tasks.mp4" muted data-start="25.7" data-duration="3.5" data-track-index="0"></video>
+      <video id="v-ask" class="clip full" src="assets/ask.mp4" muted data-start="29.2" data-duration="2.5" data-track-index="0"></video>
+      <video id="v-answer" class="clip full" src="assets/answer.mp4" muted data-start="31.7" data-duration="5.5" data-track-index="0"></video>
+      <video id="v-live" class="clip full" src="assets/live.mp4" muted data-start="37.2" data-duration="3.0" data-track-index="0"></video>
+
+      <!-- labels over footage -->
+      <div id="w-friday" class="clip" data-start="1.6" data-duration="3.2" data-track-index="2" data-track-kind="graphics" data-layout-allow-overlap><div class="friday" id="friday">FRIDAY</div></div>
+      <div id="c1" class="clip" data-start="0.2" data-duration="5.1" data-track-index="3" data-track-kind="graphics"><div class="chip top" id="c1i"><b>01</b>Joins the call, understands Hinglish</div></div>
+      <div id="c2" class="clip" data-start="5.4" data-duration="4.4" data-track-index="3" data-track-kind="graphics"><div class="chip top" id="c2i"><b>02</b>Draws a live whiteboard in the call</div></div>
+      <div id="c3" class="clip" data-start="9.8" data-duration="4.7" data-track-index="3" data-track-kind="graphics"><div class="chip top" id="c3i"><b>03</b>Wilco’s avatar presents and speaks</div></div>
+      <div id="c4" class="clip" data-start="14.6" data-duration="6.6" data-track-index="3" data-track-kind="graphics"><div class="chip top" id="c4i"><b>04</b>Spoken recap · Gnani Timbre in the app</div></div>
+      <div id="c5" class="clip" data-start="21.3" data-duration="4.4" data-track-index="3" data-track-kind="graphics"><div class="chip" id="c5i"><b>05</b>Debrief, linked to the moment it was said</div></div>
+      <div id="c6" class="clip" data-start="25.8" data-duration="3.4" data-track-index="3" data-track-kind="graphics"><div class="chip" id="c6i"><b>06</b>Tasks with owners and due dates</div></div>
+      <div id="c7" class="clip" data-start="29.3" data-duration="7.9" data-track-index="3" data-track-kind="graphics"><div class="chip" id="c7i"><b>07</b>Ask your meetings, with cited sources</div></div>
+      <div id="c8" class="clip" data-start="37.3" data-duration="2.9" data-track-index="3" data-track-kind="graphics"><div class="chip" id="c8i"><b>08</b>Talk to Wilco in 11 Indian languages</div></div>
+            <div id="nwait" class="clip" data-start="31.7" data-duration="1.4" data-track-index="4" data-track-kind="graphics"><div class="note">Wait shortened</div></div>
+      <div id="napp" class="clip" data-start="21.3" data-duration="10.3" data-track-index="4" data-track-kind="graphics"><div class="note">Real app · live demo workspace</div></div>
+
+      <!-- feature rush: 7 x 1.6 s -->
+      <div id="r9" class="clip card d" data-start="40.2" data-duration="1.6" data-track-index="1" data-track-kind="graphics"><div class="n">09</div><h2>Voice <span style="color:var(--signal)">→</span> Jira</h2><div class="q">“Create a Jira ticket: fix the webhook retry bug, assign Vedant”</div></div>
+      <div id="r10" class="clip card y" data-start="41.8" data-duration="1.6" data-track-index="1" data-track-kind="graphics"><div class="n">10</div><h2>Spoken stand-ups and pre-call briefs</h2><p>Each person’s updates and blockers, read out</p></div>
+      <div id="r11" class="clip card l" data-start="43.4" data-duration="1.6" data-track-index="1" data-track-kind="graphics"><div class="n">11</div><h2>Live call translation</h2><p>Running translations in the call chat</p></div>
+      <div id="r12" class="clip card d" data-start="45.0" data-duration="1.6" data-track-index="1" data-track-kind="graphics"><div class="n">12</div><h2>Hear the original quote</h2><p>Play the exact moment a decision was made</p></div>
+      <div id="r13" class="clip card y" data-start="46.6" data-duration="1.6" data-track-index="1" data-track-kind="graphics"><div class="n">13</div><h2>An AI stand-in, in your own voice</h2><p>Opt-in Gnani voice cloning · always says it’s AI</p></div>
+      <div id="r14" class="clip card l" data-start="48.2" data-duration="1.6" data-track-index="1" data-track-kind="graphics"><div class="n">14</div><h2>Phone calls and WhatsApp voice notes</h2><p>Upload noisy audio, get the recap read back</p></div>
+      <div id="r15" class="clip card d" data-start="49.8" data-duration="1.6" data-track-index="1" data-track-kind="graphics"><div class="n">15</div><h2>Delivery Radar</h2><p>Follow-ups, urgent work and decisions in one view</p></div>
+
+      <!-- integrations -->
+      <div id="ints" class="clip" data-start="51.4" data-duration="4.6" data-track-index="1" data-track-kind="graphics">
+        <h2><span style="background:none;padding:0;color:var(--muted)">16 ·</span> Already works with <span>your stack</span></h2>
+        <div id="igrid">
+          <div class="ic"><h3>Google Meet</h3><p>Joins, speaks, presents</p></div>
+          <div class="ic"><h3>Microsoft Teams</h3><p>Joins by meeting link</p></div>
+          <div class="ic"><h3>Google Calendar</h3><p>Auto-join and briefs</p></div>
+          <div class="ic dk"><h3>Jira Cloud</h3><p>Two-way task sync</p></div>
+          <div class="ic"><h3>FigJam</h3><p>Live whiteboards</p></div>
+          <div class="ic"><h3>Gmail</h3><p>Follow-up drafts</p></div>
+          <div class="ic"><h3>WhatsApp</h3><p>Voice-note recaps</p></div>
+          <div class="ic"><h3>Google Sheets</h3><p>Export via extension</p></div>
+          <div class="ic"><h3>Claude</h3><p>Ask your meetings</p></div>
+          <div class="ic dk"><h3>Gnani AI</h3><p>Prisma + Timbre</p></div>
+        </div>
+      </div>
+
+      <!-- end card -->
+      <div id="end" class="clip" data-start="56" data-duration="4" data-track-index="1" data-track-kind="graphics">
+        <img id="em" src="assets/wilco-mascot-v1.png" style="position:absolute; left:330px; top:250px; width:470px" />
+        <div style="position:absolute; left:880px; top:320px">
+          <div id="e1" style="font-size:160px; font-weight:900; letter-spacing:-0.05em; line-height:1">Wilco</div>
+          <div id="e2" style="font-size:60px; font-weight:800; color:var(--signal); margin-top:10px; letter-spacing:-0.02em">Your meeting. Still useful.</div>
+          <div id="e3" style="font-size:32px; font-weight:600; margin-top:34px">34-58-54-115.sslip.io · Built on Gnani Prisma + Timbre</div>
+          <div id="e4" style="white-space:nowrap; font-size:22px; font-weight:500; margin-top:14px; color:#bdb8b0">#GnaniAI #GreatIndianAIInternshipChallenge · Voices in this cut: Gemini TTS stand-ins</div>
+        </div>
+      </div>
+
+      <!-- audio -->
+      <audio id="a-bed" class="clip" src="assets/bed.wav" data-start="0" data-duration="60" data-track-index="5" data-volume="0.12"></audio>
+      <audio id="a-m1" class="clip" src="assets/vo/m1.wav" data-start="0.3" data-duration="4.89" data-track-index="6" data-volume="1"></audio>
+      <audio id="a-m3" class="clip" src="assets/vo/m3.wav" data-start="5.55" data-duration="3.97" data-track-index="6" data-volume="1"></audio>
+      <audio id="a-m4" class="clip" src="assets/vo/m4.wav" data-start="9.95" data-duration="2.37" data-track-index="6" data-volume="1"></audio>
+      <audio id="a-m7" class="clip" src="assets/vo/m7.wav" data-start="14.75" data-duration="6.41" data-track-index="6" data-volume="1"></audio>
+      <audio id="a-f1" class="clip" src="assets/vo/f1.wav" data-start="21.4" data-duration="3.73" data-track-index="7" data-volume="1"></audio>
+      <audio id="a-f2" class="clip" src="assets/vo/f2.wav" data-start="29.4" data-duration="4.17" data-track-index="7" data-volume="1"></audio>
+      <audio id="a-f3" class="clip" src="assets/vo/f3.wav" data-start="37.35" data-duration="3.21" data-track-index="7" data-volume="1"></audio>
+      <audio id="a-f4" class="clip" src="assets/vo/f4.wav" data-start="40.7" data-duration="8.45" data-track-index="7" data-volume="1"></audio>
+      <audio id="a-f5" class="clip" src="assets/vo/f5.wav" data-start="51.6" data-duration="4.21" data-track-index="7" data-volume="1"></audio>
+      <audio id="a-end" class="clip" src="assets/vo/end.wav" data-start="56.4" data-duration="3.09" data-track-index="7" data-volume="1"></audio>
+      <audio id="a-g1" class="clip" src="assets/vo/g1.wav" data-start="12.5" data-duration="2.09" data-track-index="8" data-volume="1"></audio>
+      <audio id="a-g2" class="clip" src="assets/vo/g2.wav" data-start="25.4" data-duration="2.53" data-track-index="8" data-volume="1"></audio>
+      <audio id="a-g3" class="clip" src="assets/vo/g3.wav" data-start="33.8" data-duration="2.17" data-track-index="8" data-volume="1"></audio>
+      <audio id="a-g4" class="clip" src="assets/vo/g4.wav" data-start="49.4" data-duration="1.73" data-track-index="8" data-volume="1"></audio>
+    </div>
+
+    <script>
+      const tl = gsap.timeline({ paused: true });
+      const chipIn = (id, t) => tl.fromTo(id, { x: -80, opacity: 0 }, { x: 0, opacity: 1, duration: 0.35, ease: "power3.out" }, t);
+      [["#c1i",0.25],["#c2i",5.45],["#c3i",9.85],["#c4i",14.65],["#c5i",21.35],["#c6i",25.85],["#c7i",29.35],["#c8i",37.35]].forEach(([i,t]) => chipIn(i, t));
+      tl.fromTo("#friday", { scale: 2.6, opacity: 0, rotation: -6 }, { scale: 1, opacity: 1, rotation: -3, duration: 0.35, ease: "power4.out" }, 1.65);
+      tl.to("#friday", { scale: 0.2, y: 500, opacity: 0, duration: 0.35, ease: "power3.in" }, 4.4);
+      // gentle push-ins on real footage
+      tl.fromTo("#v-answer", { scale: 1 }, { scale: 1.18, transformOrigin: "82% 30%", duration: 5.5, ease: "power1.inOut" }, 31.7);
+      tl.fromTo("#v-board", { scale: 1 }, { scale: 1.08, transformOrigin: "35% 40%", duration: 9.2, ease: "none" }, 5.3);
+      tl.fromTo("#v-live", { scale: 1 }, { scale: 1.12, transformOrigin: "58% 55%", duration: 3, ease: "none" }, 37.2);
+      // feature rush
+      ["#r9","#r10","#r11","#r12","#r13","#r14","#r15"].forEach((id, i) => {
+        const t = 40.2 + i * 1.6;
+        tl.fromTo(`${id} .n`, { y: -40, opacity: 0 }, { y: 0, opacity: 1, duration: 0.2, ease: "power3.out" }, t + 0.02);
+        tl.fromTo(`${id} h2`, { x: i % 2 ? 160 : -160, opacity: 0 }, { x: 0, opacity: 1, duration: 0.3, ease: "power4.out" }, t + 0.05);
+        tl.fromTo(`${id} p, ${id} .q`, { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.25 }, t + 0.25);
+      });
+      // integrations
+      tl.fromTo("#ints h2", { y: 40, opacity: 0 }, { y: 0, opacity: 1, duration: 0.35, ease: "power3.out" }, 51.45);
+      tl.fromTo("#igrid .ic", { scale: 0.7, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.3, ease: "back.out(1.8)", stagger: 0.14 }, 51.7);
+      // end card
+      tl.fromTo("#em", { y: -900, rotation: 10 }, { y: 0, rotation: 0, duration: 0.7, ease: "bounce.out" }, 56.05);
+      tl.fromTo("#e1", { clipPath: "inset(0 100% 0 0)" }, { clipPath: "inset(0 0% 0 0)", duration: 0.45, ease: "power3.out" }, 56.5);
+      tl.fromTo("#e2", { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.35 }, 56.9);
+      tl.fromTo(["#e3","#e4"], { opacity: 0 }, { opacity: 1, duration: 0.35, stagger: 0.15 }, 57.2);
+      window.__timelines["main"] = tl;
+      tl.seek(0);
+    </script>
+  </body>
+</html>

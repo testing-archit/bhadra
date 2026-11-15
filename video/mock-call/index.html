@@ -1,0 +1,58 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Mock call</title>
+<style>
+:root{--background:#ffffff;--foreground:#0b0b0b;--primary:#0b0b0b;--card:#fffbe0;--muted-foreground:#5a5650}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#1b1b1d;color:#fff;font-family:-apple-system,Inter,Helvetica,sans-serif;width:1440px;height:900px;overflow:hidden}
+#top{height:56px;display:flex;align-items:center;padding:0 24px;gap:14px;font-size:16px;color:#ddd}
+#top .rec{background:#e53935;color:#fff;border-radius:6px;padding:4px 10px;font-weight:600;font-size:13px}
+#top .mock{margin-left:auto;background:#ffd60a;color:#0b0b0b;border-radius:6px;padding:4px 10px;font-weight:700;font-size:13px}
+#stage{position:absolute;left:24px;top:64px;right:24px;bottom:150px;display:grid;grid-template-columns:repeat(3,1fr);gap:14px;transition:all .5s}
+.tile{background:#2c2c30;border-radius:14px;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center}
+.tile .name{position:absolute;left:14px;bottom:12px;font-size:15px;font-weight:600;background:rgba(0,0,0,.45);padding:4px 10px;border-radius:6px}
+.av{width:150px;height:150px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:58px;font-weight:700}
+.tile.talk{outline:4px solid #8ab4f8}
+#wilco img{width:100%;height:100%;object-fit:cover}
+#present{display:none;position:absolute;left:24px;top:64px;width:1060px;bottom:150px;background:#000;border-radius:14px;overflow:hidden}
+#present canvas{width:100%;height:auto;display:block;margin-top:20px}
+#present .lbl{position:absolute;left:14px;bottom:12px;font-size:15px;font-weight:600;background:rgba(0,0,0,.6);padding:4px 10px;border-radius:6px}
+body.presenting #stage{left:1100px;grid-template-columns:1fr;grid-template-rows:repeat(3,1fr)}
+body.presenting #present{display:block}
+body.presenting .av{width:80px;height:80px;font-size:32px}
+#cap{position:absolute;left:0;right:0;bottom:70px;text-align:center;font-size:24px;line-height:1.35;padding:0 140px;min-height:66px}
+#cap b{color:#ffd60a}
+#bar{position:absolute;left:0;right:0;bottom:0;height:60px;display:flex;justify-content:center;gap:14px;align-items:center}
+#bar span{width:44px;height:44px;border-radius:50%;background:#3c3c40;display:inline-block}
+#bar span.end{background:#e53935;width:64px;border-radius:22px}
+</style></head><body>
+<div id="top"><span class="rec">● REC</span><span>Orbit · Onboarding review</span><span class="mock">Mock call · fictional team · Wilco notetaker</span></div>
+<div id="present"><span class="lbl">Wilco is presenting · live board</span></div>
+<div id="stage">
+ <div class="tile" id="priya"><div class="av" style="background:#6d4fc2">P</div><span class="name">Priya</span></div>
+ <div class="tile" id="arjun"><div class="av" style="background:#1f7a6d">A</div><span class="name">Arjun</span></div>
+ <div class="tile" id="wilco"><img id="wimg" src="avatar_idle.png"><span class="name">Wilco · notetaker</span></div>
+</div>
+<div id="cap"></div>
+<div id="bar"><span></span><span></span><span></span><span class="end"></span></div>
+<script src="board_presenter.js"></script>
+<script>
+const cap=document.getElementById('cap'), wimg=document.getElementById('wimg');
+function say(who,text,tile){cap.innerHTML='<b>'+who+':</b> '+text;document.querySelectorAll('.tile').forEach(t=>t.classList.remove('talk'));if(tile)document.getElementById(tile).classList.add('talk');wimg.src=tile==='wilco'?'avatar_speaking.png':'avatar_idle.png';}
+const n=(id,kind,title,text,x,y)=>({id,kind,title,text,x,y,origin:'ai'});
+const B=[
+ {title:'Onboarding flow',version:1,nodes:[n('a','Step','OTP verification','Phone number + one-time code',0,0)],edges:[]},
+ {title:'Onboarding flow',version:2,nodes:[n('a','Step','OTP verification','Phone number + one-time code',0,0),n('b','Step','KYC','After OTP succeeds',420,0)],edges:[{source:'a',target:'b'}]},
+ {title:'Onboarding flow',version:3,nodes:[n('a','Step','OTP verification','Phone number + one-time code',0,0),n('b','Step','KYC','After OTP succeeds',420,0),n('c','Goal','Reduce drop-off','Owner: Arjun · due Friday',840,0)],edges:[{source:'a',target:'b'},{source:'b',target:'c'}]},
+];
+function board(i){window.__wilcoBoard.showInCamera(B[i]);const c=window.__wilcoBoard.cameraCanvas();const p=document.getElementById('present');if(c&&!c.parentNode)p.prepend(c);}
+window.startDemo=()=>{
+ const T=[[500,()=>say('Priya','Arjun, onboarding flow update karna, Friday tak. Pehle OTP, phir KYC.','priya')],
+ [5700,()=>say('Arjun','Done, main le leta hoon.','arjun')],
+ [7600,()=>say('Priya','Wilco, board pe OTP se KYC ka flow bana do.','priya')],
+ [12000,()=>{say('Wilco','Sure, sharing the board now.','wilco');document.body.classList.add('presenting');board(0);}],
+ [13600,()=>board(1)],[14800,()=>{board(2);say('Wilco','OTP, then KYC. Goal: reduce drop-off. Owner Arjun, due Friday.','wilco')}],
+ [22300,()=>say('Priya','Wilco, recap.','priya')],
+ [24100,()=>say('Wilco','Arjun owns the onboarding flow update, due Friday. Decision: OTP before KYC.','wilco')],
+ [31000,()=>{cap.innerHTML='';document.querySelectorAll('.tile').forEach(t=>t.classList.remove('talk'));wimg.src='avatar_idle.png'}]];
+ T.forEach(([t,f])=>setTimeout(f,t));
+};
+</script></body></html>
