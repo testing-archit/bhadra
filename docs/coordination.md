@@ -214,3 +214,8 @@ PR #15 merged at `694f15285010a41b99566b280d921db911c9601d`; workflow `437099913
 The user authorizes final deployment. The temporary engagement worktree was no longer present, so Codex recovered its pushed commits into /Users/vedantmoghe/Downloads/bhadra-engagement-release. Merge main 0412ada deliberately: preserve Home spoken stand-up/ready briefs and Listen playback generation guards alongside compact debrief controls. Shared unfinished files remain untouched. CI and production verification must complete before claiming deployment.
 
 Release build caught a Next/Turbopack Google-font query failure for Doto. Bundle the same upstream Google Fonts Doto variable font with its OFL license through next/font/local, preserving the design and avoiding the failing remote font transformation. No runtime font CDN dependency is introduced.
+## README pitch release scope
+
+Codex is preparing a documentation-only product pitch in `/Users/vedantmoghe/Downloads/bhadra-readme-release` on `codex/readme-release-20261115`. The earlier temporary worktree is no longer available. Scope: README, preserved development guide, source/capture notes and three unedited screenshots of UI commit `eaa6f21`. The demo video link is pending; Gnani speech and separate music credits are explicit. Shared application changes remain untouched.
+
+README pitch validated: local image/link checks and Markdown fences pass; GitHub Markdown API render loads all images. Three screenshots were visually inspected after loading finished. Preserved operational setup in `docs/development.md`. No application source, private tokens or recordings are included. The selected award wording comes from the user’s supplied brief; no award wins, unmeasured accuracy or customer adoption is claimed.
