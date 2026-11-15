@@ -115,6 +115,8 @@ export interface VoiceUpdate {
   id: string;
   meeting_url: string;
   text: string;
+  briefing: string | null;
+  qa: Array<{ question: string; answer: string; known: boolean; asked_by: string | null; at: string }>;
   created_at: string | null;
   expires_at: string;
   delivered_at: string | null;
@@ -1602,8 +1604,8 @@ export const api = {
   gnaniEvon: (prompt: string) =>
     apiFetch<{ reply: string; model: string; latency_ms: number }>("/api/gnani/evon", { method: "POST", body: JSON.stringify({ prompt }) }),
   voiceUpdates: () => apiFetch<VoiceUpdate[]>("/api/gnani/voice-updates"),
-  createVoiceUpdate: (meetingUrl: string, text: string) =>
-    apiFetch<VoiceUpdate>("/api/gnani/voice-updates", { method: "POST", body: JSON.stringify({ meeting_url: meetingUrl, text }) }),
+  createVoiceUpdate: (meetingUrl: string, text: string, briefing?: string) =>
+    apiFetch<VoiceUpdate>("/api/gnani/voice-updates", { method: "POST", body: JSON.stringify({ meeting_url: meetingUrl, text, briefing }) }),
   deleteVoiceUpdate: (id: string) => apiFetch<{ deleted: boolean }>(`/api/gnani/voice-updates/${id}`, { method: "DELETE" }),
   /** Notes translated into an Indian language and read aloud (Gemini + Gnani Timbre). */
   speakTranslated: (text: string, language: string) =>

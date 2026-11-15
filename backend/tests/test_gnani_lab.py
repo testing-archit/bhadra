@@ -128,3 +128,47 @@ async def test_bot_gets_only_this_calls_voice_updates_in_the_authors_voice(clien
         await db.delete(await db.get(CaptureRequest, capture.id))
         await db.commit()
     await client.delete("/api/gnani/voice-clone", headers=auth_headers(member_user))
+
+
+async def test_standin_answers_from_the_briefing_in_the_authors_voice_and_reports_back(client, member_user):
+    import uuid
+    from sqlalchemy import select
+    from app.database.db import async_session
+    from app.database.models import CaptureRequest, Notification
+    with patch.object(voice_clone_service, "create_embedding", new=AsyncMock(return_value=EMBEDDING)):
+        await client.post("/api/gnani/voice-clone", headers=auth_headers(member_user),
+                          files={"audio": ("me.webm", b"x" * 100, "audio/webm")}, data={"consent": "true"})
+    made = await client.post("/api/gnani/voice-updates", headers=auth_headers(member_user), json={
+        "meeting_url": "https://meet.google.com/sti-abcd-efg", "text": "Payments shipped.",
+        "briefing": "KYC needs the sandbox keys. Fine to move the demo to Friday."})
+    assert made.json()["briefing"].startswith("KYC")
+    async with async_session() as db:
+        capture = CaptureRequest(id=uuid.uuid4(), user_id=member_user.id, meeting_url="https://meet.google.com/sti-abcd-efg",
+                                 meeting_code="sti-abcd-efg", platform="google_meet", status="capturing", title="Stand-up",
+                                 consent_acknowledged_at=datetime.datetime.now(datetime.UTC))
+        db.add(capture)
+        await db.commit()
+    with patch.object(settings, "bot_api_secret", "test-bot-secret"):
+        headers = {"Authorization": "Bot test-bot-secret"}
+        standins = (await client.get(f"/api/bot/capture-requests/{capture.id}/standins", headers=headers)).json()
+        assert len(standins) == 1
+        with patch("app.services.gemini_service.generate_text", return_value=("KYC is waiting on the sandbox keys.", {})) as llm, \
+             patch.object(voice_clone_service, "speak", new=AsyncMock(return_value=b"ID3me")):
+            known = await client.post(f"/api/bot/capture-requests/{capture.id}/standins/{standins[0]['id']}/ask", headers=headers,
+                                      json={"question": "is KYC done?", "asked_by": "Ravi", "captions": []})
+        assert known.json()["known"] is True and base64.b64decode(known.json()["audio"]) == b"ID3me"
+        assert "sandbox keys" in llm.call_args.args[1]  # the briefing reached the model
+        with patch("app.services.gemini_service.generate_text", return_value=("UNKNOWN", {})), \
+             patch.object(voice_clone_service, "speak", new=AsyncMock(return_value=b"ID3me")):
+            unknown = await client.post(f"/api/bot/capture-requests/{capture.id}/standins/{standins[0]['id']}/ask", headers=headers,
+                                        json={"question": "can you take the Jira migration?", "captions": []})
+        assert unknown.json()["known"] is False and "pass your question on" in unknown.json()["answer"]
+    listed = (await client.get("/api/gnani/voice-updates", headers=auth_headers(member_user))).json()
+    assert [entry["known"] for entry in listed[0]["qa"]] == [True, False]
+    async with async_session() as db:
+        notes = (await db.scalars(select(Notification).where(Notification.user_id == member_user.id,
+                                                             Notification.type == "standin_question"))).all()
+        assert len(notes) == 2 and "Ravi asked" in notes[0].message
+        await db.delete(await db.get(CaptureRequest, capture.id))
+        await db.commit()
+    await client.delete("/api/gnani/voice-clone", headers=auth_headers(member_user))

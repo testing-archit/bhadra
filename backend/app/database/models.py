@@ -7,6 +7,9 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database.db import Base
 
+# For classes whose own `text` column shadows sqlalchemy.text.
+_sql_text = text
+
 
 meeting_projects = Table(
     "meeting_projects",
@@ -178,8 +181,8 @@ class MeetingBoard(Base):
         UUID(as_uuid=True), ForeignKey("capture_requests.id", ondelete="SET NULL"), unique=True, index=True
     )
     title: Mapped[str] = mapped_column(String, nullable=False, server_default="Meeting board")
-    nodes: Mapped[list] = mapped_column(JSONB, nullable=False, server_default=text("'[]'::jsonb"))
-    edges: Mapped[list] = mapped_column(JSONB, nullable=False, server_default=text("'[]'::jsonb"))
+    nodes: Mapped[list] = mapped_column(JSONB, nullable=False, server_default=_sql_text("'[]'::jsonb"))
+    edges: Mapped[list] = mapped_column(JSONB, nullable=False, server_default=_sql_text("'[]'::jsonb"))
     version: Mapped[int] = mapped_column(Integer, nullable=False, server_default="1")
     paused: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("false"))
     ai_cursor_seconds: Mapped[float] = mapped_column(Float, nullable=False, server_default="0")
@@ -752,7 +755,7 @@ class TermSuggestion(Base):
     status: Mapped[str] = mapped_column(String, nullable=False, server_default="pending")  # pending | accepted | dismissed | auto
     occurrences: Mapped[int] = mapped_column(Integer, nullable=False, server_default="0")
     # Distinct meetings it was heard in (strings, so reprocessing never double counts).
-    meeting_ids: Mapped[list] = mapped_column(JSONB, nullable=False, server_default=text("'[]'::jsonb"))
+    meeting_ids: Mapped[list] = mapped_column(JSONB, nullable=False, server_default=_sql_text("'[]'::jsonb"))
     last_meeting_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("meetings.id", ondelete="SET NULL"))
     decided_by: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"))
     decided_at: Mapped[datetime | None] = mapped_column(TIMESTAMP(timezone=True))
@@ -1231,6 +1234,10 @@ class VoiceUpdate(Base):
     meeting_code: Mapped[str] = mapped_column(String, nullable=False)
     meeting_url: Mapped[str] = mapped_column(String, nullable=False)
     text: Mapped[str] = mapped_column(Text, nullable=False)
+    # What the AI stand-in may answer for its author ("Wilco, ask Vedant ...").
+    briefing: Mapped[str | None] = mapped_column(Text)
+    # Questions the stand-in was asked in the call and what it said.
+    qa: Mapped[list] = mapped_column(JSONB, nullable=False, default=list, server_default=_sql_text("'[]'::jsonb"))
     created_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), server_default=func.now())
     expires_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), nullable=False)
     delivered_at: Mapped[datetime | None] = mapped_column(TIMESTAMP(timezone=True))

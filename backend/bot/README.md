@@ -13,6 +13,7 @@ Once admitted, the bot shows the Wilco mascot on camera, turns on captions and p
 | "Wilco, undo that" / "move payment after verification" | Edits the board |
 | "status", "cancel that", "cancel all requests", "stop speaking" | Controls running requests |
 | "Wilco, pause recording" / "Wilco, resume" | Off the record: the recorded audio is muted and words said meanwhile never reach the transcript, notes or answers. A reminder is posted after 10 minutes |
+| "Wilco, ask Vedant, …" / "Vedant se poocho …" | Vedant's AI stand-in answers only from his briefing, open tasks and this call, in an AI copy of his voice, labelled as AI; unknowns are passed on, never committed to; every question is sent to Vedant |
 | "Wilco, play updates" | Plays updates teammates left for this call on the Built on Gnani page, in an AI copy of their own voice (Gnani Timbre voice cloning, opt-in). Wilco says it is synthetic first, then posts the text in chat. Pending updates are announced when Wilco joins |
 | "Wilco, recap in Tamil" (or any supported language) | Answers in that language and script, and speaks it with the matching Timbre voice |
 | "Wilco, please leave" or "notetaker please leave" | The bot leaves the call |

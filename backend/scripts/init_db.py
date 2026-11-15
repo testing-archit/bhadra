@@ -13,6 +13,9 @@ from app.database.db import Base, engine
 async def main() -> None:
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+        # AI stand-in (voice_updates came from create_all on 15 Nov without these).
+        await conn.execute(text("ALTER TABLE voice_updates ADD COLUMN IF NOT EXISTS briefing TEXT"))
+        await conn.execute(text("ALTER TABLE voice_updates ADD COLUMN IF NOT EXISTS qa JSONB NOT NULL DEFAULT '[]'::jsonb"))
         await conn.execute(text("ALTER TABLE meeting_agent_jobs ADD COLUMN IF NOT EXISTS delivered_at TIMESTAMPTZ"))
         # create_all intentionally does not alter existing tables. Keep these
         # lightweight, idempotent additions here until formal migrations are

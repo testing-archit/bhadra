@@ -174,12 +174,15 @@ async def try_evon(request: Request, body: EvonRequest, user: User = Depends(get
 class VoiceUpdateRequest(BaseModel):
     meeting_url: str = Field(min_length=8, max_length=500)
     text: str = Field(min_length=2, max_length=800)
+    # What the AI stand-in may answer for you when someone asks in the call.
+    briefing: str | None = Field(default=None, max_length=3000)
 
 
 def _serialize_update(row: VoiceUpdate) -> dict:
     return {"id": str(row.id), "meeting_url": row.meeting_url, "text": row.text,
             "created_at": row.created_at.isoformat() if row.created_at else None,
-            "expires_at": row.expires_at.isoformat(), "delivered_at": row.delivered_at.isoformat() if row.delivered_at else None}
+            "expires_at": row.expires_at.isoformat(), "delivered_at": row.delivered_at.isoformat() if row.delivered_at else None,
+            "briefing": row.briefing, "qa": row.qa or []}
 
 
 @router.get("/voice-updates")
@@ -200,6 +203,7 @@ async def create_voice_update(request: Request, body: VoiceUpdateRequest, user: 
     except capture_service.InvalidMeetingUrl as error:
         raise HTTPException(status_code=422, detail=str(error)) from error
     row = VoiceUpdate(user_id=user.id, meeting_code=code, meeting_url=url, text=body.text.strip(),
+                      briefing=(body.briefing or "").strip() or None, qa=[],
                       expires_at=dt.datetime.now(dt.UTC) + dt.timedelta(hours=VOICE_UPDATE_HOURS))
     db.add(row)
     await db.commit()

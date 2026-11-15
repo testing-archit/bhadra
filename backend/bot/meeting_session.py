@@ -166,6 +166,25 @@ RESUME_COMMANDS = {"resume", "resume recording", "resume the recording", "start 
 # spoken in their own cloned voice (Gnani Timbre VC), announced as synthetic.
 VOICE_UPDATE_COMMANDS = {"play updates", "play the updates", "play update", "play the update", "read updates",
                          "read the updates", "updates", "voice updates", "play voice updates", "play team updates"}
+# "Wilco, ask Vedant, is KYC done?" / "Vedant se poocho ...": a question for an
+# absent teammate's AI stand-in.
+STANDIN_ASK_RE = re.compile(
+    r"^(?:ask|question for)\s+(?P<name>[^\s,:]+?)(?:'s)?(?:\s+(?:stand-?in|ai))?[\s,:-]+(?P<q>.{2,})$"
+    r"|^(?P<name2>[^\s,:]+)\s+se\s+(?:poocho|pucho|puchho|poochho|poochiye|puchiye)[\s,:-]+(?P<q2>.{2,})$",
+    re.IGNORECASE,
+)
+
+
+def standin_question(text: str) -> tuple[str, str] | None:
+    """(first name, question) when `text` asks an absent teammate something."""
+    match = STANDIN_ASK_RE.match(text.strip())
+    if not match:
+        return None
+    name = (match.group("name") or match.group("name2") or "").strip(" ,:")
+    question = (match.group("q") or match.group("q2") or "").strip()
+    return (name, question) if name and question else None
+
+
 CONTROL_COMMANDS = PAUSE_COMMANDS | RESUME_COMMANDS | VOICE_UPDATE_COMMANDS | {"stop", "stop speaking", "be quiet", "quiet", "cancel that", "cancel request",
                     "stop working", "cancel all requests", "status", "what are you doing", "what's running",
                     "stop presenting", "stop sharing", "stop presenting the board", "stop sharing the board"}
@@ -528,6 +547,8 @@ class MeetingSession:
         self._board_active = False
         self._paused_since: float | None = None
         self._voice_update_task: asyncio.Task | None = None
+        self._standins: list[dict] = []
+        self._standins_introduced: set[str] = set()
         self._pause_reminded = False
         self._agent = None
         self._pending_commands = {}
@@ -897,6 +918,11 @@ class MeetingSession:
 
     async def execute_command(self, page: Page, command: Command) -> str | None:
         asked, question = command.asked, command.question
+        if self.capture_request_id and (ask := standin_question(question)):
+            standin = await self.find_standin(ask[0])
+            if standin:
+                await self.answer_as_standin(page, standin, ask[1], asked)
+                return None
         intent = board_intent(question, self._board_active, bool(meet_chat.task_text(question)))
         if self.capture_request_id and intent == "stop":
             if config.PRESENT_BOARD and self.USES_GOOGLE_LOGIN:
@@ -1057,11 +1083,54 @@ class MeetingSession:
         await self.send_agent_message(page, message)
         return True
 
+    async def find_standin(self, first_name: str) -> dict | None:
+        wanted = first_name.lower()
+        for refresh in (False, True):
+            if refresh or not self._standins:
+                self._standins = await asyncio.to_thread(uploader.standins, self.capture_request_id)
+            for item in self._standins:
+                if item["name"].split(" ")[0].lower() == wanted:
+                    return item
+        return None
+
+    async def answer_as_standin(self, page, standin: dict, question: str, asked: str) -> None:
+        """The absent teammate's AI stand-in answers, in their cloned voice,
+        always labelled as AI in chat and introduced aloud the first time."""
+        asked_by = asked.removeprefix("asked aloud by ").strip() if asked.startswith("asked aloud by ") else None
+        result = await asyncio.to_thread(uploader.ask_standin, self.capture_request_id, standin["id"], question,
+                                         asked_by, self.captions.export())
+        name = standin["name"].split(" ")[0]
+        if not result:
+            await self.send_agent_message(page, f"{name}'s AI stand-in couldn't answer right now. I'll make sure {name} sees the question.")
+            return
+        await self.send_agent_message(page, f"{name}'s AI stand-in (AI voice, not {name} live): {result['answer']}")
+        if not (config.SPEAK_IN_CALL and self.USES_GOOGLE_LOGIN):
+            return
+        try:
+            if standin["id"] not in self._standins_introduced:
+                self._standins_introduced.add(standin["id"])
+                await self.speak(page, f"{name}'s AI stand-in will answer, in an AI copy of {name}'s voice.")
+            if result.get("audio"):
+                await self.play_browser_audio(page, base64.b64decode(result["audio"]), max_seconds=40)
+            else:
+                await self.speak(page, result["answer"])
+        except asyncio.CancelledError:
+            raise
+        except Exception as error:
+            log.warning("Stand-in playback failed (%s)", type(error).__name__)
+
     async def announce_voice_updates(self, page) -> None:
-        """Tell the call, once, that absent teammates left updates."""
+        """Tell the call, once, that absent teammates left updates or stand-ins."""
         if not self.capture_request_id:
             return
         updates = await asyncio.to_thread(uploader.voice_updates, self.capture_request_id)
+        self._standins = await asyncio.to_thread(uploader.standins, self.capture_request_id)
+        if self._standins:
+            first = self._standins[0]["name"].split(" ")[0]
+            names = ", ".join(item["name"].split(" ")[0] for item in self._standins)
+            await self.send_agent_message(page, f"AI stand-in here for {names}: it speaks in an AI copy of their voice and "
+                                                f"answers only from what they briefed it with. Ask \u201cWilco, ask {first}, …\u201d "
+                                                "and they'll see every question afterwards.")
         if not updates:
             return
         names = list(dict.fromkeys(item["name"] for item in updates))

@@ -94,7 +94,7 @@ One screen that shows every Gnani model working. Use it first in a demo.
 
 ## Listen in your language (meeting page) — added 15 Nov
 
-Open a meeting → Full meeting → Summary. Pick தமிழ் / मराठी / বাংলা and tap Listen: the summary is translated and read by Timbre; the translation shows below with "Translated by Gemini · spoken by Gnani Timbre v3 (voice)". If speech fails the translation still shows.
+Open a meeting → Full meeting → Summary. Pick தமிழ் / मराठी / বাংলা and tap Listen: the summary is translated and read by Timbre; the translation shows below with "Translated by Wilco · spoken by Gnani Timbre v3 (voice)". If speech fails the translation still shows.
 
 ## In the call — added 15 Nov
 
@@ -106,4 +106,16 @@ Open a meeting → Full meeting → Summary. Pick தமிழ் / मराठ
 | "Wilco, draw a signup and payment flow" | Board edit straight away (no extra planning step) |
 | "Wilco, cancel that" during a request | One confirmation in chat, not two |
 
-Wilco Live now shows chips under each answer: heard by Prisma (language, time), answered by Gemini/Evon, spoken by Timbre (voice, time).
+Wilco Live now shows chips under each answer: heard by Prisma (language, time), answered by Wilco/Evon, spoken by Timbre (voice, time).
+
+## AI stand-in (absent teammate) — added 15 Nov
+
+On `/gnani` (real account, voice recorded): fill "Send your AI stand-in" with a Meet link, an update and a briefing (e.g. "KYC needs the sandbox keys; fine to move the demo to Friday; don't commit me to new work"). Then send Wilco into that Meet.
+
+| In the call | Expect |
+|---|---|
+| Wilco joins | Chat: "AI stand-in here for Vedant: it speaks in an AI copy of their voice…" |
+| "Wilco, ask Vedant, is KYC done?" (spoken or typed) | Chat "Vedant's AI stand-in (AI voice, not Vedant live): …"; Wilco says it's an AI copy, then the answer plays in Vedant's cloned voice |
+| "Vedant se poocho demo kab hai?" | Same, answered in Hinglish |
+| "Wilco, ask Vedant, can you take the Jira migration?" | "I don't have that from Vedant. I'll pass your question on…" (never commits him) |
+| Afterwards, as Vedant | A notification per question; the update on `/gnani` lists every question and answer |

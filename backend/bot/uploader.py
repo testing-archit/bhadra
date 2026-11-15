@@ -309,3 +309,27 @@ def voice_update_delivered(capture_request_id: str, update_id: str) -> None:
                    headers=_bot_headers(), timeout=10).raise_for_status()
     except Exception as error:
         log.warning("Could not mark the voice update played: %s", error)
+
+
+def standins(capture_request_id: str) -> list[dict]:
+    """AI stand-ins teammates sent to this call ([] if none or unreachable)."""
+    try:
+        response = httpx.get(f"{config.BACKEND_URL}/api/bot/capture-requests/{capture_request_id}/standins",
+                             headers=_bot_headers(), timeout=10)
+        response.raise_for_status()
+        return response.json()
+    except Exception as error:
+        log.warning("Stand-ins unavailable: %s", error)
+        return []
+
+
+def ask_standin(capture_request_id: str, standin_id: str, question: str, asked_by: str | None, captions: list[dict]) -> dict | None:
+    try:
+        response = httpx.post(
+            f"{config.BACKEND_URL}/api/bot/capture-requests/{capture_request_id}/standins/{standin_id}/ask",
+            headers=_bot_headers(), json={"question": question, "asked_by": asked_by, "captions": captions[-200:]}, timeout=60)
+        response.raise_for_status()
+        return response.json()
+    except Exception as error:
+        log.warning("Stand-in answer failed: %s", error)
+        return None

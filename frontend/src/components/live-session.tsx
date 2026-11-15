@@ -30,7 +30,7 @@ function modelName(id?: string): string {
   if (id.startsWith("prisma")) return `Gnani Prisma ${id.replace("prisma-", "")}`;
   if (id.startsWith("timbre")) return `Gnani Timbre ${id.replace("timbre-", "")}`;
   if (id.includes("evon")) return "Gnani Evon v3.3";
-  if (id.startsWith("gemini")) return "Gemini";
+  if (id.startsWith("gemini")) return "Wilco";
   return id;
 }
 
@@ -141,7 +141,7 @@ export function LiveSession() {
         setTurns(next);
         setPipeline({
           heard: modelName(result.heard_model) || "Gnani Prisma",
-          answered: modelName(result.reply_model) || "Gemini",
+          answered: modelName(result.reply_model) || "Wilco",
           spoke: modelName(result.speech_model) || "Gnani Timbre",
           voice: result.speech_voice,
           heardMs: result.timings?.input_and_context_ms,

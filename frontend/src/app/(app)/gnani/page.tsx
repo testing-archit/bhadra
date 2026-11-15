@@ -37,7 +37,7 @@ const IN_WILCO = [
   { model: "Prisma v3", icon: Mic, uses: ["Transcribes every meeting, Hinglish, Tanglish and 10+ Indian languages", "Recaps noisy phone calls and WhatsApp voice notes", "Hears Wilco Live and spoken questions"] },
   { model: "Timbre v2.5 + v3", icon: Volume2, uses: ["Wilco's voice in Google Meet calls", "Spoken replies in Wilco Live, in your language", "Listen to meeting notes in 11 languages"] },
   { model: "Timbre voice cloning", icon: Fingerprint, uses: ["Your update read in your own voice in a call you'll miss", "Opt-in, your voice only, deletable anytime"] },
-  { model: "Evon v3.3", icon: Brain, uses: ["Answers Wilco Live when the team hosts it", "Gemini takes over if Evon is unreachable"] },
+  { model: "Evon v3.3", icon: Brain, uses: ["Answers Wilco Live when the team hosts it", "Falls back to Wilco's default model if Evon is unreachable"] },
 ];
 
 function useRecorder(maxSeconds: number) {
@@ -206,6 +206,7 @@ function VoiceCloneCard({ status, demo, onChange }: { status?: GnaniModels["voic
   const [line, setLine] = useState("Hi team, quick update: payments are live, and I'm blocked on the KYC keys.");
   const [meetingUrl, setMeetingUrl] = useState("");
   const [update, setUpdate] = useState("");
+  const [briefing, setBriefing] = useState("");
   const [updates, setUpdates] = useState<VoiceUpdate[]>([]);
   const enrolled = Boolean(status?.enrolled);
 
@@ -235,8 +236,8 @@ function VoiceCloneCard({ status, demo, onChange }: { status?: GnaniModels["voic
   return (
     <Card className="h-full">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2"><Fingerprint className="size-4 text-primary" aria-hidden="true" />Timbre voice cloning · your voice</CardTitle>
-        <CardDescription>Missing a stand-up? Leave a typed update and Wilco says it in the call in your voice, announced as an AI copy.</CardDescription>
+        <CardTitle className="flex items-center gap-2"><Fingerprint className="size-4 text-primary" aria-hidden="true" />Timbre voice cloning · your AI stand-in</CardTitle>
+        <CardDescription>Missing a meeting? Your AI stand-in joins with Wilco, gives your update and answers questions in your voice, always announced as AI. You get every question afterwards.</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-1 flex-col gap-4">
         {demo ? (
@@ -276,14 +277,15 @@ function VoiceCloneCard({ status, demo, onChange }: { status?: GnaniModels["voic
             </div>
             <form className="flex flex-col gap-2 border-t pt-4" onSubmit={(event) => {
               event.preventDefault();
-              void run("update", async () => { await api.createVoiceUpdate(meetingUrl, update); setUpdate(""); await loadUpdates(); });
+              void run("update", async () => { await api.createVoiceUpdate(meetingUrl, update, briefing); setUpdate(""); setBriefing(""); await loadUpdates(); });
             }}>
-              <Label htmlFor="update-meeting">Leave an update for a call you'll miss</Label>
+              <Label htmlFor="update-meeting">Send your AI stand-in to a call you'll miss</Label>
               <Input id="update-meeting" value={meetingUrl} onChange={(event) => setMeetingUrl(event.target.value)} placeholder="https://meet.google.com/abc-defg-hij" required />
-              <Textarea value={update} onChange={(event) => setUpdate(event.target.value)} rows={2} maxLength={800} placeholder="Yesterday: payments shipped. Today: KYC. Blocked on: sandbox keys." aria-label="Your update" required />
+              <Textarea value={update} onChange={(event) => setUpdate(event.target.value)} rows={2} maxLength={800} placeholder="Your update. Yesterday: payments shipped. Today: KYC. Blocked on: sandbox keys." aria-label="Your update" required />
+              <Textarea value={briefing} onChange={(event) => setBriefing(event.target.value)} rows={3} maxLength={3000} placeholder="What your stand-in may answer, e.g. KYC needs the sandbox keys from Razorpay; I'm fine moving the demo to Friday; don't commit me to new work." aria-label="Briefing for your AI stand-in" />
               <div className="flex items-center gap-2">
                 <Button type="submit" disabled={busy !== null}>{busy === "update" ? <Loader2 className="animate-spin" aria-hidden="true" /> : <Radio aria-hidden="true" />}Leave update</Button>
-                <p className="text-xs text-muted-foreground">In the call, anyone says “Wilco, play updates”.</p>
+                <p className="text-xs text-muted-foreground">In the call: “Wilco, play updates” or “Wilco, ask {"<your name>"}, …”. It answers in your voice, says it&apos;s AI, and never commits you to anything.</p>
               </div>
             </form>
             {updates.length > 0 && (
@@ -293,6 +295,16 @@ function VoiceCloneCard({ status, demo, onChange }: { status?: GnaniModels["voic
                     <div className="min-w-0">
                       <p className="line-clamp-2">{item.text}</p>
                       <p className="text-xs text-muted-foreground">{item.meeting_url.replace("https://", "")} · {item.delivered_at ? "played in the call" : "waiting for the call"}</p>
+                      {item.qa.length > 0 && (
+                        <ul className="mt-2 flex flex-col gap-1.5 border-l-2 border-primary/30 pl-2">
+                          {item.qa.map((entry) => (
+                            <li key={entry.at} className="text-xs">
+                              <p><span className="font-medium">{entry.asked_by ?? "Someone"} asked:</span> {entry.question}</p>
+                              <p className="text-muted-foreground">{entry.known ? `Your stand-in: ${entry.answer}` : "Your stand-in didn't know and said you'd follow up."}</p>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
                     </div>
                     {!item.delivered_at && (
                       <Button size="icon-sm" variant="ghost" aria-label="Delete update" onClick={() => void run("del", async () => { await api.deleteVoiceUpdate(item.id); await loadUpdates(); })}>
@@ -320,7 +332,7 @@ function EvonCard({ status }: { status?: GnaniModels["evon"] }) {
     <Card className="h-full">
       <CardHeader>
         <CardTitle className="flex items-center gap-2"><Brain className="size-4 text-primary" aria-hidden="true" />Evon v3.3 · Indic LLM</CardTitle>
-        <CardDescription>Gnani's open-weights model for 11 Indian languages. When the team hosts it, Wilco Live answers with Evon, and Gemini takes over if it's unreachable.</CardDescription>
+        <CardDescription>Gnani's open-weights model for 11 Indian languages. When the team hosts it, Wilco Live answers with Evon, and falls back to its default model if Evon is unreachable.</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-1 flex-col gap-3">
         {status?.configured ? (

@@ -887,3 +887,69 @@ async def voice_update_delivered(request_id: uuid.UUID, update_id: uuid.UUID, db
     row.delivered_at = row.delivered_at or datetime.datetime.now(datetime.UTC)
     await db.commit()
     return {"delivered": True}
+
+
+@router.get("/capture-requests/{request_id}/standins", dependencies=[Depends(require_bot)])
+async def call_standins(request_id: uuid.UUID, db: AsyncSession = Depends(get_db)) -> list[dict]:
+    """AI stand-ins sent to this call (played or not), by their author's name."""
+    from app.database.models import VoiceClone, VoiceUpdate
+    capture = await _capturing(db, request_id)
+    rows = (await db.execute(
+        select(VoiceUpdate, User.name, User.email).join(User, User.id == VoiceUpdate.user_id)
+        .join(VoiceClone, VoiceClone.user_id == VoiceUpdate.user_id)
+        .where(VoiceUpdate.meeting_code == capture.meeting_code, VoiceUpdate.expires_at > func.now())
+        .order_by(VoiceUpdate.created_at.desc()).limit(10))).all()
+    seen, out = set(), []
+    for row, name, email in rows:  # newest per person
+        if row.user_id in seen:
+            continue
+        seen.add(row.user_id)
+        out.append({"id": str(row.id), "name": (name or email.split("@")[0]).strip()})
+    return out
+
+
+class StandinQuestion(BaseModel):
+    question: str = Field(min_length=2, max_length=600)
+    asked_by: str | None = Field(default=None, max_length=120)
+    captions: list[dict] = Field(default_factory=list, max_length=200)
+
+
+@router.post("/capture-requests/{request_id}/standins/{update_id}/ask", dependencies=[Depends(require_bot)])
+async def ask_standin(request_id: uuid.UUID, update_id: uuid.UUID, body: StandinQuestion, db: AsyncSession = Depends(get_db)) -> dict:
+    """Answer a question put to an absent teammate, in their cloned voice,
+    from their briefing, open tasks and this call; logged and sent to them."""
+    import base64
+    from app.database.models import MeetingTask, Notification, VoiceClone, VoiceUpdate
+    from app.services import standin_service, voice_clone_service
+    capture = await _capturing(db, request_id)
+    row = await db.get(VoiceUpdate, update_id)
+    if row is None or row.meeting_code != capture.meeting_code:
+        raise HTTPException(status_code=404, detail="Stand-in not found")
+    author = await db.get(User, row.user_id)
+    clone = await db.get(VoiceClone, row.user_id)
+    if author is None or clone is None:
+        raise HTTPException(status_code=404, detail="Its author deleted their voice")
+    name = (author.name or author.email.split("@")[0]).strip()
+    tasks = (await db.scalars(select(MeetingTask.description).where(
+        MeetingTask.owner_user_id == author.id, MeetingTask.status.notin_(["done", "completed"]),
+        MeetingTask.deleted_at.is_(None)).order_by(MeetingTask.created_at.desc()).limit(30))).all()
+    usage_ledger.attribute(user_id=author.id, meeting_id=capture.meeting_id)
+    try:
+        reply, known = await asyncio.to_thread(standin_service.answer, name, body.question, row.text, row.briefing,
+                                               list(tasks), body.captions)
+    except Exception as error:
+        raise HTTPException(status_code=502, detail="The stand-in couldn't answer") from error
+    try:
+        audio = base64.b64encode(await voice_clone_service.speak(reply, clone)).decode()
+    except Exception:
+        audio = None
+    entry = {"question": body.question.strip(), "answer": reply, "known": known, "asked_by": body.asked_by,
+             "at": datetime.datetime.now(datetime.UTC).isoformat()}
+    row.qa = [*(row.qa or []), entry][-50:]
+    title = capture.title or "your meeting"
+    who = f"{body.asked_by} asked" if body.asked_by else "Someone asked"
+    db.add(Notification(user_id=author.id, type="standin_question", link="/gnani",
+                        message=(f"In {title}, {who} your AI stand-in: “{entry['question']}”. "
+                                 + (f"It answered: “{reply}”" if known else "It didn't know, so it said you'd follow up."))[:1000]))
+    await db.commit()
+    return {"name": name, "answer": reply, "known": known, "audio": audio}

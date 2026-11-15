@@ -189,3 +189,30 @@ async def test_voice_updates_are_announced_as_ai_then_played_and_marked(tmp_path
     assert order[1] == ('play', b'ID3clone')
     assert order[2][0] == 'chat' and 'AI copy' in order[2][1] and 'KYC is blocked.' in order[2][1]
     assert order[3] == ('delivered', 'u1')
+
+
+def test_standin_questions_are_recognised_in_english_and_hinglish():
+    assert meeting_session.standin_question("ask Vedant, is KYC done") == ("Vedant", "is KYC done")
+    assert meeting_session.standin_question("Vedant se poocho KYC kab tak hoga") == ("Vedant", "KYC kab tak hoga")
+    assert meeting_session.standin_question("what did we decide") is None
+
+
+async def test_standin_answer_is_labelled_ai_and_spoken_in_the_cloned_voice(tmp_path, monkeypatch):
+    monkeypatch.setattr(meeting_session.config, 'SESSIONS_DIR', tmp_path)
+    monkeypatch.setattr(meeting_session.config, 'SPEAK_IN_CALL', True)
+    session = meeting_session.MeetingSession({'capture_request_id': 'cap'})
+    session.USES_GOOGLE_LOGIN = True
+    events = []
+    monkeypatch.setattr(meeting_session.uploader, 'standins', lambda cid: [{'id': 's1', 'name': 'Vedant Moghe'}])
+    monkeypatch.setattr(meeting_session.uploader, 'ask_standin', lambda *a: {'answer': 'Waiting on sandbox keys.', 'known': True, 'audio': 'SUQz'})
+    async def send(page, message):
+        events.append(('chat', message)); return True
+    async def speak(page, text):
+        events.append(('speak', text))
+    async def play(page, audio, max_seconds=46):
+        events.append(('play', audio))
+    session.send_agent_message, session.speak, session.play_browser_audio = send, speak, play
+    assert await session.execute_command(None, meeting_session.Command('asked aloud by Ravi', 'ask Vedant, is KYC done')) is None
+    assert events[0][0] == 'chat' and "AI stand-in (AI voice, not Vedant live)" in events[0][1]
+    assert events[1] == ('speak', "Vedant's AI stand-in will answer, in an AI copy of Vedant's voice.")
+    assert events[2] == ('play', b'ID3')

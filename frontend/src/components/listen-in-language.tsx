@@ -95,7 +95,7 @@ export function ListenInLanguage({ text, title }: { text: string; title?: string
       const voice = `Gnani ${result.model.replace("timbre-", "Timbre ")} (${result.voice})`;
       setHeard(language === "en-IN" ? null : {
         language, text: result.text,
-        credit: result.translated ? `Translated by Gemini · spoken by ${voice}` : `Spoken by ${voice}`,
+        credit: result.translated ? `Translated by Wilco · spoken by ${voice}` : `Spoken by ${voice}`,
       });
       if (!result.audio) {
         cache.current.delete(language); // try the speech again next time
