@@ -1,7 +1,9 @@
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
+import httpx
 import pytest
+from google import genai
 from pydantic import BaseModel, ValidationError
 
 from app.services import gemini_service
@@ -61,3 +63,28 @@ def test_interactive_generation_limits_retry_and_thinking():
         gemini_service.generate_structured('system','prompt',_Notes,timeout_seconds=15,attempts=1,thinking_budget=0)
     factory.assert_called_once_with(15)
     assert client.models.generate_content.call_args.kwargs['config'].thinking_config.thinking_budget==0
+
+
+def test_strict_board_schema_reaches_api_as_json_schema_and_validates_reply():
+    """Exercise the actual SDK serializer that rejected live board commands."""
+    import json
+    from app.services.board_commands import BoardCommandPlan
+
+    requests = []
+    def respond(request):
+        body = json.loads(request.content)
+        requests.append(body)
+        config = body['generationConfig']
+        assert 'responseSchema' not in config
+        assert config['responseJsonSchema']['$defs']['BoardOperation']['additionalProperties'] is False
+        # A provider response must still pass our strict local schema.
+        reply = {'message': 'Added', 'operations': [{'op': 'create_node', 'title': 'Release check', 'unexpected': True}]}
+        return httpx.Response(200, json={'candidates': [{'content': {'parts': [{'text': json.dumps(reply)}]}}]})
+
+    client = genai.Client(api_key='test-key', http_options={'client_args': {'transport': httpx.MockTransport(respond)}})
+    with patch.object(gemini_service, '_client', return_value=client), \
+            patch.object(gemini_service.usage_ledger, 'record_tokens') as billed, \
+            pytest.raises(ValidationError):
+        gemini_service.generate_structured('system', 'synthetic board command', BoardCommandPlan, attempts=1)
+    assert len(requests) == 1
+    billed.assert_called_once()

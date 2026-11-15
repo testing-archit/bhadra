@@ -104,3 +104,7 @@ The user explicitly requested pushing, merging and deploying the action-agent br
 ## Deployment verification fix
 
 PR #1 merged at `ee8a3ed`; backend and notetaker images restarted. The first deployment run's final probe failed with a connection error while the API was starting. Public health and new authenticated route checks succeeded afterward. Codex is fixing readiness polling and SSH-script stdin consumption, and preserving initial rollback snapshots on retries. Deployment will only be reported complete after the live model-backed canary and bot runtime checks pass.
+
+## Live provider compatibility fix
+
+PR #2 merged at `737d10d`; services are healthy and presentation is enabled for the authorized test. The real model canary exposed an SDK serialization error: strict nested Pydantic fields became `additional_properties` in the legacy response schema. A synthetic production probe confirmed that sending JSON Schema directly succeeds with one whiteboard operation. Codex is correcting the shared generation wrapper, preserving strict local validation and cost attribution, and adding a real SDK transport regression test. A manually invoked diagnostics mode checks service metadata and makes a synthetic provider request without joining a meeting; it never logs keys or real meeting content. Release verification remains pending.
