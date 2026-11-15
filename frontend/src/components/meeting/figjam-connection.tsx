@@ -65,8 +65,9 @@ export function FigJamConnection({captureId}: {captureId: string}) {
       <details id="figjam-help" className="text-sm">
         <summary className="cursor-pointer font-medium">Set up the FigJam plugin</summary>
         <ol className="mt-3 flex list-decimal flex-col gap-2 pl-5 text-muted-foreground">
-          <li><a className="font-medium text-primary underline" href="/downloads/wilco-figjam.zip" download>Download the Wilco plugin</a> and unzip it.</li>
-          <li>In Figma desktop, open your FigJam file. Choose Plugins → Development → Import plugin from manifest, then select manifest.json.</li>
+          <li>In Figma desktop, choose Plugins → Development → New plugin. Name it Wilco meeting commands, choose FigJam, and save the generated folder.</li>
+          <li><a className="font-medium text-primary underline" href="/downloads/wilco-figjam.zip" download>Download the Wilco plugin files</a> and unzip them. Follow README.txt to copy your Figma-issued plugin ID using the included configure.py helper.</li>
+          <li>Choose Plugins → Development → Import plugin from manifest, then select the updated Wilco manifest.json.</li>
           <li>Run Wilco meeting commands. Paste this file’s link and your one-time code. Keep the plugin open.</li>
           <li>Say “Wilco, draw a signup and payment flow.” Share the FigJam tab in Meet when presenting.</li>
         </ol>
