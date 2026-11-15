@@ -25,6 +25,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { HomeFollowUps } from "@/components/home-follow-ups";
+import { DemoTour } from "@/components/demo-tour";
 import { MeetingAgenda } from "@/components/meeting-agenda";
 import { MeetingPeople } from "@/components/meeting-people";
 import { isCaptureLive, useShell } from "@/components/shell/shell-context";
@@ -121,6 +122,7 @@ export default function HomePage() {
   return (
     <div className="meeting-dashboard home-return-workspace">
       <h1 className="sr-only">Your next steps</h1>
+      <DemoTour />
       {error && (
         <div className="dashboard-error" role="alert">
           <p>{error}</p>
