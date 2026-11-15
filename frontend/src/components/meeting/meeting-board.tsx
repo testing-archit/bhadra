@@ -149,7 +149,7 @@ export function MeetingBoard({ meetingId, captureId }: { meetingId?: string; cap
   if (board.external_url) return <section className="flex flex-col gap-3 rounded-2xl border bg-card p-5" aria-label="Shared FigJam board">
     <h2 className="font-heading text-lg font-semibold">Your board is in FigJam</h2>
     <p className="text-sm text-muted-foreground">Open the editable file and use Figma’s Share button to invite collaborators.</p>
-    <Button className="w-fit" render={<a href={board.external_url} target="_blank" rel="noopener noreferrer" />}><ArrowUpRight data-icon="inline-start" />Open FigJam</Button>
+    <Button className="w-fit" nativeButton={false} render={<a href={board.external_url} target="_blank" rel="noopener noreferrer" />}><ArrowUpRight data-icon="inline-start" />Open FigJam</Button>
   </section>;
 
   return <section className="overflow-hidden rounded-2xl border bg-card" aria-label="Meeting whiteboard">

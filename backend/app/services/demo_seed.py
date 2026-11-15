@@ -6,7 +6,7 @@ from datetime import date, datetime, timedelta, timezone
 
 from sqlalchemy import select
 
-from app.database.models import Decision, Meeting, MeetingAttendee, MeetingTask, Project, Risk, User
+from app.database.models import Decision, KhataEntry, Meeting, MeetingAttendee, MeetingTask, Project, Risk, User
 
 SEED_PREFIX = "demo-seed-"
 
@@ -368,4 +368,26 @@ async def seed_workspace(db, owner: User, mate: User | None = None, skip: set[in
         for text, severity in spec["risks"]:
             db.add(Risk(meeting_id=meeting.id, project_id=project.id, description=text, severity=severity))
             counts["risks"] += 1
+    # Sharma ji's voice khata, matching the kirana meetings.
+    from sqlalchemy import func as _func
+    if not await db.scalar(select(_func.count()).select_from(KhataEntry).where(KhataEntry.user_id == owner.id)):
+        for index, (customer, kind, amount, note, said) in enumerate(KHATA):
+            db.add(KhataEntry(user_id=owner.id, customer=customer, customer_key=_khata_key(customer), kind=kind,
+                              amount=amount, note=note, said=said, created_at=now - timedelta(days=len(KHATA) - index)))
     return counts
+
+
+KHATA = [
+    ("Gupta ji", "credit", 1100, "monthly ration", "Gupta ji ka mahine ka ration, gyarah sau udhaar likh do"),
+    ("Meena didi", "credit", 380, "atta, sugar", "Meena didi teen sau assi ka atta cheeni le gayi, baad mein dengi"),
+    ("Ramesh bhaiya", "credit", 640, "oil, dal", "Ramesh bhaiya chhe sau chaalees ka tel dal udhaar"),
+    ("Meena didi", "payment", 200, None, "Meena didi ne do sau jama kiye"),
+    ("Murugan anna", "credit", 450, "rice", "Murugan anna 450 rupees arisi kadan vaangitu ponaar"),
+    ("Farida aunty", "credit", 260, "milk, bread", "Farida aunty doodh bread do sau saath udhaar"),
+    ("Gupta ji", "payment", 500, None, "Gupta ji paanch sau de gaye"),
+]
+
+
+def _khata_key(name: str) -> str:
+    from app.services.khata_service import customer_key
+    return customer_key(name)

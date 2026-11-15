@@ -145,7 +145,7 @@ export function ListenInLanguage({ text, title }: { text: string; title?: string
           WhatsApp
         </Button>
         {voiceNote?.language === language && (
-          <Button size="sm" variant="ghost" render={<a href={`data:audio/mpeg;base64,${voiceNote.audio}`} download={`wilco-notes-${language}.mp3`} />} title="Download the spoken notes to forward as a voice note">
+          <Button size="sm" variant="ghost" nativeButton={false} render={<a href={`data:audio/mpeg;base64,${voiceNote.audio}`} download={`wilco-notes-${language}.mp3`} />} title="Download the spoken notes to forward as a voice note">
             <Download aria-hidden="true" />
             Voice note
           </Button>

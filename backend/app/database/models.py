@@ -1241,3 +1241,19 @@ class VoiceUpdate(Base):
     created_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), server_default=func.now())
     expires_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), nullable=False)
     delivered_at: Mapped[datetime | None] = mapped_column(TIMESTAMP(timezone=True))
+
+
+class KhataEntry(Base):
+    """Voice khata: one udhaar (credit given) or payment line in a shop's ledger,
+    usually spoken ("Gupta ji ne 500 ka saman udhaar liya")."""
+    __tablename__ = "khata_entries"
+    __table_args__ = (Index("ix_khata_user_customer", "user_id", "customer_key"),)
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    customer: Mapped[str] = mapped_column(String(120), nullable=False)
+    customer_key: Mapped[str] = mapped_column(String(120), nullable=False)
+    kind: Mapped[str] = mapped_column(String(10), nullable=False)  # credit (udhaar given) | payment (money received)
+    amount: Mapped[float] = mapped_column(Float, nullable=False)
+    note: Mapped[str | None] = mapped_column(String(300))
+    said: Mapped[str | None] = mapped_column(Text)  # what was heard, for trust
+    created_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), server_default=func.now())

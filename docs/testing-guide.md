@@ -119,3 +119,15 @@ On `/gnani` (real account, voice recorded): fill "Send your AI stand-in" with a 
 | "Vedant se poocho demo kab hai?" | Same, answered in Hinglish |
 | "Wilco, ask Vedant, can you take the Jira migration?" | "I don't have that from Vedant. I'll pass your question on…" (never commits him) |
 | Afterwards, as Vedant | A notification per question; the update on `/gnani` lists every question and answer |
+
+## Voice khata (`/khata`) — added 15 Nov
+
+A kirana's udhaar book kept by speaking (Real Deal). Demo guests start with Sharma ji's sample book (₹2,130 to collect).
+
+| Do | Expect |
+|---|---|
+| Speak an entry: "Gupta ji ne paanch sau ka atta aur dal udhaar liya" | "Heard: …" with a Gnani Prisma chip; Gupta ji +₹500 (note "atta aur dal") |
+| Type "Meena didi ne 300 jama kiye" | A payment; her balance drops |
+| Type "Karthik anna 750 rupees kadan, paruppu and oil" (Tanglish) | Karthik anna ₹750 udhaar |
+| Type "Ravi bhaiya kitne ka baaki hai" | "I didn't hear a name and an amount" (questions never create entries) |
+| Pick தமிழ் → Remind on Murugan anna | A polite Tamil WhatsApp message; Send on WhatsApp opens wa.me; Listen / Voice note play it in Timbre's Tamil voice |

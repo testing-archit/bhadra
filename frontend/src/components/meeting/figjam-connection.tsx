@@ -41,7 +41,7 @@ export function FigJamConnection({captureId}: {captureId: string}) {
     </CardHeader>
     <CardContent className="flex flex-col gap-4">
       <p role="status" aria-live="polite" className="text-sm">{!status ? "Checking connection…" : status.connected ? "Connected. Keep the Wilco plugin open in FigJam." : status.configured ? "Waiting for the Wilco plugin in FigJam." : "Connect a FigJam file to draw there by voice."}</p>
-      {status?.file_url && <Button render={<a href={status.file_url} target="_blank" rel="noopener noreferrer" />}>
+      {status?.file_url && <Button nativeButton={false} render={<a href={status.file_url} target="_blank" rel="noopener noreferrer" />}>
         <ExternalLink data-icon="inline-start" />Open FigJam
       </Button>}
       {status?.can_connect && !status.connected && <form className="flex flex-col gap-3" onSubmit={async event => {

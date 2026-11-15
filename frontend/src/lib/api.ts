@@ -102,6 +102,24 @@ async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> 
   return data;
 }
 
+export interface KhataEntry {
+  id: string;
+  customer: string;
+  kind: "credit" | "payment";
+  amount: number;
+  note: string | null;
+  said: string | null;
+  created_at: string | null;
+}
+
+export interface KhataLedger {
+  entries: KhataEntry[];
+  customers: Array<{ customer: string; balance: number; last_at: string | null }>;
+  outstanding: number;
+  given: number;
+  received: number;
+}
+
 export interface GnaniModels {
   demo: boolean;
   prisma: { configured: boolean; model: string; mode: string };
@@ -1583,6 +1601,17 @@ export const api = {
   },
   /** Text read aloud by Gnani Timbre, as MP3. */
   speak: (text: string, language?: string) => apiPostBlob("/api/tts", { text, language }),
+  /** Voice khata: a shop's udhaar ledger kept by speaking. */
+  khata: () => apiFetch<KhataLedger>("/api/khata"),
+  khataText: (text: string) => apiFetch<KhataLedger & { added: KhataEntry[] }>("/api/khata/text", { method: "POST", body: JSON.stringify({ text }) }),
+  khataVoice: (audio: Blob) => {
+    const form = new FormData();
+    form.append("audio", audio, audio.type.includes("mp4") ? "note.m4a" : "note.webm");
+    return apiFetch<KhataLedger & { added: KhataEntry[]; heard: string; language: string | null }>("/api/khata/voice", { method: "POST", body: form });
+  },
+  khataDelete: (id: string) => apiFetch<KhataLedger>(`/api/khata/entries/${id}`, { method: "DELETE" }),
+  khataReminder: (customer: string, language: string, speak: boolean) =>
+    apiFetch<{ customer: string; balance: number; text: string; audio: string | null }>("/api/khata/reminder", { method: "POST", body: JSON.stringify({ customer, language, speak }) }),
   /** Built on Gnani: model status and live try-its. */
   gnaniModels: () => apiFetch<GnaniModels>("/api/gnani/models"),
   gnaniPrisma: (audio: Blob) => {
