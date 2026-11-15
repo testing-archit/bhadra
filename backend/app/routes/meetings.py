@@ -9,6 +9,7 @@ import subprocess
 import time
 import uuid
 from pathlib import Path
+from typing import Annotated
 
 from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, Request, Response, UploadFile
 from pydantic import BaseModel, Field, field_validator
@@ -1234,8 +1235,8 @@ async def ingest_meeting(
     tasks_sheet_name: str | None = Form(None),
     notes_sheet_name: str | None = Form(None),
     meeting_language: str = Form("hinglish"),
-    audio_channel_mode: str = Form("preserve"),
-    transcription_profile: str | None = Form(None),
+    audio_channel_mode: Annotated[str, Form()] = "preserve",
+    transcription_profile: Annotated[str | None, Form()] = None,
     transcript: str | None = Form(None),
     audio: UploadFile | None = File(None),
     client_meeting_id: str | None = Form(None),

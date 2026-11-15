@@ -68,4 +68,23 @@ WER is corpus-weighted Levenshtein distance after NFC/case/punctuation normaliza
 
 Initial exploration: 29 generated clips, 791 reference words across variants; original path 38.18% WER, improved PCM 32.87%, spectral 32.36%, RNNoise 31.48%, direct Scribe v3 11.38%. RNNoise reduced aggregate errors but lost more critical phrases than raw PCM. Original temporary recordings were cleared during an environment transition; these initial figures are retained from the tool output. The subsequent validation uses new scripts, voices and noise and stores its artifacts persistently.
 
-Validation results and final regression counts are recorded below when the run completes. Real telephone recordings, natural accents/disfluency, live echo, overlapping human speakers, and downstream task/decision correctness remain separate acceptance work. Severe corruption can defeat even Scribe; do not present this as guaranteed recovery or global frontier superiority.
+## Fresh validation results
+
+New scripts and stock voices, new construction/office noise, plus clipping, packet loss, silence and noise-only inputs: 21 clips, 540 reference words across variants. The robust implementation was selected before generating this set. All 84 evaluations completed without provider errors.
+
+| Path | Word errors / WER | Character error rate | Critical-phrase recall | p95 request-path time |
+| --- | --- | --- | --- | --- |
+| Original Gnani path | 148 / 27.41% | 24.31% | 57/90, 63.33% | 1.349 s |
+| Improved standard PCM path | 153 / 28.33% | 24.67% | 58/90, 64.44% | 1.101 s |
+| Integrated robust profile | 58 / 10.74% | 8.22% | 75/90, 83.33% | 1.829 s |
+| Direct Scribe v3 baseline | 57 / 10.56% | 8.06% | 74/90, 82.22% | 1.367 s |
+
+The robust profile reduced strict word errors by 60.81% against the original path on this set, and stayed within one word error of the direct frontier baseline. This is **Scribe integrated into Wilco**, not evidence of independently beating Scribe. PCM preparation alone did not improve aggregate WER on this fresh set. Differences also include request parameters, encoding, diarization and provider nondeterminism; do not attribute the whole change to any single filter.
+
+All paths produced zero words on the three silence/noise-only samples. The harshest Hindi construction clip still had 89.29% WER with robust and 92.86% with direct Scribe. The result supports the explicit quality profile; it does not support guaranteed recognition under extreme noise. Timings are one local invocation per condition, include preparation/network/provider time, and exclude capture, Meet, synthesis and downstream actions. They are not production SLAs.
+
+Machine-readable sanitized evidence: [telephony-validation.json](telephony-validation.json). Retained local corpus, generation receipts, references, hashes and private hypotheses: `/Users/vedantmoghe/Downloads/wilco-audio-evidence/validation`. Listening archive: `/Users/vedantmoghe/Downloads/wilco-audio-evidence/wilco-noisy-telephony-validation.zip`.
+
+Final integrated backend suite: **584 passed** against disposable local Postgres. This includes PCM/G.711 handling, no dropped samples, stereo separation, quiet-speech retention, cancellation, denoiser fallback, provider requests, word timing, usage accounting, profile selection and existing bot/ingestion workflows. The broad run caught and fixed FastAPI form defaults in the bot's direct ingestion call. One unchanged agent-delivery timing test failed transiently on an intermediate run, passed its targeted rerun, and passed the final full run; this is retained as a test-stability observation.
+
+Real telephone recordings, natural accents/disfluency, live echo, overlapping human speakers, and downstream task/decision correctness remain separate acceptance work. Synthetic generation text is the reference and has not been independently transcribed by a human. Severe corruption can defeat even Scribe; do not present this as guaranteed recovery or global frontier superiority.
