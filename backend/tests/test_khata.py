@@ -34,3 +34,19 @@ async def test_typed_and_spoken_notes_become_a_ledger(client, member_user):
 def test_customer_key_ignores_how_the_name_is_said():
     assert khata_service.customer_key("Gupta ji") == khata_service.customer_key("gupta") == "gupta"
     assert khata_service.customer_key("Meena Didi") == "meena"
+
+
+async def test_live_digest_includes_the_khata_balances(member_user):
+    from app.database.db import async_session
+    from app.database.models import KhataEntry
+    from app.services import live_conversation
+    async with async_session() as db:
+        db.add_all([KhataEntry(user_id=member_user.id, customer="Gupta ji", customer_key="gupta", kind="credit", amount=1100),
+                    KhataEntry(user_id=member_user.id, customer="Gupta", customer_key="gupta", kind="payment", amount=500)])
+        await db.commit()
+        live_conversation._digests.pop(member_user.id, None)
+        digest = await live_conversation.meeting_digest(db, member_user)
+        assert "Rs 600 to collect" in digest and "Gupta owes Rs 600" in digest
+        from sqlalchemy import delete
+        await db.execute(delete(KhataEntry).where(KhataEntry.user_id == member_user.id))
+        await db.commit()

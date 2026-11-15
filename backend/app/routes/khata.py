@@ -23,6 +23,12 @@ router = APIRouter(prefix="/api/khata", tags=["khata"])
 MAX_AUDIO_BYTES = 8 * 1024 * 1024
 
 
+def _refresh_live(user: User) -> None:
+    """Wilco Live answers from a cached digest; a khata change must show up at once."""
+    from app.services import live_conversation
+    live_conversation._digests.pop(user.id, None)
+
+
 def _entry(row: KhataEntry) -> dict:
     return {"id": str(row.id), "customer": row.customer, "kind": row.kind, "amount": row.amount,
             "note": row.note, "said": row.said, "created_at": row.created_at.isoformat() if row.created_at else None}
@@ -62,6 +68,7 @@ async def _record(db: AsyncSession, user: User, said: str) -> list[KhataEntry]:
             for item in parsed]
     db.add_all(rows)
     await db.commit()
+    _refresh_live(user)
     return rows
 
 
@@ -109,6 +116,7 @@ async def add_by_voice(request: Request, audio: UploadFile = File(...), user: Us
 async def delete_entry(entry_id: uuid.UUID, user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)) -> dict:
     await db.execute(delete(KhataEntry).where(KhataEntry.id == entry_id, KhataEntry.user_id == user.id))
     await db.commit()
+    _refresh_live(user)
     return await _ledger(db, user)
 
 
