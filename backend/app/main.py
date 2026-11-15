@@ -1,5 +1,4 @@
 import asyncio
-import contextlib
 import logging
 from contextlib import asynccontextmanager
 
@@ -13,7 +12,7 @@ from app.config import settings
 from app.rate_limit import limiter
 from app.routes import admin, auth, boards, bot, calendar, capture, chat, decisions, digest, email, jira, meeting_workspace, meetings, notifications, policy_chat, projects, recordings, recycle_bin, tasks, transcribe, tts, live, recap, vocabulary, voice
 from app import mcp_server
-from app.services import calendar_service, email_service, jira_service, processing_service, usage_ledger
+from app.services import calendar_service, email_service, jira_service, processing_service, usage_ledger, meeting_agent
 
 logger = logging.getLogger(__name__)
 
@@ -35,13 +34,16 @@ async def lifespan(_: FastAPI):
     email_task = asyncio.create_task(email_service.run_forever())
     # Copies status changes made in Jira back onto linked tasks.
     jira_task = asyncio.create_task(jira_service.run_forever())
+    agent_task = asyncio.create_task(meeting_agent.run_forever())
     # The MCP connector's session manager lives as long as the app.
-    async with mcp_server.server.session_manager.run():
-        yield
-    for task in (calendar_task, email_task, jira_task):
-        task.cancel()
-        with contextlib.suppress(asyncio.CancelledError):
-            await task
+    tasks = (calendar_task, email_task, jira_task, agent_task)
+    try:
+        async with mcp_server.server.session_manager.run():
+            yield
+    finally:
+        for task in tasks:
+            task.cancel()
+        await asyncio.gather(*tasks, return_exceptions=True)
 
 
 app = FastAPI(title="Charcha", lifespan=lifespan)

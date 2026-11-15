@@ -298,11 +298,32 @@ async def finalize_capture_board(db: AsyncSession, capture: CaptureRequest, meet
                             edges=edges, actor_id=None, source="final_notes")
 
 
+def planning_snapshot(snapshot: dict, command: str, budget: int = 16000) -> dict:
+    """Bound model context; omitted nodes remain untouched in the full saved graph."""
+    import json
+    nodes = snapshot.get('nodes') or []
+    mentioned = [node for node in nodes if node['id'] in command or str(node.get('title') or '').strip().lower() in command.lower()]
+    candidates = mentioned + list(reversed(nodes))
+    selected, identifiers = [], set()
+    for node in candidates:
+        if node['id'] in identifiers:
+            continue
+        entry = {key: node.get(key) for key in ('id', 'kind', 'title', 'x', 'y', 'locked')}
+        entry['text'] = str(node.get('text') or '')[:200]
+        if len(json.dumps(selected + [entry], ensure_ascii=False)) > budget:
+            break
+        selected.append(entry)
+        identifiers.add(node['id'])
+    return {'title': snapshot['title'], 'version': snapshot['version'], 'nodes': selected,
+            'edges': [edge for edge in snapshot.get('edges') or [] if edge['source'] in identifiers and edge['target'] in identifiers][:60],
+            'omitted_nodes': len(nodes)-len(selected)}
+
+
 class BoardCommandConflict(ValueError):
     pass
 
 
-async def command_capture_board(db, capture_id: uuid.UUID, command_id: uuid.UUID, command: str) -> dict:
+async def command_capture_board(db, capture_id: uuid.UUID, command_id: uuid.UUID, command: str, *, checkpoint=None, run_provider=None, context=None) -> dict:
     """Plan outside transactions; commit only against the version actually planned."""
     import json
     import re
@@ -333,13 +354,15 @@ async def command_capture_board(db, capture_id: uuid.UUID, command_id: uuid.UUID
     plan = None
     if not undo:
         usage_ledger.attribute(user_id=user_id, meeting_id=meeting_id)
-        plan, _ = await asyncio.to_thread(
+        provider = run_provider or asyncio.to_thread
+        options = {"timeout_seconds": settings.meeting_agent_provider_seconds, "attempts": 1, "thinking_budget": 0} if run_provider else {}
+        plan, _ = await provider(
             gemini_service.generate_structured, SYSTEM_PROMPT,
-            json.dumps({'request': command, 'board': snapshot}, ensure_ascii=False),
-            BoardCommandPlan, max_output_tokens=2200, feature='meeting_whiteboard_command',
+            json.dumps({'request': command, 'board': planning_snapshot(snapshot, command), 'recent_captions': context or []}, ensure_ascii=False),
+            BoardCommandPlan, max_output_tokens=2200, feature='meeting_whiteboard_command', **options,
         )
         if not plan.operations:
-            return {'board': snapshot, 'message': plan.message or 'Which point should I change?'}
+            return {'board': snapshot, 'message': plan.message or 'Which point should I change?', 'needs_input': True}
     board = (await db.execute(select(MeetingBoard).where(MeetingBoard.id == board_id)
                               .with_for_update().execution_options(populate_existing=True))).scalar_one()
     prior = await db.scalar(select(MeetingBoardRevision).where(
@@ -373,5 +396,8 @@ async def command_capture_board(db, capture_id: uuid.UUID, command_id: uuid.UUID
     board.paused = True
     await save_snapshot(db, board, expected_version=expected_version, nodes=nodes, edges=edges,
                         actor_id=None, source=tag)
+    result = {'board': serialize(board), 'message': message, 'duplicate': False}
+    if checkpoint:
+        await checkpoint(db, result)
     await db.commit()
-    return {'board': serialize(board), 'message': message, 'duplicate': False}
+    return result

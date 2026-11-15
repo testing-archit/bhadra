@@ -246,3 +246,30 @@ def test_wilco_wake_name_and_exit_work_alongside_legacy_name(tmp_path, monkeypat
     session.captions.latest[1] = ('Ravi', 'Wilco, open a whiteboard', meeting_session.time.monotonic() - 3)
     assert session.spoken_questions() == [('Ravi', 'open a whiteboard')]
     assert meeting_session.wants_exit('Wilco please leave')
+
+
+def test_stop_speaking_bypasses_settling_but_edits_do_not(tmp_path,monkeypatch):
+    monkeypatch.setattr(meeting_session.config,'SESSIONS_DIR',tmp_path)
+    session=meeting_session.MeetingSession({'meet_url':'https://meet.google.com/abc-defg-hij'})
+    now=meeting_session.time.monotonic()
+    session.captions.latest[1]=('Ravi','Wilco, stop speaking',now)
+    session.captions.latest[2]=('Ravi','Wilco, delete that point',now)
+    assert session.spoken_questions()==[('Ravi','stop speaking')]
+
+
+def test_stop_presenting_is_a_priority_control(tmp_path,monkeypatch):
+    monkeypatch.setattr(meeting_session.config,'SESSIONS_DIR',tmp_path)
+    session=meeting_session.MeetingSession({'meet_url':'https://meet.google.com/abc-defg-hij'})
+    session.captions.latest[1]=('Ravi','Wilco, stop presenting',meeting_session.time.monotonic())
+    assert session.spoken_questions()==[('Ravi','stop presenting')]
+
+
+def test_unsupported_mutations_use_action_planner_instead_of_answer_tool(tmp_path,monkeypatch):
+    monkeypatch.setattr(meeting_session.config,'SESSIONS_DIR',tmp_path)
+    session=meeting_session.MeetingSession({'capture_request_id':'00000000-0000-0000-0000-000000000001'})
+    tools=[]
+    async def submit(page,command,tool):
+        tools.append(tool)
+    session.submit_agent_command=submit
+    asyncio.run(session.execute_command(object(),meeting_session.Command('','Can you please mark Ravi’s task done?')))
+    assert tools==['auto']

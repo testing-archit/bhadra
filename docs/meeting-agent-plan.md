@@ -286,7 +286,7 @@ Do not bypass foundational phases to add more agents. Provider selection follows
 - [ ] Instrument the current path before behavior changes.
 - [ ] Capture a representative English/Hinglish baseline, including interruptions.
 - [x] Refactor command scheduling independently of capture and lifecycle checks (local validation).
-- [ ] Add bounded execution and playback queues with cancellation.
+- [x] Add bounded execution and playback queues with cancellation (local and database-backed tests).
 - [ ] Compare before/after timings and command quality.
 - [ ] Run a real Meet acceptance session before declaring the first slice complete.
 
@@ -349,3 +349,17 @@ Implemented structured board commands with bounded operations, temporary referen
 Added an opt-in Meet canvas presenter, off by default with `PRESENT_BOARD=0`. It renders only board content, updates from saved state, and stops its tracks/timers. A real local Chromium test sent the canvas through WebRTC, verified a received frame/live update, repeated presentation, and stop. This does not establish real Meet compatibility or remote attendee reception.
 
 Validation: 434 backend tests passed against local Postgres; additional focused board tests passed after strengthening polite undo handling and protection of intervening human edits. No actual model generation or real meeting was exercised. Research, reproduction instructions, synthetic screenshot, and live acceptance requirements are in [voice-whiteboard.md](voice-whiteboard.md). No deployment, vendor subscription, or production performance claim.
+
+### Checkpoint 3 — durable action agent and responsive controls
+
+Added a bounded, current-call tool agent with direct routes for common requests and at most four planned steps for compound requests. Current tools open/edit boards, capture action items, answer/draft from recent call context, and ask clarifying questions. Model-bound requests now return an accepted job immediately; progress and final results are delivered independently. Personal-account connector writes are not part of these tools.
+
+Postgres jobs save intent IDs, plans, leases, deadlines, receipts, and results. Tool writes and receipts commit together; recovery resumes completed plans without repeating committed effects. Fencing blocks cancelled/replaced workers from committing generated writes. A cancellation arriving before submission persists a cancelled-ID record. Status lookups expire overdue jobs even if workers are offline.
+
+The bot uses a persistent async HTTP client and recovers undelivered results. Priority speech/task/status controls bypass ordinary task execution, with playback cleanup, bounded intake backlog and speech queues, and stale-speech suppression. Normal action settling remains 2.5 seconds. Model requests use bounded context/output, single interactive attempts, request timeouts, and a fixed provider thread pool. Cost attribution is reset per job and remains on the shared Gemini wrapper.
+
+Local load check: 20 commands across five simulated sessions, 100 ms simulated inference, two workers. After admission query consolidation: acknowledgment p95 776 ms and completion p95 2,110 ms. These exclude real models, audio, WAN, and Meet. Two native MLflow agent traces were stored/retrieved, each with run/plan/tool spans. See [meeting-action-agent.md](meeting-action-agent.md) and [benchmark evidence](agent-queue-benchmark.json). Full test validation is recorded in that guide. No deployment or production latency claim.
+
+Checkpoint 3 validation: 456 tests passed in the full backend suite; focused bot/answer/agent checks passed after routing refinements. Python compilation and whitespace checks passed. Live model accuracy, acoustic-to-response latency, remote Meet presentation, and authenticated Jira/email execution remain open.
+
+Final local runtime benchmark (same 20 requests/five sessions/100 ms simulated inference): acknowledgment p95 398 ms; completion p95 1,863 ms; peak concurrent simulated inference 2. Initial and intermediate observations are retained in the report; variation and code changes prevent treating this as an isolated causal speedup or a production guarantee.

@@ -132,3 +132,58 @@ def test_exporter_failure_cannot_fail_the_command_or_export_exception_text(monke
     assert '"status": "error"' in caplog.text
     with stage("s", "c", "execute"):
         pass
+
+
+def test_controls_interrupt_speech_while_execution_is_blocked():
+    async def scenario():
+        incoming=[Command('', 'first')]
+        started=asyncio.Event()
+        interrupted=asyncio.Event()
+        stopped=asyncio.Event()
+        async def discover():
+            result=incoming[:]; incoming.clear(); return result
+        async def execute(command):
+            started.set()
+            await asyncio.Event().wait()
+        async def play(reply):
+            try:
+                await asyncio.Event().wait()
+            finally:
+                stopped.set()
+        async def control(command):
+            if command.question=='stop speaking':
+                await runtime.interrupt_speech()
+                interrupted.set()
+                return True
+            return False
+        async with CommandRuntime('s',discover,execute,play,control=control) as runtime:
+            await asyncio.wait_for(started.wait(),1)
+            await runtime.enqueue_reply(Command('', 'voice'),'hello')
+            await asyncio.sleep(0)
+            await asyncio.sleep(0)
+            incoming.append(Command('', 'stop speaking'))
+            runtime.changed.set()
+            await asyncio.wait_for(interrupted.wait(),1)
+            await asyncio.wait_for(stopped.wait(),1)
+    asyncio.run(scenario())
+
+
+def test_cancelling_active_command_keeps_execution_worker_alive():
+    async def scenario():
+        incoming=[Command('', 'blocked')]
+        started=asyncio.Event(); finished=asyncio.Event()
+        async def discover():
+            result=incoming[:]; incoming.clear(); return result
+        async def execute(command):
+            if command.question=='blocked':
+                started.set(); await asyncio.Event().wait()
+            finished.set()
+        async def play(reply):
+            pass
+        async with CommandRuntime('s',discover,execute,play) as runtime:
+            await asyncio.wait_for(started.wait(),1)
+            cancelled=await runtime.cancel_latest()
+            assert cancelled[0].question=='blocked'
+            incoming.append(Command('', 'next')); runtime.changed.set()
+            await asyncio.wait_for(finished.wait(),1)
+    asyncio.run(scenario())

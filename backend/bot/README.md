@@ -169,8 +169,9 @@ database fixture; it is not a replacement for the full backend suite.
 
 Session shutdown cancels queued work and terminates/reaps active ffmpeg playback. A
 synchronous HTTP request already running in a thread may still finish: cancellation
-does not undo external writes. Spoken barge-in, durable actions, and provider streaming
-remain follow-up work. Real Meet and Teams acceptance is required before release.
+does not undo external writes. Spoken controls and durable current-call jobs are now described in
+[meeting-action-agent.md](../../docs/meeting-action-agent.md). Provider streaming and
+authenticated account connector actions remain follow-up work. Real Meet and Teams acceptance is required before release.
 
 ## Voice board editing and presentation prototype
 
@@ -186,3 +187,17 @@ Automatic Meet presentation is experimental and defaults off. `PRESENT_BOARD=1` 
 It needs an explicit “present the board” request and a successful Meet UI check.
 It has passed a local Chromium/WebRTC media test, not a real Meet acceptance session.
 Teams presentation is not enabled. Manual sharing of the board tab remains available.
+
+## Durable meeting action agent
+
+The bot now submits model-bound requests to durable backend jobs and polls results
+independently of intake/playback. Update the backend/schema before updating the bot.
+Common board/task/answer requests use direct tools; compound action requests use a
+planner limited to four steps. Work survives backend/bot reconnects, with saved
+receipts, queue limits, leases, cancellation fences, and explicit partial outcomes.
+
+Say “Wilco, stop speaking” to silence playback while keeping work, “cancel that”
+to stop a request, or “status” to inspect current work. These short controls bypass
+normal caption settling and task queues. Action commands retain the 2.5 second
+settling rule. See the linked guide for exact limits, validation, and remaining
+real-call acceptance.

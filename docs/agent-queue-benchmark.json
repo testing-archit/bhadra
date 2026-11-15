@@ -1,0 +1,49 @@
+{
+  "date": "2026-11-15",
+  "limitations": "Local ASGI/Postgres with simulated inference; no real model, Meet, audio or WAN latency. Individual runs, not a production SLA.",
+  "initial": {
+    "kind": "local queue benchmark; simulated model; excludes real network/audio",
+    "requests": 20,
+    "sessions": 5,
+    "simulated_provider_ms": 100,
+    "max_parallel_inference": 2,
+    "admission_ms": {
+      "p50": 1383.1,
+      "p95": 1905.31
+    },
+    "completion_ms": {
+      "p50": 2916.97,
+      "p95": 3666.1
+    }
+  },
+  "after_admission_query_reduction": {
+    "kind": "local queue benchmark; simulated model; excludes real network/audio",
+    "requests": 20,
+    "sessions": 5,
+    "simulated_provider_ms": 100,
+    "max_parallel_inference": 2,
+    "admission_ms": {
+      "p50": 625.23,
+      "p95": 776.44
+    },
+    "completion_ms": {
+      "p50": 1441.47,
+      "p95": 2110.42
+    }
+  },
+  "final_runtime": {
+    "kind": "local queue benchmark; simulated model; excludes real network/audio",
+    "requests": 20,
+    "sessions": 5,
+    "simulated_provider_ms": 100,
+    "max_parallel_inference": 2,
+    "admission_ms": {
+      "p50": 342.12,
+      "p95": 398.19
+    },
+    "completion_ms": {
+      "p50": 1099.78,
+      "p95": 1863.38
+    }
+  }
+}

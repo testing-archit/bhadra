@@ -84,3 +84,15 @@ Implemented on `codex/meeting-agent-pipeline` from `25559c0`: bot command runtim
 ## Voice whiteboard checkpoint, 15 November 2026
 
 Continued on `codex/meeting-agent-pipeline`: structured board operations and bot-only endpoints, replay-safe revisions/undo, optimistic concurrency without provider calls under row locks, Wilco/legacy command routing, and opt-in canvas presentation assets. Presentation defaults off and is Meet-only. Full backend suite: 434 passed against disposable local Postgres. Local Chromium/WebRTC proof and synthetic screenshot passed; real Meet remote reception, live model/audio accuracy, and capacity remain unverified. See `docs/voice-whiteboard.md`. No deployment.
+
+## Meeting action agent scope, 15 November 2026
+
+Codex continues in `/private/tmp/bhadra-meeting-agent` on `codex/meeting-agent-pipeline`: durable command jobs, bounded workers and context, task/tool execution with commit fencing, job status/cancellation, and bot interruption/progress handling. Existing board/presenter features are retained. This scope does not deploy production or enable personal-account Jira/email writes from unauthenticated speaker names.
+
+## Durable meeting action agent checkpoint
+
+Implemented in `/private/tmp/bhadra-meeting-agent` on `codex/meeting-agent-pipeline`: durable Postgres jobs and typed tools, bounded multi-step planning, atomic tool receipts, replay handling, leases/recovery, deadlines/cancellation fencing, cancellation-before-submit records, persistent async bot transport, status delivery, and priority interruption/cancel controls. Model context, thinking, attempts, timeouts, and provider thread count are bounded. Current tools are current-call board operations, internal action items, grounded answers/drafts, and clarification; account-specific connector writes remain outside this shared-call executor.
+
+Validation: full backend suite 456 passed, plus focused checks after action-routing hardening. Native MLflow: two stored/retrievable run/plan/tool traces. Local ASGI/Postgres load check: 20 requests / five sessions / two workers with 100 ms simulated inference; acknowledgment p95 776 ms, completion p95 2,110 ms. No actual model/audio/Meet latency claim. See `docs/meeting-action-agent.md` and `docs/agent-queue-benchmark.json`. Backend/schema must be updated before the bot. Presentation remains off by default; no deployment. Shared application changes remain untouched.
+
+Final verification: 456 backend tests passed in 13.02 seconds; compile/whitespace checks passed. The final local 20-request/five-session simulated-inference check measured acknowledgment p95 398 ms and completion p95 1,863 ms with peak parallel inference 2. Earlier measurements remain in the benchmark artifact; these are not production or acoustic latency guarantees.

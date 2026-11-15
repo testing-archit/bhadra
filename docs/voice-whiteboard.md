@@ -83,3 +83,12 @@ python backend/scripts/validate_board_presentation.py --chromium /path/to/chromi
 Before enabling broadly, run an authorized two-person Meet session and check: actual remote video reception; voice editing while presenting; late joining; host restrictions; stop/restart; recording continuity and audio quality; CPU/RAM under concurrent calls; caption accuracy; ambiguous references; and end-to-end latency. Verify success from the other attendee's device. A local presenting indicator alone is insufficient.
 
 Keep `PRESENT_BOARD=0` if the live acceptance fails. The existing board-link plus manual tab-sharing workflow remains usable.
+
+## Durable command pipeline follow-up
+
+Model-bound board edits now run through the [durable action agent](meeting-action-agent.md).
+The bot acknowledges acceptance, reports progress, and recovers saved results. Board
+creation and compound drawing/task requests use the same job ledger. Spoken cancel,
+speech-stop, and status controls bypass normal execution. The legacy board endpoints
+remain compatible; the current bot needs the updated backend and initialized schema.
+Presentation remains opt-in and still needs real Meet remote-reception acceptance.

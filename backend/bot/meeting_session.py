@@ -34,7 +34,8 @@ from playwright.async_api import BrowserContext, Page, async_playwright
 
 import config
 import board_presenter
-from board_intent import board_intent
+from agent_client import AgentClient, AgentBusy
+from board_intent import board_intent, normalize
 from command_runtime import Command, CommandRuntime, stage
 import meet_chat
 import teams_dom
@@ -154,6 +155,9 @@ SPEECH_IS_COMPANY_SECONDS = 30
 WAKE_RE = re.compile(r"(?:^|[.!?]\s+|\b(?:hey|hi|ok|okay|so|achha|acha)\s+)(?:wil\s?co|wilko|vilco|char\s?cha+|charchaa|carcha|charchya)\b[\s,:.!-]+(.+?)(?=$|\b(?:hey\s+)?(?:wil\s?co|wilko|vilco|char\s?cha+|charchaa|carcha)\b)", re.IGNORECASE)
 # A spoken question is answered once its speaker has paused this long.
 SPOKEN_QUESTION_PAUSE_SECONDS = 2.5
+CONTROL_COMMANDS = {"stop", "stop speaking", "be quiet", "quiet", "cancel that", "cancel request",
+                    "stop working", "cancel all requests", "status", "what are you doing", "what's running",
+                    "stop presenting", "stop sharing", "stop presenting the board", "stop sharing the board"}
 
 # Meet's own wording when the bot is the only one left in the call.
 ALONE_PHRASES = [
@@ -480,6 +484,10 @@ class MeetingSession:
         self._caption_sent_keys: set[tuple[str, float]] = set()
         self._caption_seq = 0
         self._board_active = False
+        self._agent = None
+        self._pending_commands = {}
+        self._progress_shown = set()
+        self._agent_runtime = None
         self._last_caption_flush = 0.0
         self._browser_lock = asyncio.Lock()
         self._caption_flush_lock = asyncio.Lock()
@@ -767,12 +775,12 @@ class MeetingSession:
         self._spoken_handled = handled
         now = time.monotonic()
         for block_id, (speaker, text, changed) in list(self.captions.latest.items()):
-            if now - changed < SPOKEN_QUESTION_PAUSE_SECONDS:
-                continue
             if speaker.strip().lower() in {"you", config.BOT_DISPLAY_NAME.lower()}:
                 continue  # the notetaker's own voice
             for match in WAKE_RE.finditer(text):
                 question = re.split(r"(?<=[.!?])\s", match.group(1).strip())[0].strip(" ,.?!")
+                if now - changed < SPOKEN_QUESTION_PAUSE_SECONDS and normalize(question) not in CONTROL_COMMANDS:
+                    continue
                 key = (block_id, match.start())
                 if key in handled or len(question) < 4:
                     continue
@@ -785,14 +793,16 @@ class MeetingSession:
     async def discover_commands(self, page: Page) -> list[Command]:
         if not config.ANSWER_IN_CHAT:
             return []
+        spoken = [(f"asked aloud by {who}" if who else "asked aloud", q)
+                  for who, q in self.spoken_questions()]
+        if any(normalize(question) in CONTROL_COMMANDS for _, question in spoken):
+            return [Command(asked, question) for asked, question in spoken]
         async with self._browser_lock:
             if not self.chat_ready:
                 self.chat_ready = await meet_chat.open_panel(page)
                 if not self.chat_ready:
-                    return []
+                    return [Command(asked, question) for asked, question in spoken]
             typed = [("", q) for q in await self.chat.new_questions(page)]
-        spoken = [(f"asked aloud by {who}" if who else "asked aloud", q)
-                  for who, q in self.spoken_questions()]
         return [Command(asked, question) for asked, question in typed + spoken]
 
     async def execute_command(self, page: Page, command: Command) -> str | None:
@@ -809,33 +819,24 @@ class MeetingSession:
             self._board_active = True
             reply = await self.present_board(page)
         elif self.capture_request_id and intent in {"open", "open_present"}:
-            await self.flush_live_captions(force=True)
-            with stage(self.session_id, command.id, "board_request"):
-                url = await asyncio.to_thread(uploader.live_whiteboard, self.capture_request_id)
-            self._board_active = bool(url)
-            reply = f"I opened the meeting board: {url}" if url else "I couldn't open the board right now. Try again in a moment."
-            if url and intent == "open_present":
-                reply += " " + await self.present_board(page)
-        elif self.capture_request_id and intent == "edit":
-            with stage(self.session_id, command.id, "board_edit"):
-                result = await asyncio.to_thread(uploader.board_command, self.capture_request_id, command.id, question)
             self._board_active = True
-            reply = result['message']
-            if config.PRESENT_BOARD and result.get('board') and self.USES_GOOGLE_LOGIN:
-                await page.evaluate('(board) => window.__wilcoBoard?.draw(board)', result['board'])
+            if intent == "open_present":
+                command.follow_up = 'present_board'
+            detailed = bool(re.search(r"\b(?:with|showing|containing|for)\s+\S+", question, re.I))
+            return await self.submit_agent_command(page, command, 'auto' if detailed else 'open_board')
+        elif self.capture_request_id and intent == "edit":
+            self._board_active = True
+            compound = bool(re.search(r"\band\s+(?:add|create)\s+(?:a\s+)?task\b", question, re.I))
+            return await self.submit_agent_command(page, command, "auto" if compound else "edit_board")
         else:
             task = meet_chat.task_text(question)
             if task and self.capture_request_id:
-                with stage(self.session_id, command.id, "task_request"):
-                    reply = await asyncio.to_thread(uploader.live_task, task, self.capture_request_id)
-            else:
-                with stage(self.session_id, command.id, "answer_request"):
-                    reply = await asyncio.to_thread(
-                        uploader.live_answer, question, self.captions.export(),
-                        self.capture_request_id, self.job.get("title") or "",
-                    )
-                if reply and asked:
-                    reply = f'"{question}" ({asked}):\n{reply}'
+                # Keep the explicit task description, rather than its routing prefix.
+                command.question = task
+                return await self.submit_agent_command(page, command, "add_task")
+            action_request = bool(re.match(r"(?:build|make|create|design|map|draw|send|email|research|find|schedule|mark|complete|assign|reassign|update|delete|remove|move|invite)\b", normalize(question), re.I))
+            compound = bool(re.search(r"\band\s+(?:add|create)\s+(?:a\s+)?task\b", question, re.I))
+            return await self.submit_agent_command(page, command, "auto" if action_request or compound else "answer")
         if reply:
             with stage(self.session_id, command.id, "chat_delivery"):
                 async with self._browser_lock:
@@ -844,13 +845,133 @@ class MeetingSession:
                 log.info("Command %s chat delivery: %s", command.id, sent)
         return reply
 
+    async def send_agent_message(self, page, message):
+        async with self._browser_lock:
+            self.chat.remember_sent(message)
+            return await meet_chat.send(page, message)
+
+    async def submit_agent_command(self, page, command, tool):
+        if self._agent is None:
+            message = "This visit doesn't have an active command session. Please send the notetaker from the app."
+            await self.send_agent_message(page, message)
+            return message
+        try:
+            with stage(self.session_id, command.id, "agent_accept"):
+                result = await self._agent.submit(command, tool, self.captions.export(), self._board_active)
+            command.id = result['command_id']
+            self._pending_commands[command.id] = command
+            log.info("Agent accepted command %s as job %s", command.id, result['id'])
+            await self.send_agent_message(page, "Working on that. Say ‘cancel that’ to stop the request.")
+            return None  # Completion arrives independently; acknowledgment is not a success claim.
+        except AgentBusy:
+            message = "I'm handling several requests. Please wait for one to finish, then ask again."
+        except Exception:
+            message = "I couldn't confirm that request. Say ‘status’ to check before asking again."
+        await self.send_agent_message(page, message)
+        return message
+
+    async def handle_control(self, page, command):
+        control = normalize(command.question)
+        if control not in CONTROL_COMMANDS:
+            return False
+        if control in {"stop presenting", "stop sharing", "stop presenting the board", "stop sharing the board"}:
+            if config.PRESENT_BOARD and self.USES_GOOGLE_LOGIN:
+                async with self._browser_lock:
+                    await board_presenter.stop(page)
+                message = "Stopped presenting the board."
+            else:
+                message = "Automatic presentation isn't enabled here."
+        elif control in {"status", "what are you doing", "what's running"}:
+            try:
+                outstanding = await self._agent.outstanding() if self._agent else []
+                count = sum(row['state'] in {'accepted', 'running'} for row in outstanding)
+                message = f"I have {count} request" + ("s in progress." if count != 1 else " in progress.") if count else "I have no requests in progress."
+            except Exception:
+                message = "I couldn't check the request status. Please try again in a moment."
+        else:
+            if self._agent_runtime:
+                await self._agent_runtime.interrupt_speech()
+            if control in {"stop speaking", "be quiet", "quiet"}:
+                message = "Stopped speaking. Your tasks are still running."
+            else:
+                local = []
+                if self._agent_runtime:
+                    local = await (self._agent_runtime.cancel_all() if control == 'cancel all requests' else self._agent_runtime.cancel_latest())
+                identifiers = [str(uuid.UUID(cmd.id)) for cmd in local]
+                if control == 'cancel all requests':
+                    identifiers += list(self._pending_commands)
+                elif not identifiers and self._pending_commands:
+                    identifiers = list(self._pending_commands)[-1:]
+                if self._agent and (control == 'cancel all requests' or not identifiers):
+                    try:
+                        outstanding = await asyncio.wait_for(self._agent.outstanding(), timeout=2)
+                        remote = [row['command_id'] for row in outstanding if row['state'] in {'accepted', 'running'}]
+                        identifiers += remote if control == 'cancel all requests' else remote[-1:]
+                    except Exception:
+                        if not identifiers:
+                            await self.send_agent_message(page, "Stopped speaking. I couldn't check active tasks; say ‘status’ to try again.")
+                            return True
+                if self._agent and identifiers:
+                    try:
+                        results = await asyncio.wait_for(asyncio.gather(*(
+                            self._agent.cancel(identifier) for identifier in dict.fromkeys(identifiers))), timeout=3)
+                        message = "That request already finished; its changes were kept." if all(row['state'] == 'succeeded' for row in results) else "Stopped the request. Completed changes were kept."
+                    except Exception:
+                        message = "Stopped speaking. I couldn't confirm task cancellation; say ‘status’ to check."
+                else:
+                    message = "Stopped speaking. I have no active requests to cancel."
+        await self.send_agent_message(page, message)
+        return True
+
+    async def agent_results_loop(self, page, runtime):
+        if self._agent is None:
+            return
+        while True:
+            try:
+                results = await self._agent.outstanding()
+                for result in results:
+                    identifier = result['command_id']
+                    command = self._pending_commands.setdefault(identifier, Command("", "", id=identifier))
+                    if result['state'] in {'succeeded', 'failed', 'cancelled', 'needs_input'}:
+                        message = (result.get('result') or {}).get('message') or "I couldn't finish this request. Please try again."
+                        if result['state'] == 'succeeded' and result.get('present_after'):
+                            message += " " + await self.present_board(page)
+                        if await self.send_agent_message(page, message):
+                            await self._agent.delivered(identifier)
+                            self._pending_commands.pop(identifier, None)
+                            self._progress_shown.discard(identifier)
+                            with stage(self.session_id, identifier, "agent_complete",
+                                       completion_ms=round((time.monotonic()-command.received_at)*1000, 2), state=result['state']):
+                                pass
+                            if result['state'] in {'succeeded', 'needs_input'}:
+                                await runtime.enqueue_reply(command, message)
+                    elif identifier not in self._progress_shown and time.monotonic()-command.received_at > 2:
+                        messages = {'open_board': "Opening the board.", 'edit_board': "Updating the board.",
+                                    'add_task': "Recording the action item.", 'answer': "Checking what was said."}
+                        message = messages.get(result.get('current_tool'), "Your request is queued." if result['state'] == 'accepted' else "Planning the next step.")
+                        await self.send_agent_message(page, message)
+                        self._progress_shown.add(identifier)
+            except asyncio.CancelledError:
+                raise
+            except Exception as error:
+                log.warning("Agent status unavailable (%s)", type(error).__name__)
+            await asyncio.sleep(0.5)
+
     async def present_board(self, page: Page) -> str:
         if not config.PRESENT_BOARD or not self.USES_GOOGLE_LOGIN:
             return "Automatic presentation isn't enabled here. Open the board link and share that tab in Meet."
-        board = await asyncio.to_thread(uploader.board_state, self.capture_request_id)
-        async with self._browser_lock:
-            started = await board_presenter.start(page, board) if board else False
-        return "Meet shows the board as presenting." if started else "I couldn't start presenting. Open the board link and share that tab in Meet."
+        try:
+            board = await asyncio.to_thread(uploader.board_state, self.capture_request_id)
+            async with self._browser_lock:
+                started = await board_presenter.start(page, board) if board else False
+            return "Meet shows the board as presenting." if started else "I couldn't start presenting. Open the board link and share that tab in Meet."
+        except asyncio.CancelledError:
+            try:
+                async with self._browser_lock:
+                    if not page.is_closed():
+                        await board_presenter.stop(page)
+            finally:
+                raise
 
     async def answer_chat(self, page: Page) -> None:
         """Compatibility entry point; the active session uses CommandRuntime."""
@@ -894,7 +1015,13 @@ class MeetingSession:
             self.session_id, lambda: self.discover_commands(page),
             lambda command: self.execute_command(page, command),
             lambda reply: self.speak(page, reply),
+            control=lambda command: self.handle_control(page, command),
+            busy=lambda command: self.send_agent_message(page, "I'm handling several requests. Please ask again when one finishes."),
         ) as runtime:
+            self._agent_runtime = runtime
+            if self.capture_request_id:
+                self._agent = AgentClient(self.capture_request_id)
+            result_task = asyncio.create_task(self.agent_results_loop(page, runtime))
             # Caption revisions wake intake immediately; the short timeout also
             # checks settled captions and typed chat without a DOM observer.
             runtime.changed = self.captions.changed
@@ -905,7 +1032,12 @@ class MeetingSession:
             finally:
                 flush_task.cancel()
                 present_task.cancel()
-                await asyncio.gather(flush_task, present_task, return_exceptions=True)
+                result_task.cancel()
+                await asyncio.gather(flush_task, present_task, result_task, return_exceptions=True)
+                if self._agent:
+                    await self._agent.close()
+                    self._agent = None
+                self._agent_runtime = None
                 if config.PRESENT_BOARD and self.USES_GOOGLE_LOGIN and not page.is_closed():
                     async with self._browser_lock:
                         await board_presenter.stop(page)

@@ -87,3 +87,11 @@ This workflow is separate from the existing `deploy-backend.yml` /
 `deploy-frontend.yml`, which target the old `main`-branch production
 deployment on a different host — pushing to this feature branch never
 triggers those, and vice versa.
+
+## Meeting action agent
+
+The durable current-call agent runs with the API lifespan, using Postgres jobs and
+existing Gemini usage accounting. Its bot-authenticated command API, recovery and
+cancellation semantics, defaults, local benchmark, optional MLflow tracing, and
+release checks are documented in [meeting-action-agent.md](../docs/meeting-action-agent.md).
+Schema initialization must run before a bot using the command endpoints is deployed.
