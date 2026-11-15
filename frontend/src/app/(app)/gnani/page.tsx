@@ -34,8 +34,8 @@ const LANGUAGE_NAMES: Record<string, string> = {
 
 /** Where each Gnani model runs inside Wilco. */
 const IN_WILCO = [
-  { model: "Prisma v3", icon: Mic, uses: ["Transcribes every meeting, Hinglish, Tanglish and 10+ Indian languages", "Recaps noisy phone calls and WhatsApp voice notes", "Hears Wilco Live and spoken questions"] },
-  { model: "Timbre v2.5 + v3", icon: Volume2, uses: ["Wilco's voice in Google Meet calls", "Spoken replies in Wilco Live, in your language", "Listen to meeting notes in 11 languages"] },
+  { model: "Prisma v3", icon: Mic, uses: ["Transcribes every meeting, Hinglish, Tanglish and 10+ Indian languages", "Recaps noisy phone calls and WhatsApp voice notes", "Keeps a shop's udhaar khata by voice", "Hears Wilco Live and spoken questions"] },
+  { model: "Timbre v2.5 + v3", icon: Volume2, uses: ["Wilco's voice in Google Meet calls", "Spoken replies in Wilco Live, in your language", "Listen to meeting notes in 11 languages", "Khata reminders as voice notes"] },
   { model: "Timbre voice cloning", icon: Fingerprint, uses: ["Your update read in your own voice in a call you'll miss", "Opt-in, your voice only, deletable anytime"] },
   { model: "Evon v3.3", icon: Brain, uses: ["Answers Wilco Live when the team hosts it", "Falls back to Wilco's default model if Evon is unreachable"] },
 ];

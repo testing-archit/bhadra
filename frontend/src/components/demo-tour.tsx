@@ -2,11 +2,12 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { AudioLines, Cpu, Languages, X } from "lucide-react";
+import { AudioLines, Cpu, Languages, NotebookPen, X } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 
 const STEPS = [
-  { href: "/live", icon: AudioLines, title: "Talk to Wilco", body: "Ask out loud, in Hindi, English or Tamil: “Sharma ji ka kitna udhaar baaki hai?”" },
+  { href: "/live", icon: AudioLines, title: "Talk to Wilco", body: "Ask out loud, in Hindi, English or Tamil: “Gupta ji ka kitna udhaar baaki hai?”" },
+  { href: "/khata", icon: NotebookPen, title: "Keep a khata by voice", body: "Say “Meena didi ne 300 jama kiye”, then send a reminder in Tamil or Marathi." },
   { href: "/meetings", icon: Languages, title: "Hear notes in your language", body: "Open the Sharma Kirana call, pick தமிழ் or मराठी, tap Listen, then send it on WhatsApp." },
   { href: "/gnani", icon: Cpu, title: "See the Gnani models", body: "Speak to Prisma and hear Timbre in 11 Indian languages, live." },
 ];
@@ -35,7 +36,7 @@ export function DemoTour() {
       </button>
       <h2 className="text-base font-semibold">Start here: Wilco in a minute</h2>
       <p className="mt-0.5 text-sm text-muted-foreground">Everything here is sample data. Every voice is a Gnani model.</p>
-      <ol className="mt-3 grid gap-3 sm:grid-cols-3">
+      <ol className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {STEPS.map(({ href, icon: Icon, title, body }, index) => (
           <li key={href}>
             <Link href={href} className="flex h-full flex-col gap-1.5 rounded-xl bg-secondary p-3 text-secondary-foreground transition-colors hover:bg-secondary/80">
