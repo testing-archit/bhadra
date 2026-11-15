@@ -1,18 +1,29 @@
 "use client";
 
-import { useId, useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { CalendarDays, Check, ChevronRight, Clock3, FolderKanban, Loader2, Pencil, RotateCcw, UserRound, Video } from "lucide-react";
+import { CalendarDays, Check, ChevronRight, Clock3, Loader2, Pencil, RotateCcw, UserRound, Video } from "lucide-react";
 import { ApiError, type TaskListItem } from "@/lib/api";
-import { dueBucket, formatDue } from "@/lib/tasks";
+import { dueBucket, formatDue, taskDueDate } from "@/lib/tasks";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/empty-state";
+import { Menu, MenuContent, MenuGroup, MenuItem, MenuLabel, MenuSeparator, MenuTrigger } from "@/components/ui/menu";
 
 export type TaskQuickUpdate = { status?: string; owner?: string; due_date?: string; clear_due_date?: boolean };
 type Change = { task: TaskListItem; fields: TaskQuickUpdate; message: string };
 type ChangeTask = (task: TaskListItem, fields: TaskQuickUpdate, previous: TaskQuickUpdate, message: string) => Promise<void>;
+
+
+function dateKey(date: Date) {
+  return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,"0")}-${String(date.getDate()).padStart(2,"0")}`;
+}
+function buildWeek() {
+  const first = new Date();
+  first.setHours(0,0,0,0);
+  first.setDate(first.getDate() + (first.getDay() === 0 ? 1 : 1-first.getDay()));
+  return Array.from({length:7},(_,index)=> { const date = new Date(first); date.setDate(date.getDate()+index); return date; });
+}
 
 export function TaskWorkspace({ tasks, completedCount, showingCompleted, onToggleCompleted, owners, ownerLabel, onUpdate, onEdit, onAdd, filtered, onClearFilters }: {
   tasks: TaskListItem[];
@@ -27,175 +38,107 @@ export function TaskWorkspace({ tasks, completedCount, showingCompleted, onToggl
   filtered: boolean;
   onClearFilters: () => void;
 }) {
-  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [day, setDay] = useState<string | null>(null);
+  const [week] = useState(buildWeek);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastChange, setLastChange] = useState<Change | null>(null);
   const rowRefs = useRef(new Map<string, HTMLButtonElement>());
-  const ordered = tasks;
+  const surface = useRef<HTMLUListElement>(null);
+  const positionsBefore = useRef<Map<string, number> | null>(null);
+  const visible = day && !showingCompleted ? tasks.filter(task => { const due=taskDueDate(task); return due && dateKey(due)===day; }) : tasks;
+  const selected = visible.find(task=>task.id===selectedId) ?? visible[0];
+  const dueCounts = new Map<string,number>();
+  for (const task of tasks) { const due=taskDueDate(task); if(due) dueCounts.set(dateKey(due),(dueCounts.get(dateKey(due))??0)+1); }
+  const mobileDates = week.filter(date=>dueCounts.has(dateKey(date))).slice(0,3).map(dateKey);
 
-  function choose(task: TaskListItem) {
-    if (busy) return;
-    setExpandedId((id) => id === task.id ? null : task.id);
-    setError(null);
-  }
-
-  const change: ChangeTask = async (task, fields, previous, message) => {
-    if (busy) return;
-    setBusy(true);
-    setError(null);
-    const index = ordered.findIndex((item) => item.id === task.id);
-    const next = ordered[index + 1] ?? ordered[index - 1];
-    try {
-      await onUpdate(task, fields);
-      setLastChange({ task, fields: previous, message });
-      setExpandedId(null);
-      if (next) rowRefs.current.get(next.id)?.focus({ preventScroll: true });
-    } catch (cause) {
-      rowRefs.current.get(task.id)?.focus({ preventScroll: true });
-      setError(cause instanceof ApiError ? cause.message : "That change wasn’t saved. Try again.");
-    } finally {
-      setBusy(false);
+  useLayoutEffect(() => {
+    const before=positionsBefore.current; positionsBefore.current=null;
+    if(!before || matchMedia("(prefers-reduced-motion: reduce)").matches || !surface.current) return;
+    // Batch reads, then animate only transforms. No scrolling or layout loops.
+    const moves=Array.from(surface.current.querySelectorAll<HTMLElement>("[data-task-id]")).map(row=>({row,delta:(before.get(row.dataset.taskId!)??row.getBoundingClientRect().top)-row.getBoundingClientRect().top}));
+    for(const {row,delta} of moves) {
+      if(!delta) continue;
+      row.style.willChange="transform";
+      row.animate([{transform:`translateY(${delta}px)`},{transform:"translateY(0)"}],{duration:180,easing:"cubic-bezier(.2,.8,.2,1)"}).finished.catch(()=>{}).finally(()=>{row.style.willChange="";});
     }
+  },[tasks]);
+
+  function rememberPositions() {
+    positionsBefore.current=new Map(Array.from(surface.current?.querySelectorAll<HTMLElement>("[data-task-id]")??[]).map(row=>[row.dataset.taskId!,row.getBoundingClientRect().top]));
+  }
+  function choose(task: TaskListItem) { if(!busy){setSelectedId(task.id);setError(null);} }
+  const change: ChangeTask = async(task,fields,previous,message)=> {
+    if(busy) return;
+    setBusy(true);setError(null);rememberPositions();
+    const index=visible.findIndex(item=>item.id===task.id);
+    const next=visible[index+1]??visible[index-1];
+    try {
+      await onUpdate(task,fields);
+      setLastChange({task,fields:previous,message});
+      setSelectedId(next?.id??task.id);
+      if(next) rowRefs.current.get(next.id)?.focus({preventScroll:true});
+    } catch(cause) {
+      positionsBefore.current=null;
+      setSelectedId(task.id);
+      setError(cause instanceof ApiError?cause.message:"That change wasn’t saved. Try again.");
+    } finally {setBusy(false);}
   };
-
   async function undo() {
-    if (!lastChange || busy) return;
-    setBusy(true);
-    setError(null);
+    if(!lastChange||busy)return;
+    setBusy(true);setError(null);rememberPositions();
     try {
-      await onUpdate(lastChange.task, lastChange.fields);
-      setLastChange(null);
-      requestAnimationFrame(() => rowRefs.current.get(lastChange.task.id)?.focus({ preventScroll: true }));
-    } catch (cause) {
-      setError(cause instanceof ApiError ? cause.message : "Couldn’t undo. Try again.");
-    } finally {
-      setBusy(false);
-    }
+      await onUpdate(lastChange.task,lastChange.fields);
+      setSelectedId(lastChange.task.id);setLastChange(null);
+      requestAnimationFrame(()=>rowRefs.current.get(lastChange.task.id)?.focus({preventScroll:true}));
+    } catch(cause) {positionsBefore.current=null;setError(cause instanceof ApiError?cause.message:"Couldn’t undo. Try again.");}
+    finally {setBusy(false);}
   }
-
-  function complete(task: TaskListItem) {
-    void change(task, { status: task.status === "done" ? "pending" : "done" }, { status: task.status }, task.status === "done" ? "Task reopened." : "Task completed.");
-  }
-
-  const inspectorProps = { owners, busy, onChange: change, onEdit };
+  function complete(task:TaskListItem){void change(task,{status:task.status==="done"?"pending":"done"},{status:task.status},task.status==="done"?"Task reopened.":"Task completed.");}
+  function snooze(task:TaskListItem,days:number){const date=new Date();date.setDate(date.getDate()+days);const due=dateKey(date);void change(task,{due_date:due},task.due_date?{due_date:task.due_date}:{clear_due_date:true},`Due date moved to ${formatDue({...task,due_date:due})}.`);}
 
   return (
-    <section className="task-workspace flex flex-col gap-3" aria-label="Task workspace" aria-busy={busy}>
-      <div className="flex items-center justify-between gap-3">
-        <h2 className="text-sm font-medium">{showingCompleted ? "Completed" : "Open tasks"} <span className="ml-1 text-muted-foreground tabular-nums">{tasks.length}</span></h2>
-        <Button variant="ghost" size="sm" onClick={onToggleCompleted} disabled={busy}>
-          {showingCompleted ? "Back to open tasks" : `Completed${completedCount ? ` (${completedCount})` : ""}`}
-        </Button>
+    <section className="task-workspace task-flow" aria-label="Task workspace" aria-busy={busy}>
+      <div className="task-flow-heading">
+        <h2>{showingCompleted?"Completed":"Next up"} <span>{tasks.length}</span></h2>
+        <Button variant="ghost" size="sm" disabled={busy} onClick={()=>{setDay(null);onToggleCompleted();}}>{showingCompleted?"Back to open tasks":`Completed${completedCount?` (${completedCount})`:""}`}</Button>
       </div>
-      {tasks.length ? (
-        <ul className="grid grid-cols-1 items-start gap-3 md:grid-cols-2">
-          {ordered.map((task) => {
-            const open = expandedId === task.id;
-            return (
-              <li key={task.id} className={cn("task-action-card flex min-w-0 flex-col gap-3 rounded-2xl border bg-card p-4 sm:p-5", open && "border-primary/40 ring-1 ring-primary/15")}>
-                <div className="flex items-center justify-between gap-3">
-                  <Button variant="ghost" size="icon-lg" disabled={busy} aria-label={`${task.status === "done" ? "Reopen" : "Complete"} ${task.description}`} onClick={() => complete(task)}>
-                    <span className={cn("flex size-5 items-center justify-center rounded-full border border-muted-foreground/40", task.status === "done" && "border-primary bg-primary text-primary-foreground")}>
-                      {task.status === "done" && <Check aria-hidden="true" className="size-3" />}
-                    </span>
-                  </Button>
-                  <div className="flex min-w-0 flex-wrap items-center justify-end gap-1.5">
-                    <Badge className="max-w-full" variant={dueBucket(task) === "overdue" ? "destructive" : "secondary"}>
-                      <CalendarDays aria-hidden="true" /><span className="truncate">{dueBucket(task) === "overdue" ? "Overdue · " : ""}{formatDue(task) ?? "No date"}</span>
-                    </Badge>
-                    {task.priority === "High" && <Badge variant="outline">High priority</Badge>}
-                    {task.status === "in_progress" && <Badge variant="outline">In progress</Badge>}
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  className="rounded-sm text-left text-base leading-relaxed font-medium break-words outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  ref={(element) => { if (element) rowRefs.current.set(task.id, element); else rowRefs.current.delete(task.id); }}
-                  aria-label={`Open task: ${task.description}`}
-                  aria-expanded={open}
-                  disabled={busy}
-                  onClick={() => choose(task)}
-                  onKeyDown={(event) => {
-                    if (!["ArrowDown", "ArrowUp", "ArrowLeft", "ArrowRight"].includes(event.key)) return;
-                    event.preventDefault();
-                    const index = ordered.findIndex((item) => item.id === task.id);
-                    const next = ordered[index + (["ArrowDown", "ArrowRight"].includes(event.key) ? 1 : -1)];
-                    if (next && !busy) { setExpandedId(null); rowRefs.current.get(next.id)?.focus(); }
-                  }}
-                >
-                  <span className={cn(task.status === "done" && "text-muted-foreground line-through")}>{task.description}</span>
-                </button>
-                <div className="flex items-center justify-between gap-2">
-                  <span className="flex min-w-0 items-center gap-2 text-xs text-muted-foreground">
-                    <FolderKanban className="size-3.5 shrink-0" aria-hidden="true" />
-                    <span className="truncate">{task.project || (task.meeting_hidden ? "Shared task" : task.meeting_title || "Added manually")}</span>
-                  </span>
-                  <div className="flex shrink-0 items-center gap-2">
-                    <span className="flex size-7 items-center justify-center rounded-full bg-accent text-xs font-medium text-accent-foreground" title={ownerLabel(task)} aria-label={ownerLabel(task)}>{(task.owner?.trim() || "?")[0].toUpperCase()}</span>
-                    {ownerLabel(task) !== "You" && <span className="max-w-20 truncate text-xs text-muted-foreground">{ownerLabel(task).split(/\s+/)[0]}</span>}
-                    <Button variant="ghost" size="icon-sm" aria-label={`Details for ${task.description}`} aria-expanded={open} onClick={() => choose(task)} disabled={busy}><ChevronRight className={cn(open && "rotate-90")} /></Button>
-                  </div>
-                </div>
-                {open && <div className="border-t pt-4"><TaskInspector key={task.id} task={task} {...inspectorProps} /></div>}
-              </li>
-            );
-          })}
-        </ul>
-      ) : (
-        <EmptyState icon={Check} title={filtered ? "No tasks match" : showingCompleted ? "No completed tasks yet" : "You’re all caught up"} description={filtered ? "Clear your filters to see more tasks." : showingCompleted ? "Completed tasks will stay here." : "Add a task or check what you’re waiting on."} action={filtered ? <Button variant="outline" onClick={onClearFilters}>Clear filters</Button> : !showingCompleted ? <Button variant="outline" onClick={onAdd}>Add task</Button> : undefined} />
-      )}
-      {lastChange && (
-        <div className="flex flex-wrap items-center gap-2 px-1 text-sm" role="status">
-          <Check className="size-4 text-success" aria-hidden="true" /><span className="text-muted-foreground">{lastChange.message}</span>
-          <Button variant="ghost" size="sm" disabled={busy} onClick={() => void undo()}><RotateCcw data-icon="inline-start" /> Undo</Button>
+      {!showingCompleted && <nav className="task-day-strip" aria-label="Filter tasks by due date">
+        <button type="button" aria-pressed={!day} className="task-day" disabled={busy} onClick={()=>setDay(null)}><span>View</span><strong>All</strong></button>
+        {week.map(date=>{const key=dateKey(date),count=dueCounts.get(key)??0;return <button key={key} type="button" className="task-day" data-empty={!count} data-mobile-hidden={!mobileDates.includes(key)} aria-pressed={day===key} aria-label={`Due ${date.toLocaleDateString(undefined,{weekday:"short",month:"short",day:"numeric"})}`} disabled={busy||!count} onClick={()=>setDay(day===key?null:key)}><span>{date.toLocaleDateString(undefined,{weekday:"short"})}</span><strong>{date.getDate()}</strong><i data-has-tasks={count>0} aria-hidden="true" /></button>;})}
+      </nav>}
+      <div className="task-flow-paper">
+        {visible.length ? <ul ref={surface} className="task-flow-rows">
+          {visible.map(task=><li key={task.id} className="task-flow-row" data-task-id={task.id} data-selected={selected?.id===task.id}>
+            <Button variant="ghost" size="icon-lg" disabled={busy} aria-label={`${task.status==="done"?"Reopen":"Complete"} ${task.description}`} onClick={()=>complete(task)}><span className={cn("task-completion",task.status==="done"&&"is-complete")}>{task.status==="done"&&<Check aria-hidden="true" />}</span></Button>
+            <button type="button" className="task-flow-title" ref={element=>{if(element)rowRefs.current.set(task.id,element);else rowRefs.current.delete(task.id);}} aria-label={`Open task: ${task.description}`} aria-pressed={selected?.id===task.id} disabled={busy} onClick={()=>choose(task)} onKeyDown={event=>{if(!["ArrowDown","ArrowUp"].includes(event.key))return;event.preventDefault();const i=visible.findIndex(item=>item.id===task.id),next=visible[i+(event.key==="ArrowDown"?1:-1)];if(next&&!busy){choose(next);rowRefs.current.get(next.id)?.focus();}}}>
+              <span className={cn(task.status==="done"&&"line-through text-muted-foreground")}>{task.description}</span>
+              <small>{formatDue(task)??"No due date"}{ownerLabel(task)!=="You"?` · ${ownerLabel(task)}`:""}</small>
+            </button>
+            {task.priority==="High"&&<span className="task-high-priority">High</span>}
+            {task.status==="in_progress"&&<span className="task-in-progress">In progress</span>}
+          </li>)}
+        </ul> : <div className="task-flow-empty"><EmptyState icon={Check} title={day?"No tasks due on this day":filtered?"No tasks match":showingCompleted?"No completed tasks yet":"You’re all caught up"} description={filtered?"Clear your filters to see more tasks.":undefined} action={day?<Button variant="outline" onClick={()=>setDay(null)}>Show all dates</Button>:filtered?<Button variant="outline" onClick={onClearFilters}>Clear filters</Button>:!showingCompleted?<Button variant="outline" onClick={onAdd}>Add task</Button>:undefined}/></div>}
+        <div className="task-action-dock" aria-label="Task actions">
+          {selected ? <>
+            <div className="task-dock-context" aria-live="polite">
+              <Video aria-hidden="true" className="size-4 shrink-0" />
+              {selected.meeting_hidden?<span>Shared task</span>:selected.meeting_id?<Link href={`/meetings/${selected.meeting_id}`}>{selected.meeting_title}</Link>:<span>Added manually</span>}
+              <span className="task-dock-owner"><UserRound aria-hidden="true" className="size-3.5" />{ownerLabel(selected)}</span>
+            </div>
+            <div className="task-dock-buttons">
+              <Button variant="brand" disabled={busy} onClick={()=>complete(selected)}>{busy?<Loader2 data-icon="inline-start" className="animate-spin motion-reduce:animate-none"/>:<Check data-icon="inline-start"/>}{selected.status==="done"?"Reopen":"Done"}</Button>
+              <Menu><MenuTrigger render={<Button variant="outline" disabled={busy}/> }><Clock3 data-icon="inline-start"/>Snooze</MenuTrigger><MenuContent side="top"><MenuGroup><MenuLabel>Move the due date to</MenuLabel><MenuItem onClick={()=>snooze(selected,1)}>Tomorrow</MenuItem><MenuItem onClick={()=>snooze(selected,7)}>In a week</MenuItem><MenuSeparator/><MenuItem onClick={()=>onEdit(selected)}>Choose date</MenuItem></MenuGroup></MenuContent></Menu>
+              <Menu><MenuTrigger render={<Button variant="outline" disabled={busy}/> }><UserRound data-icon="inline-start"/>Reassign</MenuTrigger><MenuContent side="top"><MenuGroup><MenuLabel>Assign to</MenuLabel>{owners.filter(owner=>owner.toLowerCase()!==selected.owner?.toLowerCase()).slice(0,8).map(owner=><MenuItem key={owner} onClick={()=>void change(selected,{owner},{owner:selected.owner??""},`Assigned to ${owner}.`)}><span className="max-w-60 truncate">{owner}</span></MenuItem>)}<MenuSeparator/><MenuItem onClick={()=>onEdit(selected)}>Someone else</MenuItem></MenuGroup></MenuContent></Menu>
+              <Button variant="ghost" size="icon" aria-label="Edit task" disabled={busy} onClick={()=>onEdit(selected)}><Pencil/></Button>
+            </div>
+          </>:<span className="text-sm text-muted-foreground">Queue clear</span>}
         </div>
-      )}
-      {error && <p role="alert" className="rounded-lg border border-destructive/30 p-3 text-sm text-destructive">{error}</p>}
+      </div>
+      {lastChange&&<div className="task-change-notice" role="status"><Check className="size-4 text-success" aria-hidden="true"/><span>{lastChange.message}</span><Button variant="ghost" size="sm" disabled={busy} onClick={()=>void undo()}><RotateCcw data-icon="inline-start"/>Undo</Button></div>}
+      {error&&<p role="alert" className="rounded-lg border border-destructive/30 p-3 text-sm text-destructive">{error}</p>}
     </section>
-  );
-}
-
-function TaskInspector({ task, owners, busy, onChange, onEdit }: {
-  task: TaskListItem;
-  owners: string[];
-  busy: boolean;
-  onChange: ChangeTask;
-  onEdit: (task: TaskListItem) => void;
-}) {
-  const [panel, setPanel] = useState<"snooze" | "assign" | null>(null);
-  const panelId = useId();
-  const done = task.status === "done";
-
-  function snooze(days: number) {
-    const date = new Date();
-    date.setDate(date.getDate() + days);
-    const value = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
-    void onChange(task, { due_date: value }, task.due_date ? { due_date: task.due_date } : { clear_due_date: true }, `Due date moved to ${formatDue({ ...task, due_date: value })}.`);
-  }
-
-  return (
-    <div className="flex flex-col gap-5" aria-label="Task actions">
-      <div className="flex flex-col gap-3 text-sm">
-        {task.meeting_hidden ? <p className="text-muted-foreground">Meeting details aren’t shared with you.</p> : task.meeting_id ? <Link className="flex items-start gap-3 text-muted-foreground underline-offset-4 hover:text-primary hover:underline" href={`/meetings/${task.meeting_id}`}><Video className="mt-0.5 size-4 shrink-0" aria-hidden="true" /><span className="min-w-0 break-words">{task.meeting_title}</span></Link> : <p className="text-muted-foreground">Added manually</p>}
-      </div>
-      <div className="grid grid-cols-2 gap-2 lg:grid-cols-3">
-        <Button className="col-span-2 lg:col-span-1" disabled={busy} onClick={() => void onChange(task, { status: done ? "pending" : "done" }, { status: task.status }, done ? "Task reopened." : "Task completed.")}>
-          {busy ? <Loader2 data-icon="inline-start" className="animate-spin motion-reduce:animate-none" /> : <Check data-icon="inline-start" />}{done ? "Reopen" : "Done"}
-        </Button>
-        <Button variant="outline" disabled={busy} aria-expanded={panel === "snooze"} aria-controls={`${panelId}-snooze`} onClick={() => setPanel(panel === "snooze" ? null : "snooze")}><Clock3 data-icon="inline-start" />Snooze</Button>
-        <Button variant="outline" disabled={busy} aria-expanded={panel === "assign"} aria-controls={`${panelId}-assign`} onClick={() => setPanel(panel === "assign" ? null : "assign")}><UserRound data-icon="inline-start" />Reassign</Button>
-      </div>
-      <Button variant="ghost" className="self-start" onClick={() => onEdit(task)} disabled={busy}><Pencil data-icon="inline-start" /> Edit task</Button>
-      <div id={`${panelId}-snooze`} hidden={panel !== "snooze"} className="flex flex-col gap-2 [&[hidden]]:hidden">
-        <p className="text-xs text-muted-foreground">Move the due date to</p>
-        <div className="flex flex-wrap gap-2"><Button variant="secondary" disabled={busy} onClick={() => snooze(1)}>Tomorrow</Button><Button variant="secondary" disabled={busy} onClick={() => snooze(7)}>In a week</Button><Button variant="ghost" disabled={busy} onClick={() => onEdit(task)}>Choose date</Button></div>
-      </div>
-      <div id={`${panelId}-assign`} hidden={panel !== "assign"} className="flex flex-col gap-2 [&[hidden]]:hidden">
-        <p className="text-xs text-muted-foreground">Assign to</p>
-        <div className="flex flex-wrap gap-2">{owners.filter((owner) => owner.toLowerCase() !== task.owner?.toLowerCase()).slice(0, 8).map((owner) => <Button key={owner} variant="secondary" className="max-w-full" disabled={busy} onClick={() => void onChange(task, { owner }, { owner: task.owner ?? "" }, `Assigned to ${owner}.`)}><span className="truncate">{owner}</span></Button>)}<Button variant="ghost" disabled={busy} onClick={() => onEdit(task)}>Someone else</Button></div>
-      </div>
-    </div>
   );
 }
 

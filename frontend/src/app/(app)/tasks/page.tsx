@@ -449,7 +449,7 @@ export default function TasksPage() {
     <div className="flex flex-col gap-4">
       <header className="flex items-center justify-between gap-3">
         <h1 className="text-[1.75rem] leading-tight font-bold">Tasks</h1>
-        <Button onClick={() => setAddingTask(true)}><Plus data-icon="inline-start" /> Add task</Button>
+        <Button variant="brand" onClick={() => setAddingTask(true)}><Plus data-icon="inline-start" /> Add task</Button>
       </header>
 
       <div className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-2 sm:flex sm:flex-wrap">
@@ -466,7 +466,7 @@ export default function TasksPage() {
         <label className="flex items-center gap-2">
           <span className="sr-only">Layout</span>
           <select aria-label="Layout" value={view} onChange={(event) => changeView(event.target.value as View)} className={selectClass}>
-            <option value="workspace">Cards</option>
+            <option value="workspace">Flow</option>
             <option value="list">List</option>
             <option value="board">Board</option>
           </select>
@@ -546,7 +546,7 @@ export default function TasksPage() {
                 ? "Tasks people give you in meetings show up here automatically, or add one yourself."
                 : scopeInfo.hint + "."
           }
-          action={filtersActive ? <Button variant="outline" onClick={clearFilters}><X /> Clear filters</Button> : <Button onClick={() => setAddingTask(true)}><Plus /> Add task</Button>}
+          action={filtersActive ? <Button variant="outline" onClick={clearFilters}><X /> Clear filters</Button> : <Button variant="brand" onClick={() => setAddingTask(true)}><Plus /> Add task</Button>}
         />
       )}
 

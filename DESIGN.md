@@ -1,10 +1,10 @@
 # Wilco design system
 
-The supplied mobile reference image replaces the earlier video-based direction. Wilco now uses a light lilac canvas, white rounded surfaces, violet actions, compact meeting cards, and direct navigation. The interface is organised around actual meetings and actions.
+The approved v1 browser mascot now governs Wilco’s identity: soft pink, lilac and sky blue, charcoal linework, teal shorts, and orange cap/shoes. Use these colours with the existing components and live meeting/task flows. The image-model references in `docs/design-references/` guide the visual direction; they are not application data.
 
 ## Layout
 
-Home starts with the user's name and a compact greeting. The capture tile sits beside two stacked shortcuts for recording in person and asking past meetings. Recent meetings use cards with the date, duration, a short summary, participant circles, and an Open notes or Review notes action. The focused follow-up queue remains available beside the schedule on desktop and below the meeting cards on mobile.
+Home starts with the user’s compact greeting and a single pastel welcome band containing the approved mascot and Invite Wilco. Record in person and Ask your meetings stay reachable as smaller shortcuts. Recent meetings, the real schedule, and the focused review queue remain useful working content.
 
 Desktop has a white sidebar and two content columns. Mobile has a bottom bar for Home, Meetings, Calendar, and Settings, plus a central invite button. The profile button opens full navigation so secondary tools remain reachable. Calendar has Ongoing, Upcoming, and History tabs, week controls, tappable dates, real meeting links, and the existing auto-invite switches.
 
@@ -14,15 +14,16 @@ Define colours only in `frontend/src/app/globals.css`; components use theme toke
 
 | Role | Light token value |
 | --- | --- |
-| Canvas | `--background: #faf9fd` |
+| Canvas | `--background: #fcfaf8` |
 | Surface | `--card: #ffffff` |
-| Copy | `--foreground: #24212d` |
-| Secondary copy | `--muted-foreground: #706a7b` |
-| Action | `--primary: #7d45df` |
-| Selected surface | `--accent: #f0e9fc` |
-| Capture tile | `--feature-top: #b184ef`, `--feature-bottom: #7741d7` |
+| Copy | `--foreground: #24262c` |
+| Secondary copy | `--muted-foreground: #65616c` |
+| Primary / selection | `--primary: #126b75` |
+| Selected surface | `--accent: #e1f1f0` |
+| Key action | `--marigold: #ff9b17`, with charcoal text |
+| Pastel band | `--feature-top: #f4c9e4`, `--feature-middle: #dfd2f2`, `--feature-bottom: #bcdcf7` |
 
-The legacy `--marigold` token now follows violet for existing consumers. Light is the default; saved theme preferences remain supported. Dark mode uses the same structure and violet actions.
+Light remains the default; saved theme preferences are respected. Dark mode uses warm charcoal surfaces, light teal selections, and orange key actions. Primary text/action token pairs were checked for contrast in both themes. Use gradients only for the welcome band and the task date rail; do not wash every surface in colour.
 
 Geist carries the interface; Mukta remains the Devanagari fallback. Use compact sentence-case headings and body text. No oversized Home slogan or decorative counters.
 
@@ -42,14 +43,14 @@ One task, decision, or uncertain speaker is reviewed at a time. Inline edits and
 
 ## Motion and accessibility
 
-Use short interaction feedback, visible focus, labelled controls, and reduced-motion support. Hover changes are small and purposeful. The violet capture gradient is confined to its action tile; working surfaces stay white. Avoid background animation and simulated recording indicators. Keep recording consent, errors, confidentiality, and sharing rules explicit.
+Use short interaction feedback, visible focus, labelled controls, and reduced-motion support. Hover changes are small and purposeful. The mascot is static and limited to the welcome/navigation areas; working surfaces retain clear text and restrained borders. Avoid background animation and simulated recording indicators. Keep recording consent, errors, confidentiality, and sharing rules explicit.
 
 See `docs/coordination.md` before editing shared files and `docs/ui-reference.md` for previews and verification.
 
 ## Tasks
 
-The user rejected the single-card deck as too empty, then chose compact task cards. Cards are now the default. Keep several task titles visible together in a two-column desktop grid, stacking on mobile. Each card shows a completion control, due date, project/source, and the real owner's initial. High priority and in-progress status get explicit labels only when relevant. Don't shorten or rewrite the task itself.
+A connected Flow replaces the rejected deck and disconnected card grid. Keep multiple full task titles visible in one surface. A compact date rail filters actual due dates; All includes undated, overdue and later work too. The selected row receives a teal cue. The shared action dock changes its meeting source and owner without expanding task rows or moving the overview.
 
-The title or details arrow expands that card's meeting source and Done / Snooze / Reassign actions. Only one card expands at a time. Saving waits for success, errors leave the card open, and Undo remains available after the last task. Restricted tasks never offer meeting links. Search stays visible; advanced filters are disclosed. List, Board, completed tasks, exports and bulk tools remain accessible.
+Done, Snooze, Reassign, Edit and Undo use existing APIs. Snooze and reassignment use accessible Base UI menus over the working surface. Failed saves preserve selection; Undo remains available after the last task. Restricted meetings never get a link. Search stays visible; advanced filters remain disclosed. List/Board, completed tasks, exports and bulk tools remain available.
 
-A compact Waiting on strip shows actual owners and pending counts from accessible delegated tasks. Tapping a person opens their waiting tasks. Keep theme tokens, Geist, real data and quiet interaction feedback; don't add decorative metrics, empty columns or invented suggestions to fill space.
+Use short transform-only settling after task mutations, no animated backgrounds or looping mascot. Respect reduced motion. The Waiting on strip is derived from accessible delegated tasks and opens the selected owner’s waiting list.

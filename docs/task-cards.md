@@ -1,4 +1,6 @@
-# Compact task cards
+# Compact task cards (superseded)
+
+The user subsequently rejected the card presentation. See [mascot-workspace.md](mascot-workspace.md) for the implemented mascot-led Flow. This document records the earlier card checkpoint.
 
 The user rejected the single-task deck as too empty and chose compact task cards from the subsequent options. This replaces the deck default, preserving the existing light/violet design and task APIs.
 

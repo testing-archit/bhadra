@@ -9,7 +9,6 @@ import {
   ChevronRight,
   MessageSquareText,
   Mic,
-  Send,
   Video,
 } from "lucide-react";
 import {
@@ -22,6 +21,7 @@ import {
 } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { compareByUrgency, formatDue, isMyTask } from "@/lib/tasks";
+import { WilcoMascot } from "@/components/brand";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MeetingAgenda } from "@/components/meeting-agenda";
@@ -145,26 +145,17 @@ export default function HomePage() {
           </button>
         </div>
       )}
+      <section className="mascot-welcome" aria-label="Meet Wilco">
+        <div className="mascot-welcome-copy">
+          <h2>Bring Wilco to your next meeting.</h2>
+          <p>Leave with clear notes and a plan.</p>
+          <Button variant="brand" size="lg" onClick={() => openNotetaker()}><Video data-icon="inline-start" />Invite Wilco</Button>
+        </div>
+        <WilcoMascot className="welcome-mascot" />
+      </section>
       <div className="dashboard-columns">
         <div className="dashboard-primary">
           <section className="meeting-shortcuts" aria-label="Start with Wilco">
-            <button
-              type="button"
-              className="capture-tile"
-              onClick={() => openNotetaker()}
-            >
-              <span className="capture-tile-icon">
-                <Send aria-hidden="true" />
-              </span>
-              <strong>Capture a meeting</strong>
-              <span className="capture-tile-description">
-                Notes, tasks &amp; decisions.
-              </span>
-              <span className="capture-tile-cta">
-                Invite Wilco{" "}
-                <ChevronRight className="size-3.5" aria-hidden="true" />
-              </span>
-            </button>
             <div className="shortcut-stack">
               <Link href="/record" className="shortcut-tile">
                 <span className="shortcut-icon" data-tone="record">
@@ -172,9 +163,7 @@ export default function HomePage() {
                   <i />
                 </span>
                 <strong>
-                  Record
-                  <br />
-                  in person
+                  Record in person
                 </strong>
                 <ArrowRight className="shortcut-arrow" aria-hidden="true" />
               </Link>
@@ -183,9 +172,7 @@ export default function HomePage() {
                   <MessageSquareText aria-hidden="true" />
                 </span>
                 <strong>
-                  Ask your
-                  <br />
-                  meetings
+                  Ask your meetings
                 </strong>
                 <ArrowRight className="shortcut-arrow" aria-hidden="true" />
               </Link>
