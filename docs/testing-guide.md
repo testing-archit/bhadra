@@ -75,3 +75,35 @@ Pages to open: Home, Meetings, a meeting, Tasks (board and list), Decisions, Pro
 - The notetaker doesn't speak in the call.
 - Memory search uses the "recent meetings" fallback because no Pinecone key is set. Add `PINECONE_API_KEY` for full vector search.
 - The Chrome extension's Google sign-in uses an old OAuth client ID in `manifest.json`. Replace it with your own before publishing.
+
+## Built on Gnani page (`/gnani`) — added 15 Nov
+
+One screen that shows every Gnani model working. Use it first in a demo.
+
+| Try | Expect |
+|---|---|
+| **Prisma**: tap Speak, say "Vedant, login bug Friday tak fix kar dena", tap Stop | Your words in Roman Hinglish, a "Hindi detected" chip and a latency chip (≈1–2 s) |
+| **Prisma**: speak a Tamil or Marathi sentence | Native script and the right language chip |
+| **Timbre**: pick தமிழ், tap Speak | Tamil audio; chips show `timbre-v3.0`, the voice and the time |
+| **Timbre**: pick Hinglish | Faster `timbre-v2.5` voice |
+| **Voice cloning**: tick the consent box, Record my voice, read for ~15 s, Stop | "Learning your voice", then "Say it in my voice" plays the line in your own voice (`vachana-vc-v1`) |
+| **Voice update**: paste a Meet link + an update, Leave update | Appears as "waiting for the call" |
+| In that Meet with Wilco: say "Wilco, play updates" | Wilco says an AI copy of your voice follows, plays it, posts the text in chat; the page then shows "played in the call" |
+| Delete my voice | Voice and pending updates are gone |
+| **Evon** card | "Not connected" unless `EVON_URL` is set; with it, Ask Evon answers and Wilco Live replies with Evon (chip "Answered by Gnani Evon v3.3") |
+
+## Listen in your language (meeting page) — added 15 Nov
+
+Open a meeting → Full meeting → Summary. Pick தமிழ் / मराठी / বাংলা and tap Listen: the summary is translated and read by Timbre; the translation shows below with "Translated by Gemini · spoken by Gnani Timbre v3 (voice)". If speech fails the translation still shows.
+
+## In the call — added 15 Nov
+
+| Say | Expect |
+|---|---|
+| "Wilco, pause recording" | Chat + voice confirm; anything said now never reaches the transcript or notes |
+| "Wilco, resume" | "Recording again" |
+| "Wilco, recap in Tamil" | Recap in Tamil script, spoken with the Tamil voice |
+| "Wilco, draw a signup and payment flow" | Board edit straight away (no extra planning step) |
+| "Wilco, cancel that" during a request | One confirmation in chat, not two |
+
+Wilco Live now shows chips under each answer: heard by Prisma (language, time), answered by Gemini/Evon, spoken by Timbre (voice, time).

@@ -33,6 +33,8 @@ Keep these updated, and commit doc changes with the code: the whole team works t
 - To redo the sign-in, run `backend/bot/generate_auth.py` on a laptop, then `docker compose cp` the file to `notetaker:/data/auth.json`. Never commit it.
 - Without it, Meet refuses the bot ("You can't join this video call").
 
+**Gnani models used** (show them at `/gnani`): Prisma v3 (all speech-to-text), Timbre v2.5 + v3 (all speech; `tts_service.language_for_text` picks the language from the script), Timbre voice cloning `vachana-vc-v1` (opt-in own voice, `voice_clone_service.py`, encrypted embedding only; in-call "Wilco, play updates"), Evon v3.3 (optional, `EVON_URL` OpenAI-compatible server, Live falls back to Gemini). Warp has no public API.
+
 **Charcha Live** (`/live`): a Gemini-Live-style spoken conversation built on Gnani.
 - **Request:** `POST /api/live/turn` takes one utterance. Prisma transcribes it with Auto-LID, Gemini answers from a cached digest of recent meetings, and Timbre speaks the answer: v2.5 for Hinglish, v3.0 for other Indian languages.
 - **Browser:** voice detection and barge-in run in `components/live-session.tsx`.
