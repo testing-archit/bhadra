@@ -16,12 +16,15 @@ export function FigJamConnection({captureId}: {captureId: string}) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  // Separate from action errors: a transient check failure clears on the next success.
+  const [statusError, setStatusError] = useState<string | null>(null);
   const refresh = useCallback(async () => {
     try {
       const next = await api.figjamStatus(captureId);
       setStatus(next);
+      setStatusError(null);
       if (next.connected) setPair(null);
-    } catch { setError("Could not check FigJam. Refresh this page to try again."); }
+    } catch { setStatusError("Could not check FigJam. Retrying…"); }
   }, [captureId]);
   useEffect(() => {
     void refresh();
@@ -79,7 +82,7 @@ export function FigJamConnection({captureId}: {captureId: string}) {
         catch { setError("Could not disconnect. Try again."); }
         finally { setBusy(false); }
       }}>Disconnect FigJam</Button>}
-      {error && <p className="text-sm text-destructive" role="alert">{error}</p>}
+      {(error || statusError) && <p className="text-sm text-destructive" role="alert">{error ?? statusError}</p>}
     </CardContent>
   </Card>;
 }
