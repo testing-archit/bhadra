@@ -117,7 +117,7 @@
   --card: #18181B; --foreground: #F4F4F5; --muted-foreground: #A1A1AA;
   --primary: #F4F4F5; --primary-foreground: #0B0B0C;
   --secondary: #242427; --muted: #242427; --accent: #26262B;
-  --border: #343438; --input: #52525B;
+  --border: #26262B; --input: #71717A;
   --selection: #2A2610; --selection-line: #8A7400; --heading-muted: #A1A1AA;
   --destructive: #FCA5A5; --warning: #FDBA8C; --success: #86EFAC;
   --tint-peach: #3B2A23; --tint-peach-foreground: #FDBA8C;
@@ -1433,3 +1433,12 @@
 
 ::selection { background: var(--signal); color: var(--signal-foreground); }
 * { scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
+
+/* Working sheets and frame panels from the pinned engagement spec. */
+.work-sheet { display:flex; flex-direction:column; gap:16px; min-width:0; padding:24px; border:1px solid var(--border); border-radius:20px; background:var(--card); color:var(--card-foreground); }
+.ink-panel { --ring:var(--signal); display:flex; flex-direction:column; gap:16px; min-width:0; padding:24px; border:1px solid var(--frame-line); border-radius:20px; background:var(--frame); color:var(--frame-foreground); }
+.ink-panel .text-muted-foreground { color:var(--frame-muted); }.ink-panel button:focus-visible,.ink-panel a:focus-visible { outline:2px solid var(--signal); outline-offset:3px; }
+.two-tone { font-size:34px; font-weight:600; line-height:1.12; letter-spacing:-.035em; }.two-tone>span { color:var(--heading-muted); }.ink-panel .two-tone>span { color:var(--frame-heading-muted); }
+.sheet-heading { display:flex; align-items:center; justify-content:space-between; gap:12px; }.sheet-heading h2 { font-size:17px; font-weight:600; }
+.short-chip { display:inline-flex; width:fit-content; align-items:center; gap:6px; min-height:24px; padding:3px 9px; border-radius:999px; background:var(--muted); color:var(--foreground); font-size:12px; font-weight:500; }
+@media(max-width:767px){.work-sheet,.ink-panel { padding:20px; }.two-tone { font-size:28px; }}
