@@ -806,18 +806,29 @@ class MeetingSession:
         found = []
         handled = getattr(self, "_spoken_handled", set())
         self._spoken_handled = handled
+        # Meet trims the start of long caption blocks and revises words, so a
+        # character offset alone shifts and re-fires the same command. Also
+        # remember each block's handled questions by their text.
+        asked = getattr(self, "_spoken_asked", {})
+        self._spoken_asked = asked
         now = time.monotonic()
         for block_id, (speaker, text, changed) in list(self.captions.latest.items()):
             if speaker.strip().lower() in {"you", config.BOT_DISPLAY_NAME.lower()}:
                 continue  # the notetaker's own voice
             for match in WAKE_RE.finditer(text):
                 question = re.split(r"(?<=[.!?])\s", match.group(1).strip())[0].strip(" ,.?!")
-                if now - changed < SPOKEN_QUESTION_PAUSE_SECONDS and normalize(question) not in CONTROL_COMMANDS:
+                plain = normalize(question)
+                if now - changed < SPOKEN_QUESTION_PAUSE_SECONDS and plain not in CONTROL_COMMANDS:
                     continue
                 key = (block_id, match.start())
                 if key in handled or len(question) < 4:
                     continue
                 handled.add(key)
+                earlier = asked.setdefault(block_id, [])
+                # Same words (offset shifted), or the same request still growing.
+                if any(plain == seen or plain.startswith(seen) or seen.startswith(plain) for seen in earlier):
+                    continue
+                earlier.append(plain)
                 if wants_exit(f"charcha {question}"):
                     continue
                 found.append((speaker, question))

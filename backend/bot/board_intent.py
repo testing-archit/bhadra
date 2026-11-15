@@ -16,6 +16,12 @@ def board_intent(question: str, active: bool, is_task: bool = False) -> str | No
     if is_task:
         return None  # Preserve task capture even when its description mentions a board.
     named = bool(re.search(r'\b(?:white\s?board|board|figjam|figma)\b', plain))
+    # "Draw a signup flow" always means the board, even before one is open:
+    # route it straight to one board edit instead of an extra planner call.
+    if re.match(r'(?:draw|sketch|diagram)\b', plain) or re.match(
+            r'(?:make|create|map(?: out)?)\s+(?:me\s+)?(?:a|an|the|our|my)\s+(?:[\w,-]+\s+){0,6}?'
+            r'(?:flow\s?chart|flow|diagram|mind\s?map)\b', plain):
+        named = True
     if plain in {'stop presenting', 'stop sharing', 'stop presenting the board', 'stop sharing the board'}:
         return 'stop'
     implicit_board = active and bool(re.fullmatch(r'(?:present|share|show)(?: (?:it|this|that|this one|the current one))?', plain))
@@ -23,7 +29,7 @@ def board_intent(question: str, active: bool, is_task: bool = False) -> str | No
         return 'present'
     if named and re.match(r'(?:make|create|start|open)\b', plain):
         return 'open_present' if re.search(r'\b(?:present|share)\b', plain) else 'open'
-    if re.match(r'(?:add|create|put|move|connect|rename|change|update|remove|delete|undo|draw|banao|jodo)\b', plain) and (named or active):
+    if re.match(r'(?:add|create|put|move|connect|rename|change|update|remove|delete|undo|draw|sketch|diagram|map|banao|jodo)\b', plain) and (named or active):
         if named or not is_task:
             return 'edit'
     return None

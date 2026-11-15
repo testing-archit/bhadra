@@ -74,3 +74,17 @@ async def test_browser_playback_cancellation_stops_the_isolated_microphone(tmp_p
     await asyncio.wait_for(ready.wait(), 1)
     task.cancel(); await asyncio.gather(task, return_exceptions=True)
     assert 'window.__wilcoMic?.stop()' in page.calls
+
+
+def test_command_is_not_repeated_when_meet_trims_the_caption_block(tmp_path, monkeypatch):
+    monkeypatch.setattr(meeting_session.config, 'SESSIONS_DIR', tmp_path)
+    monkeypatch.setattr(meeting_session.time, 'monotonic', lambda: 10)
+    session = meeting_session.MeetingSession({})
+    session.captions.latest[1] = ('Ravi', 'so as I said Wilco draw signup and payment', 8)
+    assert session.spoken_questions() == [('Ravi', 'draw signup and payment')]
+    # Meet scrolls the start of a long block away: the offset changes, the words don't.
+    session.captions.latest[1] = ('Ravi', 'said Wilco draw signup and payment', 8)
+    assert session.spoken_questions() == []
+    # The same request continuing after a pause is not a second command.
+    session.captions.latest[1] = ('Ravi', 'said Wilco draw signup and payment flow', 8)
+    assert session.spoken_questions() == []
