@@ -18,6 +18,20 @@ from google.genai.errors import APIError
 
 
 async def main():
+    # Candidate compatibility probe for servers still on the preceding wrapper.
+    # This changes only this diagnostic process, never the running application.
+    if not hasattr(gemini_service, '_thinking_config'):
+        from types import SimpleNamespace
+        original_config = gemini_service.types.GenerateContentConfig
+        original_thinking = gemini_service.types.ThinkingConfig
+        def compatible_config(**kwargs):
+            thinking = kwargs.get('thinking_config')
+            if thinking is not None and thinking.thinking_budget is not None:
+                kwargs['thinking_config'] = original_thinking(thinking_level='MINIMAL')
+            kwargs.pop('temperature', None)
+            return original_config(**kwargs)
+        gemini_service.types = SimpleNamespace(GenerateContentConfig=compatible_config, ThinkingConfig=original_thinking)
+        print(json.dumps({'candidate_compatibility_probe':True}))
     print(json.dumps({'speech_config': {
         'provider': 'gnani', 'configured': bool(settings.gnani_api_key),
         'host': urlparse(settings.gnani_tts_url).hostname,
