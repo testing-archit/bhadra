@@ -162,7 +162,11 @@ PAUSE_COMMANDS = {"pause", "pause recording", "pause the recording", "pause the 
                   "go off the record", "recording pause karo", "recording roko"}
 RESUME_COMMANDS = {"resume", "resume recording", "resume the recording", "start recording again", "back on the record",
                    "on the record", "recording resume karo", "recording chalu karo", "recording shuru karo"}
-CONTROL_COMMANDS = PAUSE_COMMANDS | RESUME_COMMANDS | {"stop", "stop speaking", "be quiet", "quiet", "cancel that", "cancel request",
+# "Wilco, play updates": updates teammates left for a call they'll miss,
+# spoken in their own cloned voice (Gnani Timbre VC), announced as synthetic.
+VOICE_UPDATE_COMMANDS = {"play updates", "play the updates", "play update", "play the update", "read updates",
+                         "read the updates", "updates", "voice updates", "play voice updates", "play team updates"}
+CONTROL_COMMANDS = PAUSE_COMMANDS | RESUME_COMMANDS | VOICE_UPDATE_COMMANDS | {"stop", "stop speaking", "be quiet", "quiet", "cancel that", "cancel request",
                     "stop working", "cancel all requests", "status", "what are you doing", "what's running",
                     "stop presenting", "stop sharing", "stop presenting the board", "stop sharing the board"}
 
@@ -523,6 +527,7 @@ class MeetingSession:
         self._caption_seq = 0
         self._board_active = False
         self._paused_since: float | None = None
+        self._voice_update_task: asyncio.Task | None = None
         self._pause_reminded = False
         self._agent = None
         self._pending_commands = {}
@@ -806,6 +811,10 @@ class MeetingSession:
             audio = await asyncio.to_thread(uploader.speech, spoken_summary(text, limit=220))
         if not audio:
             return
+        await self.play_browser_audio(page, audio)
+
+    async def play_browser_audio(self, page: Page, audio: bytes, max_seconds: int = 46) -> None:
+        """Play decoded MP3 through the isolated microphone, then mute again."""
         try:
             async with self._browser_lock:
                 if await page.evaluate('Boolean(window.__wilcoMic)') is not True:
@@ -819,7 +828,7 @@ class MeetingSession:
                     raise RuntimeError('Microphone state unavailable')
                 await page.evaluate('(audio) => window.__wilcoMic.play(audio)', base64.b64encode(audio).decode())
             with stage(self.session_id, 'speech', 'audio_playback'):
-                await page.wait_for_function('!window.__wilcoMic?.playing', timeout=46000)
+                await page.wait_for_function('!window.__wilcoMic?.playing', timeout=max_seconds * 1000)
         finally:
             async with self._browser_lock:
                 if not page.is_closed():
@@ -978,6 +987,9 @@ class MeetingSession:
             if self._agent_runtime:
                 await self._agent_runtime.enqueue_reply(command, "Paused. Say Wilco, resume, when you're ready.")
             return True
+        if control in VOICE_UPDATE_COMMANDS:
+            await self.play_voice_updates(page)
+            return True
         if control in RESUME_COMMANDS:
             changed = await asyncio.to_thread(self.set_recording_paused, False)
             message = "Recording again. Notes pick up from here." if changed else "I'm already recording."
@@ -1002,6 +1014,8 @@ class MeetingSession:
         else:
             if self._agent_runtime:
                 await self._agent_runtime.interrupt_speech()
+            if self._voice_update_task and not self._voice_update_task.done():
+                self._voice_update_task.cancel()
             if control in {"stop speaking", "be quiet", "quiet"}:
                 message = "Stopped speaking. Your tasks are still running."
             else:
@@ -1042,6 +1056,53 @@ class MeetingSession:
                     message = "Stopped speaking. I have no active requests to cancel."
         await self.send_agent_message(page, message)
         return True
+
+    async def announce_voice_updates(self, page) -> None:
+        """Tell the call, once, that absent teammates left updates."""
+        if not self.capture_request_id:
+            return
+        updates = await asyncio.to_thread(uploader.voice_updates, self.capture_request_id)
+        if not updates:
+            return
+        names = list(dict.fromkeys(item["name"] for item in updates))
+        who = names[0] if len(names) == 1 else ", ".join(names[:-1]) + " and " + names[-1]
+        verb = "left an update" if len(updates) == 1 else "left updates"
+        await self.send_agent_message(page, f"{who} {verb} for this call. Say \u201cWilco, play updates\u201d to hear "
+                                            "them, read in an AI copy of their own voice.")
+
+    async def play_voice_updates(self, page) -> None:
+        if not self.capture_request_id:
+            return
+        if not (config.SPEAK_IN_CALL and self.USES_GOOGLE_LOGIN):
+            await self.send_agent_message(page, "I can play voice updates only in Google Meet calls.")
+            return
+        if self._voice_update_task and not self._voice_update_task.done():
+            await self.send_agent_message(page, "I'm already playing the updates.")
+            return
+        updates = await asyncio.to_thread(uploader.voice_updates, self.capture_request_id)
+        if not updates:
+            await self.send_agent_message(page, "No updates were left for this call.")
+            return
+        self._voice_update_task = asyncio.create_task(self._play_voice_updates(page, updates))
+
+    async def _play_voice_updates(self, page, updates: list[dict]) -> None:
+        for item in updates:
+            name, text = item["name"], item["text"]
+            audio = await asyncio.to_thread(uploader.voice_update_audio, self.capture_request_id, item["id"])
+            if audio:
+                try:
+                    # Say it's synthetic before anyone hears the cloned voice.
+                    await self.speak(page, f"Here's an update from {name}, read in an AI copy of their voice.")
+                    await self.play_browser_audio(page, audio, max_seconds=62)
+                except asyncio.CancelledError:
+                    raise
+                except Exception as error:
+                    log.warning("Voice update playback failed (%s)", type(error).__name__)
+                    audio = None
+            heading = (f"Update from {name} (read in an AI copy of their voice):" if audio
+                       else f"I couldn't play {name}'s update aloud. Here it is:")
+            await self.send_agent_message(page, f"{heading}\n{text}")
+            await asyncio.to_thread(uploader.voice_update_delivered, self.capture_request_id, item["id"])
 
     async def agent_results_loop(self, page, runtime):
         if self._agent is None:
@@ -1145,6 +1206,7 @@ class MeetingSession:
             if self.capture_request_id:
                 self._agent = AgentClient(self.capture_request_id)
             result_task = asyncio.create_task(self.agent_results_loop(page, runtime))
+            announce_task = asyncio.create_task(self.announce_voice_updates(page))
             # Caption revisions wake intake immediately; the short timeout also
             # checks settled captions and typed chat without a DOM observer.
             runtime.changed = self.captions.changed
@@ -1156,7 +1218,11 @@ class MeetingSession:
                 flush_task.cancel()
                 present_task.cancel()
                 result_task.cancel()
-                await asyncio.gather(flush_task, present_task, result_task, return_exceptions=True)
+                announce_task.cancel()
+                if self._voice_update_task:
+                    self._voice_update_task.cancel()
+                await asyncio.gather(flush_task, present_task, result_task, announce_task,
+                                     *([self._voice_update_task] if self._voice_update_task else []), return_exceptions=True)
                 if self._agent:
                     await self._agent.close()
                     self._agent = None

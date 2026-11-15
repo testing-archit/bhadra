@@ -23,7 +23,7 @@ SCRIPT = r"""
       await context.resume();
       const bytes = Uint8Array.from(atob(encoded), character => character.charCodeAt(0));
       const buffer = await context.decodeAudioData(bytes.buffer);
-      if (!buffer.length || buffer.duration > 45) throw new Error('Invalid speech duration');
+      if (!buffer.length || buffer.duration > 60) throw new Error('Invalid speech duration');
       source = context.createBufferSource();
       source.buffer = buffer;
       source.connect(microphone);

@@ -832,3 +832,58 @@ async def agent_command_delivered(request_id: uuid.UUID, command_id: uuid.UUID, 
     job.delivered_at = job.delivered_at or datetime.datetime.now(datetime.UTC)
     await db.commit()
     return {"delivered": True}
+
+
+# ---- Voice updates: an absent teammate's update in their cloned voice ---------
+
+async def _capturing(db: AsyncSession, request_id: uuid.UUID) -> CaptureRequest:
+    capture = await db.get(CaptureRequest, request_id)
+    if capture is None or capture.status != "capturing" or not capture.meeting_code:
+        raise HTTPException(status_code=404, detail="Active capture not found")
+    return capture
+
+
+@router.get("/capture-requests/{request_id}/voice-updates", dependencies=[Depends(require_bot)])
+async def pending_voice_updates(request_id: uuid.UUID, db: AsyncSession = Depends(get_db)) -> list[dict]:
+    """Updates left for this call by people who'll miss it (newest last)."""
+    from app.database.models import VoiceClone, VoiceUpdate
+    capture = await _capturing(db, request_id)
+    rows = (await db.execute(
+        select(VoiceUpdate, User.name, User.email).join(User, User.id == VoiceUpdate.user_id)
+        .join(VoiceClone, VoiceClone.user_id == VoiceUpdate.user_id)
+        .where(VoiceUpdate.meeting_code == capture.meeting_code, VoiceUpdate.delivered_at.is_(None),
+               VoiceUpdate.expires_at > func.now())
+        .order_by(VoiceUpdate.created_at).limit(10))).all()
+    return [{"id": str(row.id), "name": (name or email.split("@")[0]).strip(), "text": row.text} for row, name, email in rows]
+
+
+@router.post("/capture-requests/{request_id}/voice-updates/{update_id}/audio", dependencies=[Depends(require_bot)])
+async def voice_update_audio(request_id: uuid.UUID, update_id: uuid.UUID, db: AsyncSession = Depends(get_db)) -> Response:
+    """The update spoken in its author's cloned voice (Gnani Timbre VC)."""
+    from app.database.models import VoiceClone, VoiceUpdate
+    from app.services import voice_clone_service
+    capture = await _capturing(db, request_id)
+    row = await db.get(VoiceUpdate, update_id)
+    if row is None or row.meeting_code != capture.meeting_code or row.delivered_at is not None:
+        raise HTTPException(status_code=404, detail="Update not found")
+    clone = await db.get(VoiceClone, row.user_id)
+    if clone is None:
+        raise HTTPException(status_code=404, detail="Its author deleted their voice")
+    usage_ledger.attribute(user_id=row.user_id, meeting_id=capture.meeting_id)
+    try:
+        audio = await voice_clone_service.speak(row.text, clone)
+    except Exception as error:
+        raise HTTPException(status_code=502, detail="Voice clone speech failed") from error
+    return Response(content=audio, media_type="audio/mpeg")
+
+
+@router.post("/capture-requests/{request_id}/voice-updates/{update_id}/delivered", dependencies=[Depends(require_bot)])
+async def voice_update_delivered(request_id: uuid.UUID, update_id: uuid.UUID, db: AsyncSession = Depends(get_db)) -> dict:
+    from app.database.models import VoiceUpdate
+    capture = await _capturing(db, request_id)
+    row = await db.get(VoiceUpdate, update_id)
+    if row is None or row.meeting_code != capture.meeting_code:
+        raise HTTPException(status_code=404, detail="Update not found")
+    row.delivered_at = row.delivered_at or datetime.datetime.now(datetime.UTC)
+    await db.commit()
+    return {"delivered": True}

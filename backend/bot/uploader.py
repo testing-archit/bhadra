@@ -278,3 +278,34 @@ def board_command(capture_request_id: str, command_id: str, command: str) -> dic
     except Exception:
         log.warning('Could not apply live board command')
         return {'message': "I couldn't update the board. Please try again."}
+
+
+def voice_updates(capture_request_id: str) -> list[dict]:
+    """Updates teammates left for this call ([] if none or unreachable)."""
+    try:
+        response = httpx.get(f"{config.BACKEND_URL}/api/bot/capture-requests/{capture_request_id}/voice-updates",
+                             headers=_bot_headers(), timeout=10)
+        response.raise_for_status()
+        return response.json()
+    except Exception as error:
+        log.warning("Voice updates unavailable: %s", error)
+        return []
+
+
+def voice_update_audio(capture_request_id: str, update_id: str) -> bytes | None:
+    try:
+        response = httpx.post(f"{config.BACKEND_URL}/api/bot/capture-requests/{capture_request_id}/voice-updates/{update_id}/audio",
+                              headers=_bot_headers(), timeout=60)
+        response.raise_for_status()
+        return response.content or None
+    except Exception as error:
+        log.warning("Voice update audio failed: %s", error)
+        return None
+
+
+def voice_update_delivered(capture_request_id: str, update_id: str) -> None:
+    try:
+        httpx.post(f"{config.BACKEND_URL}/api/bot/capture-requests/{capture_request_id}/voice-updates/{update_id}/delivered",
+                   headers=_bot_headers(), timeout=10).raise_for_status()
+    except Exception as error:
+        log.warning("Could not mark the voice update played: %s", error)

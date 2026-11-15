@@ -164,3 +164,28 @@ async def test_spoken_pause_mutes_the_recording_and_resume_unmutes(tmp_path, mon
     assert await session.handle_control(None, meeting_session.Command('', 'resume'))
     assert not session.captions.paused and calls[-1] == ('set-sink-mute', session.sink, '0')
     assert sent[-1].startswith('Recording again')
+
+
+async def test_voice_updates_are_announced_as_ai_then_played_and_marked(tmp_path, monkeypatch):
+    monkeypatch.setattr(meeting_session.config, 'SESSIONS_DIR', tmp_path)
+    monkeypatch.setattr(meeting_session.config, 'SPEAK_IN_CALL', True)
+    session = meeting_session.MeetingSession({'capture_request_id': 'cap'})
+    session.USES_GOOGLE_LOGIN = True
+    order = []
+    monkeypatch.setattr(meeting_session.uploader, 'voice_updates', lambda cid: [{'id': 'u1', 'name': 'Vedant', 'text': 'KYC is blocked.'}])
+    monkeypatch.setattr(meeting_session.uploader, 'voice_update_audio', lambda cid, uid: b'ID3clone')
+    monkeypatch.setattr(meeting_session.uploader, 'voice_update_delivered', lambda cid, uid: order.append(('delivered', uid)))
+    async def speak(page, text):
+        order.append(('speak', text))
+    async def play(page, audio, max_seconds=46):
+        order.append(('play', audio))
+    async def send(page, message):
+        order.append(('chat', message))
+        return True
+    session.speak, session.play_browser_audio, session.send_agent_message = speak, play, send
+    assert await session.handle_control(None, meeting_session.Command('', 'play updates'))
+    await session._voice_update_task
+    assert order[0] == ('speak', "Here's an update from Vedant, read in an AI copy of their voice.")
+    assert order[1] == ('play', b'ID3clone')
+    assert order[2][0] == 'chat' and 'AI copy' in order[2][1] and 'KYC is blocked.' in order[2][1]
+    assert order[3] == ('delivered', 'u1')

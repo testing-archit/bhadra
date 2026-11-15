@@ -1,6 +1,7 @@
 """Built on Gnani: each model can be tried live, voice cloning needs consent
 and stays with its owner, and Evon answers Live when it's configured."""
 import base64
+import datetime
 from unittest.mock import AsyncMock, patch
 
 from app.config import settings
@@ -92,3 +93,38 @@ async def test_live_answers_with_evon_when_configured_and_falls_back_to_gemini(c
     finally:
         for item in common:
             item.stop()
+
+
+async def test_bot_gets_only_this_calls_voice_updates_in_the_authors_voice(client, member_user):
+    import uuid
+    from app.database.db import async_session
+    from app.database.models import CaptureRequest
+    with patch.object(voice_clone_service, "create_embedding", new=AsyncMock(return_value=EMBEDDING)):
+        await client.post("/api/gnani/voice-clone", headers=auth_headers(member_user),
+                          files={"audio": ("me.webm", b"x" * 100, "audio/webm")}, data={"consent": "true"})
+    mine = await client.post("/api/gnani/voice-updates", headers=auth_headers(member_user),
+                             json={"meeting_url": "https://meet.google.com/vcu-abcd-efg", "text": "Shipped payments."})
+    await client.post("/api/gnani/voice-updates", headers=auth_headers(member_user),
+                      json={"meeting_url": "https://meet.google.com/oth-abcd-efg", "text": "Other call."})
+    async with async_session() as db:
+        capture = CaptureRequest(id=uuid.uuid4(), user_id=member_user.id, meeting_url="https://meet.google.com/vcu-abcd-efg",
+                                 meeting_code="vcu-abcd-efg", platform="google_meet", status="capturing",
+                                 consent_acknowledged_at=datetime.datetime.now(datetime.UTC))
+        db.add(capture)
+        await db.commit()
+    with patch.object(settings, "bot_api_secret", "test-bot-secret"):
+        headers = {"Authorization": "Bot test-bot-secret"}
+        listed = await client.get(f"/api/bot/capture-requests/{capture.id}/voice-updates", headers=headers)
+        assert [row["text"] for row in listed.json()] == ["Shipped payments."]
+        update_id = listed.json()[0]["id"]
+        with patch.object(voice_clone_service, "speak", new=AsyncMock(return_value=b"ID3clone")):
+            audio = await client.post(f"/api/bot/capture-requests/{capture.id}/voice-updates/{update_id}/audio", headers=headers)
+        assert audio.content == b"ID3clone"
+        await client.post(f"/api/bot/capture-requests/{capture.id}/voice-updates/{update_id}/delivered", headers=headers)
+        again = await client.get(f"/api/bot/capture-requests/{capture.id}/voice-updates", headers=headers)
+        assert again.json() == []
+    assert mine.status_code == 200
+    async with async_session() as db:
+        await db.delete(await db.get(CaptureRequest, capture.id))
+        await db.commit()
+    await client.delete("/api/gnani/voice-clone", headers=auth_headers(member_user))
