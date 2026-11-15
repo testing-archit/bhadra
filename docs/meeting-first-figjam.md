@@ -44,3 +44,9 @@ Provision it to the notetaker's private state volume as `/data/figma-auth.json` 
 - [Figma: create a meeting board](https://help.figma.com/hc/en-us/articles/14942424871575-Create-your-first-meeting-board-in-FigJam): native new-file URLs.
 - [Figma: use FigJam with a screen reader](https://help.figma.com/hc/en-us/articles/14477051168791-Use-FigJam-with-a-screen-reader): quick create, text editing, accessibility and keyboard controls.
 - [Figma: remote MCP installation](https://developers.figma.com/docs/figma-mcp-server/remote-server-installation/): approved clients and authorization. Ordinary Figma OAuth credentials do not automatically authorize a custom Wilco MCP client. No approved-client impersonation or private API bypass is used.
+
+## Production handoff
+
+[PR #10](https://github.com/testing-archit/bhadra/pull/10) merged at `c197f70b872ddd95c86f7bdda14dc30cce68caf8`. [Deployment 43691232830](https://github.com/testing-archit/bhadra/actions/runs/43691232830) passed: frontend, backend and notetaker restarted; image/runtime verification and the existing synthetic model/voice canaries passed. Public health is 200; the new browser-action route rejects missing bot authentication with 401. CI ran 534 backend tests; local frontend build and desktop/mobile walkthrough passed.
+
+The existing internal-board canary completed in 1,661.85 ms and synthetic Gnani voice pipeline in 4,214.25 ms. Neither measures FigJam or actual call latency. Post-release [diagnostics 43691592568](https://github.com/testing-archit/bhadra/actions/runs/43691592568) confirm Figma authentication is still absent. The local sign-in helper remains open awaiting the account holder; no Figma session has been saved, uploaded or committed. Actual native drawing/presentation acceptance remains pending.
