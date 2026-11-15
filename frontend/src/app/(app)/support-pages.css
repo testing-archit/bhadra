@@ -27,8 +27,8 @@
   --border: var(--support-line);
   --input: #496082;
   --ring: var(--support-cyan);
-  --marigold: var(--support-orange);
-  --marigold-foreground: var(--support-ink);
+  --signal: var(--support-orange);
+  --signal-foreground: var(--support-ink);
   --tint-lilac: #342d59;
   --tint-lilac-foreground: #e4d8ff;
   --tint-sky: #173a53;

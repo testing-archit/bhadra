@@ -46,6 +46,9 @@ export function HomeFollowUps({
     .filter((task) => task.status !== "done")
     .sort(compareByUrgency);
   const completed = mine.filter((task) => task.status === "done").length;
+  const waitingRows=(tasks??[]).filter(task=>!isMyTask(task,user)&&task.owner?.trim()&&task.status!=="done");
+  const waitingNames=[...new Set(waitingRows.map(task=>task.owner!))].slice(0,3);
+  const shown=mine.filter(task=>task.status!=="done"||task.id===lastDone?.id).sort(compareByUrgency).slice(0,4);
   const waiting = (tasks ?? []).filter(
     (task) => task.delegated && task.status !== "done",
   ).length;
@@ -87,14 +90,15 @@ export function HomeFollowUps({
 
   return (
     <section
-      className="home-work-panel"
+      className="work-sheet home-follow-ups"
       aria-labelledby="home-follow-ups-heading"
       aria-busy={busy || loading}
     >
       <header className="home-panel-heading">
-        <h2 id="home-follow-ups-heading">Move a follow-up forward</h2>
+        <h2 id="home-follow-ups-heading">Yours to move.</h2>
+        <div className="waiting-initials" aria-label="Waiting on teammates">{waitingNames.map(name=><Link key={name} href="/tasks?scope=waiting" title={name} aria-label={`Waiting on ${name}`}>{name.split(/\s+/).map(part=>part[0]).join("").slice(0,2)}</Link>)}</div>
         <Link href="/tasks">
-          View all
+          All
           <ChevronRight aria-hidden="true" />
         </Link>
       </header>
@@ -109,31 +113,10 @@ export function HomeFollowUps({
         </div>
       ) : (
         <>
-          {mine.length > 0 && (
-            <div className="home-task-progress">
-              <div>
-                <span>
-                  {completed} of {mine.length} complete
-                </span>
-                <span>{open.length} open</span>
-              </div>
-              <span className="home-progress-track" aria-hidden="true">
-                <span style={{ width: `${(completed / mine.length) * 100}%` }} />
-              </span>
-              <progress
-                className="sr-only"
-                value={completed}
-                max={mine.length}
-                aria-label="Completed follow-ups you own"
-                aria-valuetext={`${completed} of ${mine.length} complete`}
-              />
-              <small>Across the follow-ups you own</small>
-            </div>
-          )}
-          {open.length ? (
+          {shown.length ? (
             <ul className="home-follow-up-list">
-              {open.slice(0, 4).map((task) => (
-                <li key={task.id}>
+              {shown.map((task) => (
+                <li key={task.id} data-complete={task.status==="done"}>
                   <Button
                     ref={(node) => {
                       if (node) completionRefs.current.set(task.id, node);
@@ -141,11 +124,12 @@ export function HomeFollowUps({
                     }}
                     variant="ghost"
                     size="icon-lg"
-                    disabled={busy}
+                    disabled={busy||task.status==="done"}
                     onClick={() => void complete(task)}
-                    aria-label={`Complete ${task.description}`}
+                    aria-label={`${task.status==="done"?"Completed":"Complete"} ${task.description}`}
+                    aria-pressed={task.status==="done"}
                   >
-                    <span className="task-completion">
+                    <span className={`task-completion ${task.status==="done"?"is-complete":""}`}>
                       <Check aria-hidden="true" />
                     </span>
                   </Button>
@@ -180,14 +164,14 @@ export function HomeFollowUps({
           )}
           {open.length > 4 && (
             <Link href="/tasks" className="home-more-tasks">
-              See {open.length - 4} more follow-ups
+              {open.length - 4} more
               <ChevronRight aria-hidden="true" />
             </Link>
           )}
           {lastDone && (
             <div className="home-task-feedback" role="status">
               <Check aria-hidden="true" />
-              <span>Follow-up completed.</span>
+              <span>Done.</span>
               <Button
                 ref={undoRef}
                 variant="ghost"
@@ -200,12 +184,7 @@ export function HomeFollowUps({
               </Button>
             </div>
           )}
-          {waiting > 0 && (
-            <Link className="home-waiting-link" href="/tasks?scope=waiting">
-              Waiting on others <span>{waiting} open</span>
-              <ChevronRight aria-hidden="true" />
-            </Link>
-          )}
+
         </>
       )}
       {error && (

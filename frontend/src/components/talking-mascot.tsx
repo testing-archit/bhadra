@@ -45,10 +45,10 @@ export function TalkingMascot({
           d="M126 279v26h22v-26m32 0v26h22v-26"
           fill="var(--mascot-paper)"
         />
-        <path d="M126 289h22v8h-22m54-8h22v8h-22" fill="var(--marigold)" />
+        <path d="M126 289h22v8h-22m54-8h22v8h-22" fill="var(--signal)" />
         <path
           d="M139 301c-29-10-60 7-66 31h77v-16c0-6-5-12-11-15Zm54 0c-29-10-60 7-66 31h98v-11c-1-12-13-19-32-20Z"
-          fill="var(--marigold)"
+          fill="var(--signal)"
         />
         <path
           d="m97 308 10 11m-1-16 10 12m35-6 10 11m-2-17 10 12"
@@ -66,7 +66,7 @@ export function TalkingMascot({
           <circle cx="229" cy="80" r="4" fill="none" />
           <circle cx="245" cy="80" r="4" fill="none" />
           <circle cx="261" cy="80" r="4" fill="none" />
-          <path d="M157 66q1-32 20-29 17 1 18 31Z" fill="var(--marigold)" />
+          <path d="M157 66q1-32 20-29 17 1 18 31Z" fill="var(--signal)" />
           <path d="m138 64 58 4" />
           <g className="mascot-eyes">
             <ellipse

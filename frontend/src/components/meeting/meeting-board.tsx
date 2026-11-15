@@ -21,7 +21,7 @@ const KINDS: Record<BoardNodeKind, { label: string; accent: string }> = {
   decision: { label: "Decision", accent: "border-primary" },
   task: { label: "Next step", accent: "border-success" },
   risk: { label: "Risk", accent: "border-warning" },
-  question: { label: "Question", accent: "border-marigold" },
+  question: { label: "Question", accent: "border-signal" },
   idea: { label: "Idea", accent: "border-primary/60" },
   note: { label: "Note", accent: "border-border" },
   timeline: { label: "Timeline", accent: "border-success/70" },

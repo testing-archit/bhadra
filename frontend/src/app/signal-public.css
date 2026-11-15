@@ -23,8 +23,8 @@
   --border: var(--public-line);
   --input: var(--public-line);
   --ring: var(--public-cyan);
-  --marigold: var(--public-orange);
-  --marigold-foreground: var(--public-ink);
+  --signal: var(--public-orange);
+  --signal-foreground: var(--public-ink);
   color: var(--foreground);
   background: var(--background);
 }

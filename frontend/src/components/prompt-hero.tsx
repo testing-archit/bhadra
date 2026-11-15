@@ -96,7 +96,7 @@ export function PromptHero({ firstName, onCapture }: { firstName?: string; onCap
       <div className="mt-4 flex max-w-2xl flex-wrap justify-center gap-2">
         <Link
           href="/live"
-          className="inline-flex items-center gap-1.5 rounded-full bg-marigold px-3 py-1.5 text-xs font-semibold text-marigold-foreground transition-colors hover:bg-marigold/90"
+          className="inline-flex items-center gap-1.5 rounded-full bg-signal px-3 py-1.5 text-xs font-semibold text-signal-foreground transition-colors hover:bg-signal/90"
         >
           <AudioLines className="size-3" /> Talk with Wilco Live
         </Link>
@@ -107,7 +107,7 @@ export function PromptHero({ firstName, onCapture }: { firstName?: string; onCap
             onClick={() => ask(example)}
             className="glass inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
           >
-            <Sparkles className="size-3 text-marigold" /> {example}
+            <Sparkles className="size-3 text-signal" /> {example}
           </button>
         ))}
       </div>

@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
+import { Landing } from "@/components/landing";
 
 export default function RootPage() {
   const { user, loading } = useAuth();
@@ -10,8 +11,8 @@ export default function RootPage() {
 
   useEffect(() => {
     if (loading) return;
-    router.replace(user ? "/dashboard" : "/login");
+    if(user) router.replace("/dashboard");
   }, [loading, user, router]);
 
-  return null;
+  return loading||user?null:<Landing/>;
 }

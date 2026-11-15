@@ -34,6 +34,7 @@ export function JiraTaskButton({
   issueError,
   jira,
   onSent,
+  compact=false,
 }: {
   taskId: string;
   issueKey?: string | null;
@@ -41,6 +42,7 @@ export function JiraTaskButton({
   issueError?: string | null;
   jira: JiraStatus | null;
   onSent: (key: string, status: string | null) => void;
+  compact?:boolean;
 }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -94,7 +96,7 @@ export function JiraTaskButton({
     <span className="inline-flex items-center gap-1.5">
       <Button variant="ghost" size="xs" disabled={busy} onClick={() => void send()} title="Create a Jira issue for this task">
         <Send />
-        {busy ? "Sending…" : "Send to Jira"}
+        {busy ? "Sending…" : compact?"Jira":"Send to Jira"}
       </Button>
       {error && <span className="text-[11px] text-destructive">{error}</span>}
     </span>

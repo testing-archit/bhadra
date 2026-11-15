@@ -188,6 +188,10 @@ Codex owns automatic board presentation and the camera-tile fallback in `/privat
 
 Meet board implementation verified: 545 backend tests pass; Chromium outgoing-camera pixel checks confirm live canvas updates and mascot restoration; native frame/login suppression check passes. Local two-peer ICE negotiation did not complete, so remote Meet reception remains an acceptance check. All board edit requests now request display; sharing failures use the existing bot video track, and camera fallback stays live across updates. Native FigJam still requires its missing one-time sign-in. See `docs/meet-visible-whiteboard.md`.
 
+
+## Claude engagement pass and software-company demo, 15 November 2026
+
+The user requests exact implementation of the Claude canvas and section 3b of docs/design/redesign-spec.md, plus rich synthetic software-team data published to the demo. Codex owns Landing, Home, Meeting, Tasks, Memory, shared tokens/shell where required by that spec, and the demo seed/validation in /private/tmp/bhadra-engagement on codex/engagement-software-demo from d184828. Preserve newer bot latency, native FigJam, camera and delivery work. Keep the dirty shared checkout untouched apart from appended coordination. Canvas access is currently blocked by Cloudflare; local source/artboard path has been requested while independent spec/data work proceeds. No canvas click-through or exact visual match is claimed until the reference can be inspected.
 ## Voice workflow scope, 15 November 2026
 
 Codex is implementing the requested voice-to-Jira, spoken stand-up/brief, running call translations, and decision quote playback in `/private/tmp/wilco-voice-workflows`, branch `codex/voice-workflows-20261115`, from main `d184828`. Reuse existing Jira sync, Timbre, transcript evidence and calendar briefs. Shared-call commands must not impersonate an authenticated user. Provider and external writes are mocked during verification; no deployment is included in this request.
@@ -204,6 +208,12 @@ Pre-release correction confirmed and fixed unintended Jira dispatch from an inte
 
 PR #15 merged at `694f15285010a41b99566b280d921db911c9601d`; workflow `43709991315` succeeded. All five voice-workflow changes plus the two pre-release corrections are live. CI passed 560 backend tests and applicable frontend/extension/FigJam checks; the production build, rollback snapshots, idle-aware service restarts, image identity/runtime checks, authenticated stand-up/decision-source reads, real synthetic translation and Prisma/Gemini/Timbre canary passed. Public health/Home/Delivery/Live return 200; invalid credentials on the new stand-up endpoint return 401. Synthetic records were removed. No actual Jira ticket or real meeting was created by verification. Real in-call quality acceptance remains with the user; scope and evidence are in `docs/voice-workflows.md`.
 
+
+## Engagement final release integration, 15 November 2026
+
+The user authorizes final deployment. The temporary engagement worktree was no longer present, so Codex recovered its pushed commits into /Users/vedantmoghe/Downloads/bhadra-engagement-release. Merge main 0412ada deliberately: preserve Home spoken stand-up/ready briefs and Listen playback generation guards alongside compact debrief controls. Shared unfinished files remain untouched. CI and production verification must complete before claiming deployment.
+
+Release build caught a Next/Turbopack Google-font query failure for Doto. Bundle the same upstream Google Fonts Doto variable font with its OFL license through next/font/local, preserving the design and avoiding the failing remote font transformation. No runtime font CDN dependency is introduced.
 ## README pitch release scope
 
 Codex is preparing a documentation-only product pitch in `/Users/vedantmoghe/Downloads/bhadra-readme-release` on `codex/readme-release-20261115`. The earlier temporary worktree is no longer available. Scope: README, preserved development guide, source/capture notes and three unedited screenshots of UI commit `eaa6f21`. The demo video link is pending; Gnani speech and separate music credits are explicit. Shared application changes remain untouched.

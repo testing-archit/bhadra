@@ -1,52 +1,66 @@
 "use client";
 
 import { StandupCatchup, UpcomingVoiceBriefs } from "@/components/standup-catchup";
-
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import {
-  ArrowRight,
-  FileText,
-  Loader2,
-  MessageSquareText,
-  Mic,
-  Upload,
-  Video,
-} from "lucide-react";
+import { ArrowRight, Plus } from "lucide-react";
 import {
   api,
   type MeetingDetail,
   type MeetingSummary,
   type TaskListItem,
   type TaskUpdateResponse,
-  type VoiceProfileStatus,
+  type TranscriptPage,
 } from "@/lib/api";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Skeleton } from "@/components/ui/skeleton";
+import { useAuth } from "@/lib/auth-context";
+import { dueBucket, isMyTask } from "@/lib/tasks";
+import { type DebriefMark, formatMoment } from "@/lib/debrief-strip";
+import { DebriefStrip, meetingMarks } from "@/components/meeting/debrief-strip";
 import { HomeFollowUps } from "@/components/home-follow-ups";
-import { DemoTour } from "@/components/demo-tour";
+import { HomeAsk } from "@/components/home-ask";
 import { MeetingAgenda } from "@/components/meeting-agenda";
-import { MeetingPeople } from "@/components/meeting-people";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { isCaptureLive, useShell } from "@/components/shell/shell-context";
-import "../../hackathon-home.css";
 
-const questionHref = (question: string) =>
-  `/memory?q=${encodeURIComponent(question)}`;
+type MeetingContext = { detail: MeetingDetail; transcript: TranscriptPage };
+const left = (n: number) =>
+  n === 0
+    ? "All clear."
+    : `${["", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine"][n] ?? n} ${n === 1 ? "thing" : "things"} left.`;
+const day = (value: string) =>
+  new Date(value).toLocaleDateString("en-IN", {
+    day: "numeric",
+    month: "short",
+    timeZone: "Asia/Kolkata",
+  });
+function CountLink({
+  count,
+  label,
+  href,
+}: {
+  count: number | null;
+  label: string;
+  href: string;
+}) {
+  return (
+    <Link href={href} className="count-link">
+      <strong>{count === null ? "—" : String(count).padStart(2, "0")}</strong>
+      <span>{label}</span>
+    </Link>
+  );
+}
 
 export default function HomePage() {
-  const router = useRouter();
+  const { user } = useAuth();
   const { captures, openNotetaker } = useShell();
   const [tasks, setTasks] = useState<TaskListItem[] | null>(null);
   const [meetings, setMeetings] = useState<MeetingSummary[] | null>(null);
-  const [latest, setLatest] = useState<MeetingDetail | null>(null);
-  const [unknownSpeakers, setUnknownSpeakers] = useState<number | null>(null);
-  const [voice, setVoice] = useState<VoiceProfileStatus | null>(null);
-  const [question, setQuestion] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
+  const [context, setContext] = useState<Record<string, MeetingContext>>({});
+  const [loading, setLoading] = useState(true),
+    [error, setError] = useState<string | null>(null);
+  const [moment, setMoment] = useState<DebriefMark | null>(null);
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -57,323 +71,261 @@ export default function HomePage() {
     if (taskResult.status === "fulfilled") setTasks(taskResult.value);
     if (meetingResult.status === "fulfilled") {
       setMeetings(meetingResult.value);
-      const first = meetingResult.value.find(
-        (row) =>
-          row.processing_state !== "processing" &&
-          row.processing_state !== "attention",
+      setMoment(null);
+      const selected = meetingResult.value
+        .filter(
+          (row) =>
+            !["processing", "attention"].includes(row.processing_state ?? ""),
+        )
+        .slice(0, 3);
+      const results = await Promise.allSettled(
+        selected.map(async (row) => {
+          const [detail, transcript] = await Promise.all([
+            api.getMeeting(row.id),
+            api.getTranscript(row.id, { limit: 500 }),
+          ]);
+          return { id: row.id, detail, transcript };
+        }),
       );
-      setLatest(null);
-      setUnknownSpeakers(null);
-      if (first) {
-        void api
-          .getMeeting(first.id)
-          .then(setLatest)
-          .catch(() => undefined);
-        void api
-          .getTranscript(first.id, { limit: 1 })
-          .then((page) =>
-            setUnknownSpeakers(
-              page.speakers.filter(
-                (speaker) => !speaker.named && speaker.segment_count > 0,
-              ).length,
-            ),
-          )
-          .catch(() => undefined);
-      }
+      const next: Record<string, MeetingContext> = {};
+      for (const result of results)
+        if (result.status === "fulfilled") next[result.value.id] = result.value;
+      setContext(next);
     }
     if (taskResult.status === "rejected" || meetingResult.status === "rejected")
-      setError("Some of your work couldn’t load.");
+      setError("Some work could not load.");
     setLoading(false);
   }, []);
   useEffect(() => {
     void load();
-    void api
-      .getVoiceProfile()
-      .then(setVoice)
-      .catch(() => undefined);
   }, [load]);
-
-  const recent =
-    meetings?.find((meeting) => meeting.id === latest?.id) ??
-    meetings?.find(
-      (meeting) =>
-        meeting.processing_state !== "processing" &&
-        meeting.processing_state !== "attention",
-    );
-  const reviewCount =
-    latest && unknownSpeakers !== null
-      ? latest.tasks.filter((task) => !task.verified_at).length +
-        latest.decisions.filter((decision) => !decision.verified_at).length +
-        unknownSpeakers
-      : null;
-  const reviewHref = recent
-    ? `/meetings/${recent.id}${reviewCount ? "?review=1" : ""}`
+  const recent = (meetings ?? [])
+    .filter(
+      (row) =>
+        !["processing", "attention"].includes(row.processing_state ?? ""),
+    )
+    .slice(0, 3);
+  const latest = recent[0],
+    current = latest && context[latest.id];
+  const mine =
+    tasks?.filter((task) => isMyTask(task, user) && task.status !== "done") ??
+    [];
+  const due = mine.filter((task) => dueBucket(task) === "today").length;
+  const review = current
+    ? current.detail.tasks.filter((row) => !row.verified_at).length +
+      current.detail.decisions.filter((row) => !row.verified_at).length +
+      current.transcript.speakers.filter(
+        (row) => !row.named && row.segment_count > 0,
+      ).length
     : null;
-  const live = captures.filter(
-    (item) => isCaptureLive(item) && item.subscribed !== false,
+  const selected =
+    moment &&
+    current?.transcript.segments.find((row) => row.id === moment.segmentId);
+  const hour = Number(
+    new Intl.DateTimeFormat("en-GB", {
+      hour: "numeric",
+      hourCycle: "h23",
+      timeZone: "Asia/Kolkata",
+    }).format(new Date()),
   );
-  function updateTask(updated: TaskUpdateResponse) {
+  const greeting =
+    hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
+  function updated(value: TaskUpdateResponse) {
     setTasks(
-      (current) =>
-        current?.map((task) =>
-          task.id === updated.id ? { ...task, ...updated } : task,
+      (rows) =>
+        rows?.map((row) =>
+          row.id === value.id ? { ...row, ...value } : row,
         ) ?? null,
     );
+    window.dispatchEvent(new Event("wilco:tasks-changed"));
   }
-
   return (
-    <div className="meeting-dashboard home-return-workspace signal-room">
-      <h1 className="sr-only">Meeting signal room</h1>
-      <DemoTour />
+    <div className="engagement-home">
       {error && (
-        <div className="dashboard-error" role="alert">
-          <p>{error}</p>
-          <button type="button" disabled={loading} onClick={() => void load()}>
-            Try again
-          </button>
-        </div>
+        <p role="alert" className="engagement-error">
+          {error}
+          <button onClick={() => void load()}>Retry</button>
+        </p>
       )}
-      <section className="signal-hero" aria-labelledby="signal-hero-title">
-        <div className="signal-hero-copy">
-          <span className="signal-kicker"><span aria-hidden="true">//</span> Your team’s meeting intelligence</span>
-          <h2 id="signal-hero-title">Turn meetings<br />into <em>shipped work.</em></h2>
-          <p>Capture the conversation. Keep the decisions, context, and follow-ups your software team needs to move.</p>
-          <div className="signal-hero-actions">
-            <Button className="signal-primary-action" onClick={() => openNotetaker()}>
-              <Video data-icon="inline-start" aria-hidden="true" />
-              Join or start a meeting
-              <ArrowRight aria-hidden="true" />
-            </Button>
-            {reviewHref && (
-              <Link href={reviewHref} className="signal-secondary-action">
-                <FileText aria-hidden="true" />
-                {reviewCount ? "Review latest notes" : "Open latest notes"}
-              </Link>
-            )}
+      <section className="home-band ink-panel">
+        <div className="home-band-copy">
+          <h1>
+            {greeting}, {user?.name?.split(" ")[0] ?? "there"}.
+            <span>
+              {tasks === null ? "Your next move." : left(mine.length)}
+            </span>
+          </h1>
+          <div className="home-counts">
+            <CountLink
+              count={tasks === null ? null : mine.length}
+              label="Yours"
+              href="/tasks?scope=mine"
+            />
+            <CountLink
+              count={tasks === null ? null : due}
+              label="Due today"
+              href="/tasks?due=today"
+            />
+            <CountLink
+              count={review}
+              label="To confirm"
+              href={latest ? `/meetings/${latest.id}?review=1` : "/meetings"}
+            />
           </div>
-          <div className="signal-hero-foot">
-            {loading && meetings === null ? (
-              <Skeleton className="h-9 w-64 max-w-full" />
-            ) : recent ? (
-              <Link href={reviewHref ?? `/meetings/${recent.id}`} className="signal-latest-link">
-                <span className="signal-latest-icon"><FileText aria-hidden="true" /></span>
-                <span><small>Latest meeting</small><strong>{recent.title}</strong></span>
-                <span className="signal-latest-review">{reviewCount === null ? "Open notes" : reviewCount > 0 ? `${reviewCount} to confirm` : "Confirmed"}</span>
-                <ArrowRight aria-hidden="true" />
+        </div>
+        {latest ? (
+          <div className="home-latest">
+            <header>
+              <h2>{latest.title}</h2>
+              <span>
+                {day(latest.date)} · {latest.duration_minutes} min
+              </span>
+            </header>
+            {current && (
+              <DebriefStrip
+                segments={current.transcript.segments}
+                marks={meetingMarks(
+                  current.detail,
+                  current.transcript.segments,
+                )}
+                duration_ms={latest.duration_minutes * 60000}
+                variant="ink"
+                onMarkClick={setMoment}
+                selectedId={moment?.id}
+              />
+            )}
+            <div className="home-latest-bottom">
+              <div aria-live="polite">
+                {selected ? (
+                  <>
+                    <time>{formatMoment(moment!.at_ms)}</time>
+                    <p>“{selected.text}”</p>
+                  </>
+                ) : current ? (
+                  <span>
+                    {current.detail.decisions.length} decisions ·{" "}
+                    {current.detail.tasks.length} tasks
+                  </span>
+                ) : (
+                  <span>Loading moments…</span>
+                )}
+              </div>
+              <Link
+                href={`/meetings/${latest.id}?review=1`}
+                className="signal-link"
+              >
+                Review
+                <ArrowRight className="size-4" />
               </Link>
+            </div>
+          </div>
+        ) : (
+          <div className="home-latest home-first-meeting">
+            {loading ? (
+              <Skeleton className="h-32" />
             ) : (
-              <span className="signal-hero-empty">{meetings === null ? "Meeting notes unavailable right now." : "Your first meeting will appear here."}</span>
+              <>
+                <img
+                  src="/brand/wilco-mascot-v1.png"
+                  alt=""
+                  width={92}
+                  height={92}
+                />
+                <h2>Bring Wilco to your next meeting.</h2>
+                <Button variant="signal" onClick={() => openNotetaker()}>
+                  <Plus />
+                  Bring Wilco
+                </Button>
+              </>
             )}
           </div>
-        </div>
-        <div className="signal-art" aria-hidden="true">
-          <div className="signal-art-grid" />
-          <svg className="signal-wave" viewBox="0 0 780 480" preserveAspectRatio="xMidYMid meet">
-            <defs>
-              <linearGradient id="signal-wave-a" x1="0" y1="1" x2="1" y2="0"><stop offset="0"/><stop offset=".48"/><stop offset="1"/></linearGradient>
-              <linearGradient id="signal-wave-b" x1="0" y1="1" x2="1" y2="0"><stop offset="0"/><stop offset=".65"/><stop offset="1"/></linearGradient>
-              <filter id="signal-glow"><feGaussianBlur stdDeviation="13" /></filter>
-            </defs>
-            <path className="signal-wave-glow" d="M0 333 C65 334 80 276 133 306 S225 367 276 270 S365 236 400 280 S473 360 522 191 S607 278 651 178 S718 175 780 158" stroke="url(#signal-wave-a)" filter="url(#signal-glow)" />
-            <path className="signal-wave-fill" d="M0 333 C65 334 80 276 133 306 S225 367 276 270 S365 236 400 280 S473 360 522 191 S607 278 651 178 S718 175 780 158 L780 435 L0 435 Z" fill="url(#signal-wave-b)" />
-            <path className="signal-wave-main" d="M0 333 C65 334 80 276 133 306 S225 367 276 270 S365 236 400 280 S473 360 522 191 S607 278 651 178 S718 175 780 158" stroke="url(#signal-wave-a)" />
-            <path className="signal-wave-secondary" d="M0 360 C90 340 133 359 211 340 S333 300 402 320 S514 326 581 247 S690 246 780 223" />
-            <g className="signal-node"><circle cx="276" cy="270" r="7"/><circle cx="522" cy="191" r="7"/><circle cx="651" cy="178" r="7"/></g>
-          </svg>
-          <span className="signal-stage signal-stage-one"><i />Discussion</span>
-          <span className="signal-stage signal-stage-two"><i />Decision</span>
-          <span className="signal-stage signal-stage-three"><i />Action</span>
-          <span className="signal-art-caption">From discussion to decisions to action</span>
-        </div>
+        )}
       </section>
-
-      {live.length > 0 && (
-        <section
-          className="dashboard-live home-live-strip"
-          aria-label="Ongoing recordings"
-        >
-          {live.map((capture) => (
-            <Link
-              key={capture.id}
-              href={
-                capture.meeting_id
-                  ? `/meetings/${capture.meeting_id}`
-                  : "/meetings"
-              }
-            >
-              <span className="recording-dot" aria-hidden="true" />
-              <strong>{capture.title || capture.meeting_code}</strong>
-              <small>{capture.status_label}</small>
-              <ArrowRight aria-hidden="true" />
-            </Link>
-          ))}
-        </section>
-      )}
-
-      <div className="signal-section-heading"><span>What needs your attention</span><Link href="/tasks">Open all tasks <ArrowRight aria-hidden="true" /></Link></div>
-      <div className="home-action-grid">
+      {captures
+        .filter((row) => isCaptureLive(row) && row.subscribed !== false)
+        .map((capture) => (
+          <Link
+            key={capture.id}
+            href={`/meetings/live/${capture.id}`}
+            className="home-live-notice"
+          >
+            <span className="recording-dot" />
+            {capture.title || capture.meeting_code}
+            <Badge variant="peach">{capture.status_label}</Badge>
+            <ArrowRight className="size-4" />
+          </Link>
+        ))}
+      <div className="home-work-grid">
         <HomeFollowUps
           tasks={tasks}
           loading={loading}
-          onUpdated={updateTask}
+          onUpdated={updated}
           onRetry={() => void load()}
         />
-        <div className="home-support-column">
+        <div className="home-right-column">
           <MeetingAgenda compact />
-          <section
-            className="home-work-panel home-memory-panel"
-            aria-labelledby="home-memory-heading"
-          >
-            <header className="home-panel-heading">
-              <h2 id="home-memory-heading">
-                <MessageSquareText aria-hidden="true" />
-                Ask your meeting memory
-              </h2>
-            </header>
-            <form
-              role="search"
-              aria-label="Ask meeting memory"
-              onSubmit={(event) => {
-                event.preventDefault();
-                if (question.trim()) router.push(questionHref(question.trim()));
-              }}
-            >
-              <label className="sr-only" htmlFor="home-memory-question">
-                Question about your meetings
-              </label>
-              <Input
-                id="home-memory-question"
-                value={question}
-                onChange={(event) => setQuestion(event.target.value)}
-                placeholder="Why did we choose that approach?"
-              />
-              <Button
-                type="submit"
-                disabled={!question.trim()}
-                aria-label="Ask Wilco"
-              >
-                <ArrowRight aria-hidden="true" />
-              </Button>
-            </form>
-            <div className="home-question-links">
-              {recent && (
-                <Link
-                  href={questionHref(
-                    `What decisions were made in the meeting "${recent.title}"?`,
-                  )}
-                >
-                  Decisions from your latest meeting
-                  <ArrowRight aria-hidden="true" />
-                </Link>
-              )}
-              <Link
-                href={questionHref(
-                  "Which follow-ups are still open from my meetings?",
-                )}
-              >
-                Which follow-ups are still open?
-                <ArrowRight aria-hidden="true" />
-              </Link>
-            </div>
-          </section>
-          <nav
-            className="home-utility-links"
-            aria-label="More ways to use Wilco"
-          >
-            <Link href="/record">
-              <Mic aria-hidden="true" />
-              Record in person
-            </Link>
-            <Link href="/meetings/new?source=upload">
-              <Upload aria-hidden="true" />
-              Upload recording
-            </Link>
-            {voice?.available && !voice.enrolled && (
-              <Link href="/voice-setup">Optional voice setup</Link>
-            )}
-          </nav>
+          <HomeAsk />
         </div>
       </div>
-
       <UpcomingVoiceBriefs />
       <StandupCatchup />
-
-      <section
-        className="home-work-panel home-recent-panel"
-        aria-labelledby="recent-heading"
-      >
-        <header className="home-panel-heading">
-          <h2 id="recent-heading">Recent notes</h2>
+      <section className="home-recent">
+        <header className="sheet-heading">
+          <h2>Recent meetings.</h2>
           <Link href="/meetings">
-            View all
-            <ArrowRight aria-hidden="true" />
+            All meetings
+            <ArrowRight className="size-4" />
           </Link>
         </header>
-        {loading && !meetings ? (
-          <Skeleton className="h-36 rounded-xl" />
-        ) : !meetings?.length ? (
-          <div className="home-small-empty">
-            <Video aria-hidden="true" />
-            <p>
-              {meetings === null
-                ? "Meetings couldn’t load."
-                : "Notes from your meetings will appear here."}
-            </p>
-            <Link href="/meetings/new?source=upload">Upload a recording</Link>
-          </div>
-        ) : (
-          <ul className="home-recent-list">
-            {meetings.slice(0, 3).map((meeting) => {
-              const processing = meeting.processing_state === "processing",
-                attention = meeting.processing_state === "attention";
-              return (
-                <li key={meeting.id}>
-                  <span className="home-note-icon">
-                    <FileText aria-hidden="true" />
-                  </span>
-                  <Link
-                    href={`/meetings/${meeting.id}${meeting.id === latest?.id && reviewCount ? "?review=1" : ""}`}
-                    className="home-note-title"
-                  >
-                    <strong>{meeting.title}</strong>
-                    <span>
-                      {new Date(meeting.date).toLocaleDateString(undefined, {
-                        day: "numeric",
-                        month: "short",
-                      })}
-                      {meeting.duration_minutes > 0
-                        ? ` · ${meeting.duration_minutes} min`
-                        : ""}
-                    </span>
-                  </Link>
-                  <span className="home-note-counts">
-                    {meeting.task_count} follow-ups
-                  </span>
-                  <MeetingPeople
-                    names={meeting.attendees.map((person) => person.name)}
-                  />
-                  <span className="home-note-status">
-                    {processing ? (
-                      <>
-                        <Loader2
-                          aria-hidden="true"
-                          className="animate-spin motion-reduce:animate-none"
-                        />
-                        Processing
-                      </>
-                    ) : attention ? (
-                      "Needs attention"
-                    ) : meeting.id === latest?.id && reviewCount ? (
-                      "Review"
-                    ) : (
-                      "Open notes"
+        <div className="recent-tile-grid">
+          {recent.map((row) => {
+            const loaded = context[row.id],
+              count = loaded
+                ? loaded.detail.tasks.filter((task) => !task.verified_at)
+                    .length +
+                  loaded.detail.decisions.filter((item) => !item.verified_at)
+                    .length
+                : null;
+            return (
+              <Link
+                key={row.id}
+                href={`/meetings/${row.id}`}
+                className="recent-meeting-tile work-sheet"
+              >
+                <div>
+                  <h3>{row.title}</h3>
+                  {count !== null && (
+                    <Badge variant={count ? "peach" : "mint"}>
+                      {count ? `${count} to confirm` : "Confirmed"}
+                    </Badge>
+                  )}
+                </div>
+                {loaded && (
+                  <DebriefStrip
+                    size="sm"
+                    segments={loaded.transcript.segments}
+                    marks={meetingMarks(
+                      loaded.detail,
+                      loaded.transcript.segments,
                     )}
-                  </span>
-                </li>
-              );
-            })}
-          </ul>
-        )}
+                    duration_ms={row.duration_minutes * 60000}
+                  />
+                )}
+                <span>
+                  {day(row.date)} · {row.duration_minutes} min
+                  {loaded
+                    ? ` · ${loaded.detail.tasks.filter((task) => task.status !== "done").length} open`
+                    : ""}
+                </span>
+              </Link>
+            );
+          })}
+          {!loading && !recent.length && (
+            <p className="text-sm text-muted-foreground">
+              Your next meeting starts here.
+            </p>
+          )}
+        </div>
       </section>
     </div>
   );

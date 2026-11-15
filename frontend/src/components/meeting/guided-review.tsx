@@ -41,6 +41,7 @@ export function GuidedReview({
   onOpenFullMeeting,
   shareBusy,
   shareCopied,
+  compact = false,
 }: {
   meeting: MeetingDetail;
   onChanged: () => Promise<void>;
@@ -49,6 +50,7 @@ export function GuidedReview({
   onOpenFullMeeting?: () => void;
   shareBusy: boolean;
   shareCopied: boolean;
+  compact?: boolean;
 }) {
   const { user } = useAuth();
   const [speakers, setSpeakers] = useState<TranscriptSpeaker[]>([]);
@@ -119,12 +121,17 @@ export function GuidedReview({
       });
     return rows;
   }, [meeting, speakers, deferred]);
+  const [reviewTotal, setReviewTotal] = useState(0);
+  useEffect(() => {
+    if (!speakersLoading)
+      setReviewTotal((value) => Math.max(value, items.length));
+  }, [items.length, speakersLoading]);
   const position = Math.min(cursor, Math.max(0, items.length - 1));
   const current = items[position];
   const finished = items.length === 0 && !speakersLoading && !speakerError;
   const identifiesMe = Boolean(
     user?.name &&
-    name.trim().toLocaleLowerCase() === user.name.trim().toLocaleLowerCase(),
+      name.trim().toLocaleLowerCase() === user.name.trim().toLocaleLowerCase(),
   );
 
   function move(next: number) {
@@ -214,11 +221,19 @@ export function GuidedReview({
     <section
       id="guided-review"
       aria-labelledby="review-heading"
-      className="review-workspace"
+      className={
+        compact
+          ? "review-workspace compact-review ink-panel"
+          : "review-workspace"
+      }
     >
       <header className="flex flex-wrap items-center justify-between gap-3 border-b px-6 py-5 sm:px-8">
         <h2 id="review-heading" className="text-sm font-medium">
-          {finished ? "Ready for a recap" : "A quick check"}
+          {compact
+            ? "Confirm."
+            : finished
+              ? "Ready for a recap"
+              : "A quick check"}
         </h2>
         <span className="text-xs text-muted-foreground" role="status">
           {speakersLoading
@@ -228,17 +243,35 @@ export function GuidedReview({
               : `${items.length} left`}
         </span>
       </header>
+      {compact && (
+        <progress
+          className="review-progress"
+          value={
+            finished
+              ? Math.max(1, reviewTotal)
+              : Math.max(0, reviewTotal - items.length)
+          }
+          max={Math.max(1, reviewTotal)}
+          aria-label="Review progress"
+        />
+      )}
       {finished ? (
         <div className="px-6 py-8 sm:px-8">
           <span className="mb-5 grid size-11 place-items-center rounded-full bg-success/10 text-success">
             <Check className="size-5" aria-hidden="true" />
           </span>
           <h3 className="text-2xl font-medium tracking-tight">
-            That&apos;s the meeting, handled.
+            {compact
+              ? deferred.length
+                ? "Review complete."
+                : "All confirmed."
+              : "That’s the meeting, handled."}
           </h3>
-          <p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground">
-            {meeting.summary || "Your tasks and decisions are confirmed."}
-          </p>
+          {!compact && (
+            <p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground">
+              {meeting.summary || "Your tasks and decisions are confirmed."}
+            </p>
+          )}
           {deferred.length > 0 && (
             <p className="mt-3 text-xs text-muted-foreground">
               {deferred.length}{" "}
@@ -399,7 +432,9 @@ export function GuidedReview({
                   ? "Save & confirm"
                   : current.kind === "speaker"
                     ? "Save name"
-                    : "Looks right"}
+                    : compact
+                      ? "Confirm"
+                      : "Looks right"}
             </Button>
             {current.kind === "speaker" ? (
               <Button

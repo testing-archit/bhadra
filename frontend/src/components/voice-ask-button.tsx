@@ -96,8 +96,8 @@ export function VoiceAskButton({
       aria-pressed={recording}
       title={recording ? "Tap to send your question" : "Ask by voice (Hindi, English or both)"}
       className={cn(
-        "relative flex h-10 shrink-0 items-center justify-center gap-1.5 rounded-xl px-3 text-sm font-semibold outline-none transition-colors focus-visible:ring-3 focus-visible:ring-marigold/50 disabled:opacity-60",
-        recording ? "bg-destructive text-white" : "bg-marigold text-marigold-foreground hover:bg-marigold/90",
+        "relative flex h-10 shrink-0 items-center justify-center gap-1.5 rounded-xl px-3 text-sm font-semibold outline-none transition-colors focus-visible:ring-3 focus-visible:ring-signal/50 disabled:opacity-60",
+        recording ? "bg-destructive text-white" : "bg-signal text-signal-foreground hover:bg-signal/90",
       )}
     >
       {recording && <span className="absolute inset-0 animate-pulse rounded-xl bg-destructive/40" aria-hidden="true" />}
