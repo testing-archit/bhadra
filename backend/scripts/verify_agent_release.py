@@ -17,7 +17,8 @@ from httpx import AsyncClient, TransportError
 from sqlalchemy import select, text
 from app.config import settings
 from app.database.db import async_session
-from app.database.models import CaptureRequest, MeetingAgentJob, MeetingBoard, User
+from app.database.models import CaptureRequest, Decision, Meeting, MeetingAgentJob, MeetingBoard, MeetingInsight, TranscriptSegment, User
+from app.dependencies import create_access_token
 
 
 async def verify_voice():
@@ -76,18 +77,46 @@ async def verify(args):
         report['running_job_index'] = bool(await db.scalar(text("SELECT to_regclass('public.uq_agent_running_capture') IS NOT NULL")))
     assert report['agent_table'] and report['running_job_index']
     identifier = uuid.uuid4()
-    user_id = capture_id = None
+    user_id = capture_id = meeting_id = None
     try:
         async with async_session() as db:
-            user = User(email=f'release-check-{identifier}@example.invalid', name='Synthetic release check', status='inactive')
+            user = User(email=f'release-check-{identifier}@example.invalid', name='Synthetic release check', status='active')
             db.add(user); await db.flush(); user_id=user.id
             capture = CaptureRequest(user_id=user.id, platform='google_meet',
                 meeting_url='https://meet.google.com/aaa-bbbb-ccc', meeting_code=f'release-check-{identifier}',
                 title='Synthetic release check', status='capturing', consent_acknowledged_at=dt.datetime.now(dt.UTC))
-            db.add(capture); await db.flush(); capture_id=capture.id; await db.commit()
+            db.add(capture); await db.flush(); capture_id=capture.id
+            meeting = Meeting(user_id=user_id, title='Synthetic voice workflow check', template='standup',
+                date=dt.datetime.now(dt.UTC), summary='The synthetic team will verify retries.')
+            db.add(meeting); await db.flush(); meeting_id=meeting.id
+            segment = TranscriptSegment(meeting_id=meeting_id, seq=1, speaker_key='0', speaker_label='Release check',
+                text='Use exponential retries', original_text='Use exponential retries', start_ms=0, end_ms=1500)
+            db.add(segment); await db.flush()
+            decision = Decision(meeting_id=meeting_id, decision='Use exponential retries', evidence=[
+                {'segment_id':str(segment.id),'excerpt':'Use exponential retries','verified':True}])
+            db.add(decision)
+            db.add(MeetingInsight(meeting_id=meeting_id, template_sections=[{'heading':'Plans','items':[
+                {'person':'Release check','text':'Verify retries'}]}]))
+            await db.commit()
+            user_headers = {'Authorization':'Bearer ' + create_access_token(user.id, user.email)}
         headers={'Authorization':f'Bot {settings.bot_api_secret}'}
         async with AsyncClient(base_url=args.base_url, timeout=10) as client:
             assert (await client.get('/health')).status_code == 200
+            assert (await client.get('/api/tts/standup',headers={'Authorization':'Bearer invalid-release-check'})).status_code == 401
+            standup = await client.get('/api/tts/standup',headers=user_headers)
+            assert standup.status_code == 200 and standup.json()['standup']['meeting_id'] == str(meeting_id)
+            assert 'Verify retries' in standup.json()['standup']['text']
+            source_url = f'/api/decisions/{decision.id}/source'
+            assert (await client.get(source_url,headers={'Authorization':'Bearer invalid-release-check'})).status_code == 401
+            source = await client.get(source_url,headers=user_headers)
+            assert source.status_code == 200 and source.json()['lines'][0]['original_text'] == 'Use exponential retries'
+            assert not source.json()['lines'][0]['audio_available']
+            report['voice_workflow_authenticated_reads'] = 'ok'
+            if args.model_canary:
+                translated = await client.post(f'/api/bot/capture-requests/{capture_id}/translations',headers=headers,
+                    json={'language':'ta-IN','captions':[{'speaker':'Release check','text':'Use exponential retries. The next step is to verify the retry tests.','start':0}]}, timeout=20)
+                assert translated.status_code == 200 and translated.json()['text'].strip(), 'Synthetic translation failed'
+                report['synthetic_call_translation'] = 'ok'
             url=f'/api/bot/capture-requests/{capture_id}/commands'
             assert (await client.get(url)).status_code == 401
             started=time.perf_counter()
@@ -124,6 +153,11 @@ async def verify(args):
                 capture=await db.get(CaptureRequest,capture_id)
                 if capture:
                     await db.delete(capture)
+            if meeting_id:
+                meeting = await db.get(Meeting,meeting_id)
+                if meeting:
+                    await db.delete(meeting)
+                    await db.flush()
             if user_id:
                 user=await db.get(User,user_id)
                 if user:

@@ -1,4 +1,6 @@
 "use client";
+
+import { StandupCatchup, UpcomingVoiceBriefs } from "@/components/standup-catchup";
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowRight, Plus } from "lucide-react";
@@ -265,6 +267,8 @@ export default function HomePage() {
           <HomeAsk />
         </div>
       </div>
+      <UpcomingVoiceBriefs />
+      <StandupCatchup />
       <section className="home-recent">
         <header className="sheet-heading">
           <h2>Recent meetings.</h2>

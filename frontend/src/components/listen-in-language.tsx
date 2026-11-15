@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { Download, Languages, Loader2, MessageCircle, Square, Volume2 } from "lucide-react";
 import { api } from "@/lib/api";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 // Languages Gnani Timbre speaks; labels in their own script so a reader finds theirs.
 const LANGUAGES: Array<{ code: string; label: string }> = [
@@ -26,7 +26,7 @@ type State = "idle" | "loading" | "playing" | "error";
 
 /** Hear meeting notes in your own language: Gemini translates, Gnani Timbre
  * speaks, and the translated text is shown so you can read along. */
-export function ListenInLanguage({ text, title, compact=false, onListen }: { text: string; title?: string; compact?:boolean; onListen?:()=>void }) {
+export function ListenInLanguage({ text, title, listenLabel = "Listen", share = true, compact = false, onListen }: { text: string; title?: string; listenLabel?: string; share?: boolean; compact?: boolean; onListen?: () => void }) {
   const [language, setLanguage] = useState("en-IN");
   const [state, setState] = useState<State>("idle");
   const [error, setError] = useState<string | null>(null);
@@ -34,6 +34,7 @@ export function ListenInLanguage({ text, title, compact=false, onListen }: { tex
   const [sharing, setSharing] = useState(false);
   const [voiceNote, setVoiceNote] = useState<{ language: string; audio: string } | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const generation = useRef(0);
   const cache = useRef(new Map<string, Awaited<ReturnType<typeof api.speakTranslated>>>());
 
   useEffect(() => {
@@ -41,23 +42,27 @@ export function ListenInLanguage({ text, title, compact=false, onListen }: { tex
       const saved = window.localStorage.getItem(STORAGE_KEY);
       if (saved && LANGUAGES.some((item) => item.code === saved)) setLanguage(saved);
     } catch {}
-    return () => audioRef.current?.pause();
+    return () => { generation.current++; audioRef.current?.pause(); };
   }, []);
 
   // New notes need new audio and a new translation.
   useEffect(() => {
+    generation.current++;
+    audioRef.current?.pause();
+    setState("idle");
     cache.current.clear();
     setHeard(null);
     setVoiceNote(null);
   }, [text]);
 
   async function resultFor(code: string) {
+    const token = generation.current;
     let result = cache.current.get(code);
     if (!result) {
       result = await api.speakTranslated(text, code);
-      cache.current.set(code, result);
+      if (token === generation.current) cache.current.set(code, result);
     }
-    if (result.audio) setVoiceNote({ language: code, audio: result.audio });
+    if (result.audio && token === generation.current) setVoiceNote({ language: code, audio: result.audio });
     return result;
   }
 
@@ -82,6 +87,7 @@ export function ListenInLanguage({ text, title, compact=false, onListen }: { tex
   }
 
   function stop() {
+    generation.current++;
     audioRef.current?.pause();
     setState("idle");
   }
@@ -89,12 +95,14 @@ export function ListenInLanguage({ text, title, compact=false, onListen }: { tex
   async function play() {
     if (state === "playing" || state === "loading") return stop();
     onListen?.();
+    const token = ++generation.current;
     setState("loading");
     setError(null);
     try {
       const result = await resultFor(language);
+      if (token !== generation.current) return;
       const voice = `Gnani ${result.model.replace("timbre-", "Timbre ")} (${result.voice})`;
-      setHeard(language === "en-IN" ? null : {
+      setHeard(language === "en-IN" && result.audio ? null : {
         language, text: result.text,
         credit: result.translated ? `Translated by Wilco · spoken by ${voice}` : `Spoken by ${voice}`,
       });
@@ -109,8 +117,10 @@ export function ListenInLanguage({ text, title, compact=false, onListen }: { tex
       audio.src = `data:audio/mpeg;base64,${result.audio}`;
       audio.onended = () => setState("idle");
       await audio.play();
+      if (token !== generation.current) { audio.pause(); return; }
       setState("playing");
     } catch (cause) {
+      if (token !== generation.current) return;
       setState("error");
       setError(cause instanceof Error ? cause.message : "Wilco couldn't read this aloud. Try again.");
     }
@@ -120,7 +130,7 @@ export function ListenInLanguage({ text, title, compact=false, onListen }: { tex
   return (
     <div className="flex flex-col gap-2">
       <div className="flex flex-wrap items-center gap-2">
-        {!compact&&<Select
+        {!compact && <Select
           value={language}
           onValueChange={(next) => {
             if (!next) return;
@@ -134,18 +144,20 @@ export function ListenInLanguage({ text, title, compact=false, onListen }: { tex
             <SelectValue>{() => label}</SelectValue>
           </SelectTrigger>
           <SelectContent>
-            {LANGUAGES.map((item) => <SelectItem key={item.code} value={item.code}>{item.label}</SelectItem>)}
+            <SelectGroup>
+              {LANGUAGES.map((item) => <SelectItem key={item.code} value={item.code}>{item.label}</SelectItem>)}
+            </SelectGroup>
           </SelectContent>
         </Select>}
         <Button size="sm" variant="outline" onClick={() => void play()} aria-pressed={state === "playing"} title="Read aloud with Gnani Timbre">
           {state === "loading" ? <Loader2 className="animate-spin" aria-hidden="true" /> : state === "playing" ? <Square aria-hidden="true" /> : <Volume2 aria-hidden="true" />}
-          {state === "loading" ? (language === "en-IN" ? "Loading" : "Translating") : state === "playing" ? "Stop" : "Listen"}
+          {state === "loading" ? (language === "en-IN" ? "Loading" : "Translating") : state === "playing" ? "Stop" : listenLabel}
         </Button>
-        {!compact&&<Button size="sm" variant="outline" onClick={() => void shareOnWhatsApp()} disabled={sharing} title="Send these notes on WhatsApp in the chosen language">
+        {share && !compact && <Button size="sm" variant="outline" onClick={() => void shareOnWhatsApp()} disabled={sharing} title="Send these notes on WhatsApp in the chosen language">
           {sharing ? <Loader2 className="animate-spin" aria-hidden="true" /> : <MessageCircle aria-hidden="true" />}
           WhatsApp
         </Button>}
-        {!compact&&voiceNote?.language === language && (
+        {!compact && voiceNote?.language === language && (
           <Button size="sm" variant="ghost" nativeButton={false} render={<a href={`data:audio/mpeg;base64,${voiceNote.audio}`} download={`wilco-notes-${language}.mp3`} />} title="Download the spoken notes to forward as a voice note">
             <Download aria-hidden="true" />
             Voice note

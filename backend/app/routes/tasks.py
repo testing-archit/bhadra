@@ -264,7 +264,7 @@ async def create_task(
 
 
 async def add_manual_task(db: AsyncSession, user: User, *, owner: str | None, description: str, deadline: str | None = None,
-                          due_date=None, priority: str | None = None, parent_task_id=None, origin: str = "manual"):
+                          due_date=None, priority: str | None = None, parent_task_id=None, origin: str = "manual", task_id: uuid.UUID | None = None):
     """A task outside any meeting (Tasks page, or said to Wilco Live), filed
     in the person's own manual-tasks meeting and handed to its owner."""
     meeting = (await db.execute(select(Meeting).where(
@@ -276,6 +276,7 @@ async def add_manual_task(db: AsyncSession, user: User, *, owner: str | None, de
         db.add(meeting)
         await db.flush()
     task = MeetingTask(
+        **({"id": task_id} if task_id else {}),
         meeting_id=meeting.id, owner=owner or None, description=description.strip(), deadline=deadline or None,
         due_date=due_date, priority=priority or None, parent_task_id=parent_task_id, origin=origin,
         owner_user_id=await insight_service.resolve_owner_user_id(db, meeting.id, owner),

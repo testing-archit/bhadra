@@ -192,3 +192,23 @@ Meet board implementation verified: 545 backend tests pass; Chromium outgoing-ca
 ## Claude engagement pass and software-company demo, 15 November 2026
 
 The user requests exact implementation of the Claude canvas and section 3b of docs/design/redesign-spec.md, plus rich synthetic software-team data published to the demo. Codex owns Landing, Home, Meeting, Tasks, Memory, shared tokens/shell where required by that spec, and the demo seed/validation in /private/tmp/bhadra-engagement on codex/engagement-software-demo from d184828. Preserve newer bot latency, native FigJam, camera and delivery work. Keep the dirty shared checkout untouched apart from appended coordination. Canvas access is currently blocked by Cloudflare; local source/artboard path has been requested while independent spec/data work proceeds. No canvas click-through or exact visual match is claimed until the reference can be inspected.
+## Voice workflow scope, 15 November 2026
+
+Codex is implementing the requested voice-to-Jira, spoken stand-up/brief, running call translations, and decision quote playback in `/private/tmp/wilco-voice-workflows`, branch `codex/voice-workflows-20261115`, from main `d184828`. Reuse existing Jira sync, Timbre, transcript evidence and calendar briefs. Shared-call commands must not impersonate an authenticated user. Provider and external writes are mocked during verification; no deployment is included in this request.
+
+Voice workflow implementation is ready on `codex/voice-workflows-20261115`: authenticated Talk to Wilco → Jira, spoken stand-up and ready-calendar-brief players, running shared-chat translations, and verified original decision quote playback. Full backend suite: 558 passed; frontend build/typecheck and nine synthetic browser checks passed. In-call Jira commands direct users to signed-in Live; translation uses existing live captions (there is no continuous Prisma stream in this checkout). Real provider/Meet/Jira acceptance and deployment remain pending. See `docs/voice-workflows.md` for files, behavior, cost bounds and limitations. Shared application sources remain untouched.
+
+## Voice workflows release, 15 November 2026
+
+The user now authorizes fixing and deploying all five voice-workflow changes. Codex is reviewing and releasing `codex/voice-workflows-20261115` in its isolated worktree, preserving main's existing UI/whiteboard/latency changes. The separate engagement redesign branch has an in-progress owner and is not part of the five-feature checkpoint. Release will run PR checks, preserve rollback images, wait for idle services, and verify deployed routes/runtime/provider canaries.
+
+Pre-release correction confirmed and fixed unintended Jira dispatch from an internal task mentioning Jira and starvation of later translation languages after one failed. Full suite passed 560 tests; frontend build/typecheck, extension and FigJam checks passed. The authenticated local HTTP release probe passed. Production probe now covers the new read routes and synthetic translation, retaining existing model/voice canaries and cleanup.
+
+## Voice workflows deployed, 15 November 2026
+
+PR #15 merged at `694f15285010a41b99566b280d921db911c9601d`; workflow `43709991315` succeeded. All five voice-workflow changes plus the two pre-release corrections are live. CI passed 560 backend tests and applicable frontend/extension/FigJam checks; the production build, rollback snapshots, idle-aware service restarts, image identity/runtime checks, authenticated stand-up/decision-source reads, real synthetic translation and Prisma/Gemini/Timbre canary passed. Public health/Home/Delivery/Live return 200; invalid credentials on the new stand-up endpoint return 401. Synthetic records were removed. No actual Jira ticket or real meeting was created by verification. Real in-call quality acceptance remains with the user; scope and evidence are in `docs/voice-workflows.md`.
+
+
+## Engagement final release integration, 15 November 2026
+
+The user authorizes final deployment. The temporary engagement worktree was no longer present, so Codex recovered its pushed commits into /Users/vedantmoghe/Downloads/bhadra-engagement-release. Merge main 0412ada deliberately: preserve Home spoken stand-up/ready briefs and Listen playback generation guards alongside compact debrief controls. Shared unfinished files remain untouched. CI and production verification must complete before claiming deployment.

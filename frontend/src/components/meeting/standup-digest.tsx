@@ -5,6 +5,7 @@ import Link from "next/link";
 import { AlertTriangle, ChevronDown, UsersRound } from "lucide-react";
 import { api, type StandupDigest } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ListenInLanguage } from "@/components/listen-in-language";
 import { cn } from "@/lib/utils";
 
 const shortDate = (value: string) => new Date(value).toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" });
@@ -40,6 +41,7 @@ export function StandupDigestPanel({ meetingId }: { meetingId: string }) {
         </p>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
+        {digest.spoken_text && <ListenInLanguage text={digest.spoken_text} listenLabel="Catch me up" share={false} />}
         {digest.repeated_blockers.length > 0 && (
           <div className="rounded-lg border border-warning/40 bg-warning/10 p-3">
             <p className="flex items-center gap-1.5 text-sm font-medium">

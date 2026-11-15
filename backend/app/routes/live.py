@@ -12,7 +12,7 @@ from app.database.db import get_db
 from app.database.models import User
 from app.dependencies import get_current_user
 from app.rate_limit import limiter
-from app.services import evon_service, live_assist, live_conversation, transcriber, tts_service
+from app.services import evon_service, live_assist, live_conversation, transcriber, tts_service, voice_tasks
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/live", tags=["live"])
@@ -74,15 +74,13 @@ async def live_turn(
     if live_conversation.looks_like_task(text):
         # "Vedant ko login bug Friday tak fix karna hai, task bana do": a real task.
         try:
-            parsed = await asyncio.to_thread(live_assist.parse_task, text, timeout_seconds=12)
-            from app.routes.tasks import add_manual_task
-            task, _meeting = await add_manual_task(db, user, owner=parsed["owner"], description=parsed["description"],
-                                                   deadline=parsed["deadline"], origin="live")
-            task_added = {"id": str(task.id), "description": task.description, "owner": task.owner, "deadline": task.deadline}
+            task_added, answer = await voice_tasks.create(db, user, text, audio_bytes)
             live_conversation._digests.pop(user.id, None)
-            answer = live_conversation.task_confirmation(task_added, heard.get("language"))
+            if not answer:
+                answer = live_conversation.task_confirmation(task_added, heard.get("language"))
         except Exception:
             logger.warning("Task from Live failed", exc_info=True)
+            answer = "I couldn't confirm that task. Please check Tasks before trying again."
     if not answer and evon_service.configured():
         # Gnani Evon (Indic LLM) when the team hosts it; Gemini otherwise.
         try:

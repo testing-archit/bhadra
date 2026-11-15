@@ -1389,6 +1389,7 @@ export interface MeetingSeries {
 }
 
 export interface StandupDigest {
+  spoken_text?: string;
   occurrences: { id: string; title: string; date: string; current: boolean }[];
   people: {
     name: string;
@@ -1567,7 +1568,7 @@ export const api = {
       transcript: string; reply: string | null; audio: string | null; language?: string | null;
       timings?: { input_and_context_ms: number; reply_ms: number; tts_ms: number; total_ms: number };
       heard_model?: string; reply_model?: string; speech_model?: string; speech_voice?: string;
-      task_added?: { id: string; description: string; owner: string | null; deadline: string | null } | null;
+      task_added?: { id: string; description: string; owner: string | null; deadline: string | null; jira_issue_key?: string; jira_url?: string | null } | null;
     }>(
       "/api/live/turn", { method: "POST", body: form },
     );
@@ -1582,6 +1583,9 @@ export const api = {
     form.append("kind", kind);
     return apiFetch<RecapResult>("/api/recap", { method: "POST", body: form });
   },
+  decisionSource: (id: string) => apiFetch<{ meeting_id: string; lines: { segment_id: string; speaker: string; text: string; original_text: string; start_ms: number | null; end_ms: number | null; audio_available: boolean }[] }>(`/api/decisions/${id}/source`),
+  decisionQuoteAudio: (id: string, segmentId: string) => apiBlobFetch(`/api/decisions/${id}/source/${segmentId}/audio`),
+  latestStandup: () => apiFetch<{ standup: { meeting_id: string; title: string; date: string; text: string } | null }>("/api/tts/standup"),
   /** Text read aloud by Gnani Timbre, as MP3. */
   speak: (text: string, language?: string) => apiPostBlob("/api/tts", { text, language }),
   /** Built on Gnani: model status and live try-its. */
