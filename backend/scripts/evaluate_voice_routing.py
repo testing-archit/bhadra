@@ -66,6 +66,11 @@ def main(args):
         dataset = create_dataset(name='voice-command-regressions', experiment_id=[experiment.experiment_id])
     cases = [
         ('Open a whiteboard', 'open_board'),
+        ('Open Fig Jam', 'open_board'),
+        ('Please just open up FigJam', 'open_board'),
+        ('I need you to open Jam boards', 'open_board'),
+        ('Launch FigJam', 'open_board'),
+        ('Open Fig Jam and create a signup flow', 'edit_board'),
         ('Open a whiteboard and draw signup, payment and activation', 'edit_board'),
         ('Open and present a whiteboard with an onboarding flow', 'edit_board'),
         ('Would you please create a FigJam board with a signup flow', 'edit_board'),

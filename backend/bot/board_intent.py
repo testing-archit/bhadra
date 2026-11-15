@@ -4,8 +4,9 @@ import re
 
 def normalize(question: str) -> str:
     plain = question.strip().lower().rstrip('.!?')
+    plain = re.sub(r'\bfig[\s-]+jam\b', 'figjam', plain)
     while True:
-        cleaned = re.sub(r'^(?:please|can you|could you|would you)\s+', '', plain)
+        cleaned = re.sub(r'^(?:please|can you|could you|would you|will you|kindly|just|go ahead and|i want you to|i need you to)\s+', '', plain)
         if cleaned == plain:
             return plain
         plain = cleaned
@@ -15,7 +16,7 @@ def board_intent(question: str, active: bool, is_task: bool = False) -> str | No
     plain = normalize(question)
     if is_task:
         return None  # Preserve task capture even when its description mentions a board.
-    named = bool(re.search(r'\b(?:white\s?board|board|figjam|figma)\b', plain))
+    named = bool(re.search(r'\b(?:white\s?boards?|boards?|figjam|figma|jam\s*boards?)\b', plain))
     # "Draw a signup flow" always means the board, even before one is open:
     # route it straight to one board edit instead of an extra planner call.
     if re.match(r'(?:draw|sketch|diagram)\b', plain) or re.match(
@@ -27,7 +28,7 @@ def board_intent(question: str, active: bool, is_task: bool = False) -> str | No
     implicit_board = active and bool(re.fullmatch(r'(?:present|share|show)(?: (?:it|this|that|this one|the current one))?', plain))
     if re.match(r'(?:present|share|show)\b', plain) and (named or implicit_board):
         return 'present'
-    if named and re.match(r'(?:make|create|start|open)\b', plain):
+    if named and re.match(r'(?:make|create|start|open|launch)\b', plain):
         return 'open_present' if re.search(r'\b(?:present|share)\b', plain) else 'open'
     if re.match(r'(?:add|create|put|move|connect|rename|change|update|remove|delete|undo|draw|sketch|diagram|map|banao|jodo)\b', plain) and (named or active):
         if named or not is_task:
@@ -38,8 +39,8 @@ def board_intent(question: str, active: bool, is_task: bool = False) -> str | No
 def opening_only(question: str) -> bool:
     """Only a bare open/present request can skip drawing inference."""
     return bool(re.fullmatch(
-        r'(?:open|start|create|make)(?: up)?(?: and (?:present|share|show))? (?:a |the |our |my |new )?'
-        r'(?:white\s?board|board|figjam|figma)(?: board)?(?: (?:and )?(?:present|share|show)(?: it)?)?',
+        r'(?:open|launch|start|create|make)(?: up)?(?: and (?:present|share|show))? (?:me )?(?:a |the |our |my |new )?'
+        r'(?:white\s?boards?|boards?|figjam|figma|jam\s*boards?)(?: board)?(?: (?:and )?(?:present|share|show)(?: it)?)?',
         normalize(question),
     ))
 
