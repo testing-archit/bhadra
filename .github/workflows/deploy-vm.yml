@@ -69,6 +69,13 @@ jobs:
           import asyncio
           import inspect
           print({"model": settings.gemini_model, "model_key_configured": bool(settings.gemini_api_key), "public_app_url_configured": bool(settings.public_app_url), "structured_generation_options": list(inspect.signature(gemini_service.generate_structured).parameters)})
+          original_config = gemini_service.types.GenerateContentConfig
+          def json_schema_config(**kwargs):
+              schema = kwargs.pop('response_schema', None)
+              if schema is not None:
+                  kwargs['response_json_schema'] = schema.model_json_schema()
+              return original_config(**kwargs)
+          gemini_service.types.GenerateContentConfig = json_schema_config
           async def probe():
               try:
                   plan, _ = gemini_service.generate_structured(
