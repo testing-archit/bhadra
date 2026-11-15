@@ -1,19 +1,13 @@
+import Image from "next/image";
 import { cn } from "@/lib/utils";
 
-/** Wilco's mark (placeholder until the final logo lands): a check — "will
- * comply" — sending out two radio waves, ink on signal yellow. Drawn inline so
- * it stays crisp at every size. */
+/** The approved browser mascot, optimised by Next for compact brand use. */
 export function BrandMark({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 56 56" className={cn("size-8 shrink-0", className)} aria-hidden="true">
-      <rect width="56" height="56" rx="14" className="fill-marigold" />
-      <g fill="none" strokeLinecap="round" strokeLinejoin="round" className="stroke-marigold-foreground">
-        <path d="M13 30.5 L22 39.5 L37 23" strokeWidth="6.2" />
-        <path d="M37.5 12.5 A11 11 0 0 1 45.5 20.5" strokeWidth="4.2" />
-        <path d="M38 4.5 A19 19 0 0 1 53 19.5" strokeWidth="4.2" opacity="0.45" />
-      </g>
-    </svg>
-  );
+  return <Image src="/brand/wilco-face-v1.png" width={1448} height={1086} sizes="(max-width: 640px) 40px, 48px" className={cn("size-10 shrink-0 object-contain", className)} alt="" />;
+}
+
+export function WilcoMascot({ className }: { className?: string }) {
+  return <Image src="/brand/wilco-mascot-v1.png" width={1147} height={1372} sizes="(max-width: 640px) 106px, 160px" className={cn("h-auto object-contain", className)} alt="" />;
 }
 
 export function Wordmark({ className, markClassName }: { className?: string; markClassName?: string }) {

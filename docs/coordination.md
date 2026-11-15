@@ -66,6 +66,24 @@ The user selected Focus deck and Done / Snooze / Reassign from the design option
 
 Task focus deck implementation is ready for review: Tasks page, `task-focus-deck.tsx`, and scoped CSS only. The existing List/Board, exports, bulk tools, and task editor are preserved behind compact controls. Frontend build/typecheck and the local browser walkthrough passed; task mutations were mocked. Screenshots and validation limits are recorded in `docs/task-focus.md`. ESLint is blocked by the existing TypeScript 7 / typescript-eslint incompatibility. Shared frontend copies contain this Tasks change; other shared working-tree changes remain uncommitted.
 
+## Task workspace revision, 15 November 2026
+
+The user rejected the deployed single-card deck as too empty. Codex is replacing that default with a compact queue and selected-task work area, with inline expansion on mobile. Keep Done / Snooze / Reassign and Undo, but restore multiple tasks to the overview. Work remains isolated in `/private/tmp/bhadra-reference-ui`; Tasks and its dedicated component are the edit scope. Production at `25559c0` is the previous deck until the revised UI is verified. The shared meeting-agent planning handoff remains intact.
+
+The user subsequently chose option C: compact task cards. That is the implemented direction, superseding the queue/inspector exploration above. Tasks now displays several cards, with in-place source/actions, completion, Undo and an actual Waiting on strip. The new component is `task-workspace.tsx`; `task-focus-deck.tsx` is removed. Build/typecheck and the browser checks are recorded in `docs/task-cards.md`, with four preview screenshots. This checkpoint is for visual feedback on the topic branch; the production main branch retains `25559c0`.
+
+## Mascot-led frontend, 15 November 2026
+
+The user approved the first generated mascot and requested matching site colours plus real implementation, supported by image-model UI references. Codex owns global frontend theme, brand assets, shell, Home welcome area and the connected Tasks surface in `/private/tmp/bhadra-reference-ui`. Existing backend/board/pipeline work remains with its isolated owner. Use the approved mascot, warm paper canvas, pastel face colours, teal selections and orange key actions. Preserve actual task data, access rules, consent, List/Board links and reversible task mutations. No bulk changes to the shared checkout.
+
+The mascot-led first pass changes shared frontend tokens, the approved PNG brand assets, the existing Home welcome area/sidebar, and the connected Tasks Flow. Base UI menu grouping is exposed for task actions. TypeScript/build, palette contrast checks and the local browser walkthrough are recorded in `docs/mascot-workspace.md`; task writes are mocked. Model-generated reference images and exact prompts are in `docs/design-references/`. Keep the backend/action-agent work isolated and intact. This first pass is a UI-branch preview, not a production deployment.
+
+## Useful density and return value, 15 November 2026
+
+The user requested a behavioural-design pass to reduce empty space and improve reasons to return. Codex is revising Home in `/private/tmp/bhadra-reference-ui`: visible follow-ups and actual progress, latest-meeting review, compact schedule/connection states, quick memory questions, and compact recent notes. Claims about retention are hypotheses; preserve honest counts, user control, real data and existing consent. No tracking vendor, automatic AI generation, extra backend work or production deployment is included. The mascot-led theme and Tasks Flow remain intact.
+
+The Home implementation is verified with a production build and 20 browser checks using demo meeting snapshots and synthetic tasks; writes and memory answers are intercepted. Screenshots and the behavioural rationale are in `docs/home-follow-through.md`. Shared copies were synchronized only after checking the baseline; existing stylesheet and backend changes were preserved. The next checkpoint integrates fetched main into this isolated branch, with no production release.
+
 ## Meeting agent planning, 15 November 2026
 
 - Added `docs/meeting-agent-plan.md` at the user's request: voice commands, whiteboard operations, Jira/email execution, personalized preparation, latency measurements, scaling, and phased acceptance criteria.
@@ -101,9 +119,23 @@ Final verification: 456 backend tests passed in 13.02 seconds; compile/whitespac
 
 The user explicitly requested pushing, merging and deploying the action-agent branch, and will perform real-call acceptance afterward. Codex is releasing only `codex/meeting-agent-pipeline`; the mascot/frontend preview is not included. Release preparation adds PR-only checks, rollback image/environment snapshots, and authenticated live agent/notetaker smoke checks. Presentation will be enabled once on the server for this authorized test; subsequent deploys preserve the server's setting. Deployment remains pending until CI and live verification pass.
 
+## UI integration checkpoint, 15 November 2026
+
+Home follow-through commit `4a89183` integrates main at `ee8a3ed` in the isolated UI branch. The only merge conflict was concurrent appended handoffs in this document; both were retained. Incoming backend/action-agent and deployment files have no frontend source overlap. This checkpoint retains the reviewed mascot theme, Tasks Flow and Home changes and does not push to production main.
+
+## Memory simplification scope, 15 November 2026
+
+Codex is streamlining Memory in the isolated UI worktree: one composer, compact recent meeting entry points, on-demand history and a draft/apply meeting picker. Preserve existing cited answers, voice input, conversation history, selected meeting boundaries and URL question handoff. Only Memory and scoped styles are owned by this pass; no backend or production deployment.
+
+Memory implementation is complete: production build/TypeScript and 11 local browser scenarios passed with mocked chat/deletion requests. Actual desktop/mobile/light/dark and conversation screenshots are in `docs/screenshots/wilco-memory-*`; details in `docs/memory-workspace.md`. Shared copies were synchronized after checking baselines and applying only scoped CSS.
+
 ## Deployment verification fix
 
 PR #1 merged at `ee8a3ed`; backend and notetaker images restarted. The first deployment run's final probe failed with a connection error while the API was starting. Public health and new authenticated route checks succeeded afterward. Codex is fixing readiness polling and SSH-script stdin consumption, and preserving initial rollback snapshots on retries. Deployment will only be reported complete after the live model-backed canary and bot runtime checks pass.
+
+## Talking mascot release scope
+
+The user explicitly requested an animated talking mascot for Live and a push/production deployment for testing. Codex owns Live, its SVG mascot and scoped styling, plus necessary session cleanup fixes. Release includes the already reviewed mascot theme, Home, Tasks Flow and Memory on this branch. Preserve collaborator backend changes by integrating latest main in isolation; use the existing checked deployment workflow.
 
 ## Live provider compatibility fix
 

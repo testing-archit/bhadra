@@ -34,7 +34,7 @@ import {
   MenuSeparator,
   MenuTrigger,
 } from "@/components/ui/menu";
-import { BrandMark } from "@/components/brand";
+import { BrandMark, WilcoMascot } from "@/components/brand";
 import { NAV_GROUPS, isNavActive } from "./nav-config";
 import { isCaptureLive, useShell } from "./shell-context";
 
@@ -71,14 +71,14 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   }
 
   return (
-    <div className="flex h-full flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground">
+    <div className="mascot-sidebar flex h-full flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground">
       <div className="flex h-20 shrink-0 items-center gap-2.5 px-5">
         <Link
           href="/dashboard"
           onClick={onNavigate}
           className="flex items-center gap-2.5 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring"
         >
-          <BrandMark className="size-8" />
+          <BrandMark className="size-11" />
           <span className="font-heading text-lg leading-none font-semibold tracking-tight">
             Wilco
           </span>
@@ -195,6 +195,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
         })}
       </nav>
 
+      {pathname === "/tasks" && <div className="sidebar-mascot" aria-hidden="true"><WilcoMascot /></div>}
       <LiveNotetakers />
 
       <div className="flex flex-col gap-0.5 border-t border-sidebar-border p-3">

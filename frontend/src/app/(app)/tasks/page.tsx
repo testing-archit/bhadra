@@ -47,22 +47,21 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { PageHeader } from "@/components/page-header";
 import { EmptyState } from "@/components/empty-state";
 import { TaskEditDialog, type EditableTask } from "@/components/task-edit-dialog";
 import { DeleteConfirmationDialog } from "@/components/delete-confirmation-dialog";
 import { VerificationBadge } from "@/components/verification-badge";
 import { JiraTaskButton, useJiraStatus } from "@/components/jira-task-button";
-import { TaskFocusDeck, type FocusTaskUpdate } from "@/components/task-focus-deck";
+import { TaskWorkspace, TaskWaitingStrip, type TaskQuickUpdate } from "@/components/task-workspace";
 
 const STATUSES = ["pending", "in_progress", "done"] as const;
-type View = "focus" | "list" | "board";
+type View = "workspace" | "list" | "board";
 /** Whose tasks: yours (the default), ones you're waiting on, nobody's, or everything you can see. */
 type Scope = "mine" | "waiting" | "unassigned" | "all";
 type EditFields = { description: string; owner: string; deadline: string; due_date: string; priority: string; status: string };
 type PendingDelete = { ids: string[]; label: string };
 
-const VIEW_KEY = "wilco.tasks.layout.v2";
+const VIEW_KEY = "wilco.tasks.layout.v3";
 const DISMISSED_KEY = "charcha.tasks.notDuplicates";
 const DONE_SHOWN = 8;
 const selectClass = "h-8 [@media(pointer:coarse)]:min-h-11 rounded-lg border bg-background px-2.5 text-sm text-foreground";
@@ -124,7 +123,7 @@ export default function TasksPage() {
   const [tasks, setTasks] = useState<TaskListItem[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
-  const [view, setView] = useState<View>("focus");
+  const [view, setView] = useState<View>("workspace");
   const [showFilters, setShowFilters] = useState(false);
   const [scope, setScope] = useState<Scope>("mine");
   const [query, setQuery] = useState("");
@@ -146,10 +145,11 @@ export default function TasksPage() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const urlView = params.get("view");
-    // Focus is the new default; explicit layout choices and links still work.
-    const savedView = readStorage(VIEW_KEY);
-    if (urlView === "focus" || urlView === "list" || urlView === "board") setView(urlView);
-    else if (savedView === "focus" || savedView === "list" || savedView === "board") setView(savedView);
+    // The workspace replaces Focus; existing list/board preferences and links still work.
+    const savedView = readStorage(VIEW_KEY) ?? readStorage("wilco.tasks.layout.v2");
+    if (urlView === "focus" || urlView === "workspace") setView("workspace");
+    else if (urlView === "list" || urlView === "board") setView(urlView);
+    else if (savedView === "list" || savedView === "board" || savedView === "workspace") setView(savedView);
     const urlScope = params.get("scope");
     if (urlScope && SCOPES.some((item) => item.value === urlScope)) setScope(urlScope as Scope);
     else if (params.get("owner") === "all") setScope("all");
@@ -191,7 +191,7 @@ export default function TasksPage() {
     setView(next);
     writeStorage(VIEW_KEY, next);
     setSelectedIds(new Set());
-    setUrlParam("view", next === "focus" ? null : next);
+    setUrlParam("view", next === "workspace" ? null : next);
   }
 
   function changeScope(next: Scope) {
@@ -214,17 +214,6 @@ export default function TasksPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tasks, scope, user]);
 
-  const counts = useMemo(() => {
-    const open = (tasks ?? []).filter((task) => task.status !== "done");
-    return {
-      mine: open.filter(mineOf).length,
-      waiting: open.filter((task) => task.delegated).length,
-      unassigned: open.filter((task) => !task.owner?.trim()).length,
-      all: open.length,
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tasks, user]);
-
   const options = useMemo(() => {
     const unique = (values: (string | null | undefined)[]) =>
       Array.from(new Set(values.filter(Boolean) as string[])).sort((a, b) => a.localeCompare(b));
@@ -237,7 +226,7 @@ export default function TasksPage() {
     };
   }, [inScope, tasks]);
 
-  const filtersActive = !!(query.trim() || dueFilter || ownerFilter || priorityFilter || projectFilter || meetingFilter || (view === "list" && statusFilter !== "open"));
+  const filtersActive = !!(query.trim() || dueFilter || ownerFilter || priorityFilter || projectFilter || meetingFilter || (view !== "board" && statusFilter !== "open" && statusFilter !== "done"));
 
   function clearFilters() {
     setQuery("");
@@ -254,9 +243,8 @@ export default function TasksPage() {
     const q = query.trim().toLowerCase();
     return inScope
       .filter((task) => {
-        if (view === "focus" && task.status === "done") return false;
-        // The board shows every status; the focus deck only shows open work.
-        if (view === "list") {
+        // The board shows every status; other layouts can switch to completed work.
+        if (view !== "board") {
           if (statusFilter === "open" && task.status === "done") return false;
           if (statusFilter !== "open" && statusFilter !== "" && task.status !== statusFilter) return false;
         }
@@ -286,7 +274,7 @@ export default function TasksPage() {
     }
   }
 
-  async function updateFocusTask(task: TaskListItem, fields: FocusTaskUpdate) {
+  async function updateQuickTask(task: TaskListItem, fields: TaskQuickUpdate) {
     // Commit after success so a rejected action keeps the current card in place.
     const updated = await api.updateTask(task.id, fields);
     patchTasks({ ...updated, ...(fields.owner !== undefined ? { mine: undefined, delegated: undefined } : {}) });
@@ -458,51 +446,43 @@ export default function TasksPage() {
   const scopeInfo = SCOPES.find((item) => item.value === scope)!;
 
   return (
-    <div className="flex flex-col gap-5">
-      <PageHeader
-        title="Tasks"
-        actions={
-          <>
-            <Button onClick={() => setAddingTask(true)}>
-              <Plus /> Add task
-            </Button>
-          </>
-        }
-      />
+    <div className="flex flex-col gap-4">
+      <header className="flex items-center justify-between gap-3">
+        <h1 className="text-[1.75rem] leading-tight font-bold">Tasks</h1>
+        <Button variant="brand" onClick={() => setAddingTask(true)}><Plus data-icon="inline-start" /> Add task</Button>
+      </header>
 
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-2 sm:flex sm:flex-wrap">
         <label className="flex min-w-0 items-center gap-2">
           <span className="sr-only">Whose tasks</span>
           <select aria-label="Whose tasks" value={scope} onChange={(event) => changeScope(event.target.value as Scope)} className={cn(selectClass, "max-w-full")}>
-            {SCOPES.map((item) => <option key={item.value} value={item.value}>{item.label}{tasks ? ` (${counts[item.value]})` : ""}</option>)}
+            {SCOPES.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
           </select>
         </label>
-        <div className="flex items-center gap-2">
-          <label className="flex items-center gap-2">
-            <span className="sr-only">Layout</span>
-            <select aria-label="Layout" value={view} onChange={(event) => changeView(event.target.value as View)} className={selectClass}>
-              <option value="focus">Focus</option>
-              <option value="list">List</option>
-              <option value="board">Board</option>
-            </select>
-          </label>
-          <Button variant="outline" aria-expanded={showFilters} aria-controls="task-filters" onClick={() => setShowFilters(!showFilters)}>
-            <SlidersHorizontal data-icon="inline-start" /> Filters{filtersActive ? " · on" : ""}
-          </Button>
+        <div className="relative order-last col-span-3 sm:order-none sm:ml-auto sm:w-60">
+          <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+          <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Find a task" className="pl-9" aria-label="Search tasks" />
         </div>
+        <label className="flex items-center gap-2">
+          <span className="sr-only">Layout</span>
+          <select aria-label="Layout" value={view} onChange={(event) => changeView(event.target.value as View)} className={selectClass}>
+            <option value="workspace">Flow</option>
+            <option value="list">List</option>
+            <option value="board">Board</option>
+          </select>
+        </label>
+        <Button variant="outline" aria-expanded={showFilters} aria-controls="task-filters" onClick={() => setShowFilters(!showFilters)}>
+          <SlidersHorizontal data-icon="inline-start" /> Filters{filtersActive ? " · on" : ""}
+        </Button>
       </div>
 
       <div id="task-filters" hidden={!showFilters}>
         <div className="flex flex-wrap items-center gap-2">
-          <div className="relative min-w-48 flex-1">
-            <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-            <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search tasks, owners, meetings" className="h-8 pl-9" aria-label="Search tasks" />
-          </div>
           <select value={dueFilter} onChange={(event) => setDueFilter(event.target.value as DueBucket | "")} aria-label="Due" className={selectClass}>
             <option value="">Any due date</option>
             {DUE_BUCKETS.map((bucket) => <option key={bucket.value} value={bucket.value}>{bucket.label}</option>)}
           </select>
-          {view === "list" && (
+          {view !== "board" && (
             <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} aria-label="Status" className={selectClass}>
               <option value="open">Not done</option>
               <option value="">Any status</option>
@@ -555,7 +535,7 @@ export default function TasksPage() {
 
       {!filtered && !error && <Skeleton className="h-80 w-full rounded-xl" />}
 
-      {view !== "focus" && filtered && filtered.length === 0 && (
+      {view !== "workspace" && filtered && filtered.length === 0 && (
         <EmptyState
           icon={ListChecks}
           title={filtersActive ? "No tasks match" : inScope?.length ? "All done here" : scope === "mine" ? "Nothing assigned to you" : "No tasks here"}
@@ -566,22 +546,29 @@ export default function TasksPage() {
                 ? "Tasks people give you in meetings show up here automatically, or add one yourself."
                 : scopeInfo.hint + "."
           }
-          action={filtersActive ? <Button variant="outline" onClick={clearFilters}><X /> Clear filters</Button> : <Button onClick={() => setAddingTask(true)}><Plus /> Add task</Button>}
+          action={filtersActive ? <Button variant="outline" onClick={clearFilters}><X /> Clear filters</Button> : <Button variant="brand" onClick={() => setAddingTask(true)}><Plus /> Add task</Button>}
         />
       )}
 
-      {view === "focus" && filtered && (
-        <TaskFocusDeck
+      {view === "workspace" && filtered && (
+        <TaskWorkspace
           key={scope}
           tasks={filtered}
+          completedCount={(inScope ?? []).filter((task) => task.status === "done").length}
+          showingCompleted={statusFilter === "done"}
+          onToggleCompleted={() => setStatusFilter(statusFilter === "done" ? "open" : "done")}
           owners={Array.from(new Set([user?.name || user?.email || "", ...options.allOwners].filter(Boolean)))}
           ownerLabel={ownerLabel}
-          onUpdate={updateFocusTask}
+          onUpdate={updateQuickTask}
           onEdit={setEditingTask}
           onAdd={() => setAddingTask(true)}
           filtered={filtersActive}
           onClearFilters={clearFilters}
         />
+      )}
+
+      {view === "workspace" && tasks && scope === "mine" && (
+        <TaskWaitingStrip tasks={tasks.filter((task) => task.delegated && task.status !== "done")} onOwner={(owner) => { changeScope("waiting"); setOwnerFilter(owner); }} onAll={() => changeScope("waiting")} />
       )}
 
       {view === "list" && filtered && filtered.length > 0 && (
@@ -684,7 +671,7 @@ export default function TasksPage() {
         />
       )}
 
-      {view !== "focus" && inScope && inScope.length > 0 && (
+      {view !== "workspace" && inScope && inScope.length > 0 && (
         <details>
           <summary className="w-fit rounded-sm text-sm text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring">Follow-up tools</summary>
           <div className="mt-4 flex flex-col gap-4">

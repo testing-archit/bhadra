@@ -1,4 +1,6 @@
-# Task focus deck
+# Task focus deck (superseded)
+
+This single-card design was rejected as too empty. The selected replacement is described in [task-cards.md](task-cards.md). This file records the earlier release.
 
 Selected by the user on 15 November 2026: Focus deck, with Done, Snooze, and Reassign.
 

@@ -1,10 +1,10 @@
 # Wilco design system
 
-The supplied mobile reference image replaces the earlier video-based direction. Wilco now uses a light lilac canvas, white rounded surfaces, violet actions, compact meeting cards, and direct navigation. The interface is organised around actual meetings and actions.
+The approved v1 browser mascot now governs Wilco’s identity: soft pink, lilac and sky blue, charcoal linework, teal shorts, and orange cap/shoes. Use these colours with the existing components and live meeting/task flows. The image-model references in `docs/design-references/` guide the visual direction; they are not application data.
 
 ## Layout
 
-Home starts with the user's name and a compact greeting. The capture tile sits beside two stacked shortcuts for recording in person and asking past meetings. Recent meetings use cards with the date, duration, a short summary, participant circles, and an Open notes or Review notes action. The focused follow-up queue remains available beside the schedule on desktop and below the meeting cards on mobile.
+Home starts with the compact greeting and a pastel latest-meeting band containing the approved mascot, Review notes and Invite Wilco. A connected panel shows four urgent owned follow-ups with completion and Undo, plus honest progress across the owned tasks returned by the API. A compact schedule and a user-initiated memory question sit alongside it; recent notes use short rows below. Record in person, upload and optional voice setup remain reachable as utility links. Do not invent activity, completion goals or urgency to fill space.
 
 Desktop has a white sidebar and two content columns. Mobile has a bottom bar for Home, Meetings, Calendar, and Settings, plus a central invite button. The profile button opens full navigation so secondary tools remain reachable. Calendar has Ongoing, Upcoming, and History tabs, week controls, tappable dates, real meeting links, and the existing auto-invite switches.
 
@@ -14,23 +14,24 @@ Define colours only in `frontend/src/app/globals.css`; components use theme toke
 
 | Role | Light token value |
 | --- | --- |
-| Canvas | `--background: #faf9fd` |
+| Canvas | `--background: #fcfaf8` |
 | Surface | `--card: #ffffff` |
-| Copy | `--foreground: #24212d` |
-| Secondary copy | `--muted-foreground: #706a7b` |
-| Action | `--primary: #7d45df` |
-| Selected surface | `--accent: #f0e9fc` |
-| Capture tile | `--feature-top: #b184ef`, `--feature-bottom: #7741d7` |
+| Copy | `--foreground: #24262c` |
+| Secondary copy | `--muted-foreground: #65616c` |
+| Primary / selection | `--primary: #126b75` |
+| Selected surface | `--accent: #e1f1f0` |
+| Key action | `--marigold: #ff9b17`, with charcoal text |
+| Pastel band | `--feature-top: #f4c9e4`, `--feature-middle: #dfd2f2`, `--feature-bottom: #bcdcf7` |
 
-The legacy `--marigold` token now follows violet for existing consumers. Light is the default; saved theme preferences remain supported. Dark mode uses the same structure and violet actions.
+Light remains the default; saved theme preferences are respected. Dark mode uses warm charcoal surfaces, light teal selections, and orange key actions. Primary text/action token pairs were checked for contrast in both themes. Use gradients only for the welcome band and the task date rail; do not wash every surface in colour.
 
 Geist carries the interface; Mukta remains the Devanagari fallback. Use compact sentence-case headings and body text. No oversized Home slogan or decorative counters.
 
 ## Components
 
-- `RecordedMeetingCard` is shared by Home and Meetings. Keep processing and attention states visible.
+- `RecordedMeetingCard` remains the Meetings list card. Home uses compact recent-note rows; keep processing and attention states visible.
 - `MeetingPeople` shows initials from the actual attendee names. Do not substitute stock portraits for real identities.
-- `MeetingAgenda` is shared by Home and Calendar. Dates filter events; tabs select event state. Show connection and empty states when the calendar has no data.
+- `MeetingAgenda` has a compact Home mode with the next two live/upcoming events, and a full Calendar mode where dates filter events and tabs select event state. Show honest connection, empty and error states.
 - `MobileNavigation` reflects both pathname and calendar query state. Its central action opens the existing capture dialog.
 - Existing Base UI primitives handle dialogs, tabs, menus, and focus behaviour. Keep Lucide as the icon family.
 
@@ -40,14 +41,22 @@ Joining opens the event's meeting link. Inviting Wilco pre-fills the existing re
 
 One task, decision, or uncertain speaker is reviewed at a time. Inline edits and source evidence remain available. Uncertain speakers can stay unnamed; using a correction for future voice matching has a separate opt-in. Detailed transcripts and insights remain behind Full meeting.
 
+Home review counts require both meeting details and speaker data; failed reads must not imply confirmation. Task progress includes completed and open owned tasks, excludes delegated work, and does not claim a weekly goal. Home never generates an AI answer on load: a submitted or clicked question uses the existing Memory flow. See `docs/home-follow-through.md` for the behavioural rationale and validation.
+
 ## Motion and accessibility
 
-Use short interaction feedback, visible focus, labelled controls, and reduced-motion support. Hover changes are small and purposeful. The violet capture gradient is confined to its action tile; working surfaces stay white. Avoid background animation and simulated recording indicators. Keep recording consent, errors, confidentiality, and sharing rules explicit.
+Use short interaction feedback, visible focus, labelled controls, and reduced-motion support. Hover changes are small and purposeful. The mascot is static and limited to the welcome/navigation areas; working surfaces retain clear text and restrained borders. Avoid background animation and simulated recording indicators. Keep recording consent, errors, confidentiality, and sharing rules explicit.
 
 See `docs/coordination.md` before editing shared files and `docs/ui-reference.md` for previews and verification.
 
 ## Tasks
 
-Focus is the default task layout. Show one full task title, its due date, owner, and Done / Snooze / Reassign actions. Swiping or using the previous/next buttons only browses. A successful change advances the queue and offers Undo, including after the last task. Failed saves keep the current task visible. Snooze explicitly changes the due date and places the task at the back of the current browsing session.
+A connected Flow replaces the rejected deck and disconnected card grid. Keep multiple full task titles visible in one surface. A compact date rail filters actual due dates; All includes undated, overdue and later work too. The selected row receives a teal cue. The shared action dock changes its meeting source and owner without expanding task rows or moving the overview.
 
-Meeting context opens on demand; never offer a meeting link for a task marked `meeting_hidden`. Scope and layout are compact selectors. Filters are initially collapsed. List and Board remain available, with additional task details and follow-up tools disclosed only when opened. The old browser preference for Board does not override the new default; explicit layout selections and links are still honoured.
+Done, Snooze, Reassign, Edit and Undo use existing APIs. Snooze and reassignment use accessible Base UI menus over the working surface. Failed saves preserve selection; Undo remains available after the last task. Restricted meetings never get a link. Search stays visible; advanced filters remain disclosed. List/Board, completed tasks, exports and bulk tools remain available.
+
+Use short transform-only settling after task mutations, no animated backgrounds or looping mascot. Respect reduced motion. The Waiting on strip is derived from accessible delegated tasks and opens the selected owner’s waiting list.
+
+## Memory
+
+Memory uses one central workspace. The initial composer sits beside the approved mascot heading, followed by three short editable question starters and three real recent meetings. Avoid a permanent second sidebar or duplicate explanatory headings. History opens in a labelled dialog; source selection is a draft that applies explicitly, supports up to ten meetings, and preserves the typed question. Cancel leaves the active chat intact; applying unchanged sources preserves the conversation. Answers retain citations, source links and voice controls. The active composer fits above mobile navigation.

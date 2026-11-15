@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 
 const Menu = MenuPrimitive.Root;
 const MenuTrigger = MenuPrimitive.Trigger;
+const MenuGroup = MenuPrimitive.Group;
 
 function MenuContent({
   className,
@@ -56,4 +57,4 @@ function MenuSeparator({ className }: { className?: string }) {
   return <MenuPrimitive.Separator className={cn("my-1 h-px bg-border", className)} />;
 }
 
-export { Menu, MenuTrigger, MenuContent, MenuItem, MenuLabel, MenuSeparator };
+export { Menu, MenuGroup, MenuTrigger, MenuContent, MenuItem, MenuLabel, MenuSeparator };

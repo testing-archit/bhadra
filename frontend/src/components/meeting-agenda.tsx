@@ -27,7 +27,7 @@ const time = (value: string) =>
     minute: "2-digit",
   });
 
-export function MeetingAgenda() {
+export function MeetingAgenda({ compact = false }: { compact?: boolean }) {
   const [schedule, setSchedule] = useState<CalendarSchedule | null>(null);
   const [error, setError] = useState(false);
   const [range, setRange] = useState<Range>("upcoming");
@@ -63,6 +63,87 @@ export function MeetingAgenda() {
       (!selected || dateKey(new Date(event.start_at)) === selected),
   );
   if (range === "past") events.reverse();
+  if (compact) {
+    const nextEvents = (schedule?.events ?? [])
+      .filter((event) => event.when === "live" || event.when === "upcoming")
+      .sort(
+        (a, b) =>
+          new Date(a.start_at).getTime() - new Date(b.start_at).getTime(),
+      )
+      .slice(0, 2);
+    return (
+      <section
+        className="home-work-panel home-compact-agenda"
+        aria-labelledby="home-agenda-heading"
+      >
+        <header className="home-panel-heading">
+          <h2 id="home-agenda-heading">Coming up</h2>
+          <Link href="/meetings?view=calendar">
+            Calendar
+            <ChevronRight aria-hidden="true" />
+          </Link>
+        </header>
+        {error ? (
+          <div className="home-small-empty" role="alert">
+            <p>Your calendar couldn’t load.</p>
+            <button type="button" onClick={() => void load()}>
+              Try again
+            </button>
+          </div>
+        ) : !schedule ? (
+          <Skeleton className="h-16 rounded-xl" />
+        ) : !schedule.connection ? (
+          <div className="home-calendar-connect">
+            <CalendarDays aria-hidden="true" />
+            <div>
+              <p>See your next meeting here.</p>
+              <Link href="/settings#calendar">Connect calendar</Link>
+            </div>
+          </div>
+        ) : nextEvents.length ? (
+          <ul className="home-schedule-list">
+            {nextEvents.map((event) => (
+              <li key={event.id}>
+                <span>
+                  <strong>{time(event.start_at)}</strong>
+                  <small>
+                    {new Date(event.start_at).toLocaleDateString(undefined, {
+                      weekday: "short",
+                      day: "numeric",
+                      month: "short",
+                    })}
+                  </small>
+                </span>
+                <div>
+                  <strong>{event.title}</strong>
+                  <small>
+                    {event.when === "live"
+                      ? "In progress"
+                      : (event.platform ?? "Calendar meeting")}
+                  </small>
+                </div>
+                {event.meeting_url && (
+                  <a
+                    href={event.meeting_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Join
+                    <ChevronRight aria-hidden="true" />
+                  </a>
+                )}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <div className="home-small-empty">
+            <p>No upcoming meetings.</p>
+            <Link href="/meetings?view=calendar">View calendar</Link>
+          </div>
+        )}
+      </section>
+    );
+  }
   return (
     <section className="agenda-panel" aria-labelledby="agenda-heading">
       <div className="section-heading">
