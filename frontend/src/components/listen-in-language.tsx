@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Languages, Loader2, Square, Volume2 } from "lucide-react";
+import { Download, Languages, Loader2, MessageCircle, Square, Volume2 } from "lucide-react";
 import { api } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -26,11 +26,13 @@ type State = "idle" | "loading" | "playing" | "error";
 
 /** Hear meeting notes in your own language: Gemini translates, Gnani Timbre
  * speaks, and the translated text is shown so you can read along. */
-export function ListenInLanguage({ text }: { text: string }) {
+export function ListenInLanguage({ text, title }: { text: string; title?: string }) {
   const [language, setLanguage] = useState("en-IN");
   const [state, setState] = useState<State>("idle");
   const [error, setError] = useState<string | null>(null);
   const [heard, setHeard] = useState<{ language: string; text: string; credit: string } | null>(null);
+  const [sharing, setSharing] = useState(false);
+  const [voiceNote, setVoiceNote] = useState<{ language: string; audio: string } | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const cache = useRef(new Map<string, Awaited<ReturnType<typeof api.speakTranslated>>>());
 
@@ -46,7 +48,38 @@ export function ListenInLanguage({ text }: { text: string }) {
   useEffect(() => {
     cache.current.clear();
     setHeard(null);
+    setVoiceNote(null);
   }, [text]);
+
+  async function resultFor(code: string) {
+    let result = cache.current.get(code);
+    if (!result) {
+      result = await api.speakTranslated(text, code);
+      cache.current.set(code, result);
+    }
+    if (result.audio) setVoiceNote({ language: code, audio: result.audio });
+    return result;
+  }
+
+  /** WhatsApp text in the chosen language (opened in WhatsApp or WhatsApp Web). */
+  async function shareOnWhatsApp() {
+    setSharing(true);
+    setError(null);
+    // Open the window inside the tap, so pop-up blockers allow it.
+    const target = window.open("about:blank", "_blank");
+    try {
+      const body = language === "en-IN" ? text : (await resultFor(language)).text;
+      const message = `${title ? `*${title}*\n` : ""}${body}\n\n_Notes by Wilco_`;
+      const url = `https://wa.me/?text=${encodeURIComponent(message)}`;
+      if (target) target.location.href = url;
+      else window.location.href = url;
+    } catch (cause) {
+      target?.close();
+      setError(cause instanceof Error ? cause.message : "Couldn't prepare the message.");
+    } finally {
+      setSharing(false);
+    }
+  }
 
   function stop() {
     audioRef.current?.pause();
@@ -58,11 +91,7 @@ export function ListenInLanguage({ text }: { text: string }) {
     setState("loading");
     setError(null);
     try {
-      let result = cache.current.get(language);
-      if (!result) {
-        result = await api.speakTranslated(text, language);
-        cache.current.set(language, result);
-      }
+      const result = await resultFor(language);
       const voice = `Gnani ${result.model.replace("timbre-", "Timbre ")} (${result.voice})`;
       setHeard(language === "en-IN" ? null : {
         language, text: result.text,
@@ -111,6 +140,16 @@ export function ListenInLanguage({ text }: { text: string }) {
           {state === "loading" ? <Loader2 className="animate-spin" aria-hidden="true" /> : state === "playing" ? <Square aria-hidden="true" /> : <Volume2 aria-hidden="true" />}
           {state === "loading" ? (language === "en-IN" ? "Loading" : "Translating") : state === "playing" ? "Stop" : "Listen"}
         </Button>
+        <Button size="sm" variant="outline" onClick={() => void shareOnWhatsApp()} disabled={sharing} title="Send these notes on WhatsApp in the chosen language">
+          {sharing ? <Loader2 className="animate-spin" aria-hidden="true" /> : <MessageCircle aria-hidden="true" />}
+          WhatsApp
+        </Button>
+        {voiceNote?.language === language && (
+          <Button size="sm" variant="ghost" render={<a href={`data:audio/mpeg;base64,${voiceNote.audio}`} download={`wilco-notes-${language}.mp3`} />} title="Download the spoken notes to forward as a voice note">
+            <Download aria-hidden="true" />
+            Voice note
+          </Button>
+        )}
       </div>
       {error && <p className="text-sm text-destructive" role="alert">{error}</p>}
       {heard && (

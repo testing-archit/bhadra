@@ -773,7 +773,7 @@ export default function MeetingDetailPage() {
                 <div className="flex gap-2"><Button size="sm" variant="outline" onClick={() => setSummaryEditing(true)}><Pencil className="h-3.5 w-3.5" /> Review</Button><Button size="sm" variant="outline" onClick={() => void regenerateSummary()} disabled={summaryBusy} title="Generate detailed summary again"><RefreshCw className={`h-3.5 w-3.5 ${summaryBusy ? "animate-spin" : ""}`} /> {summaryBusy ? "Generating" : "Regenerate"}</Button></div>
               </CardHeader>
               <CardContent>
-                {meeting.summary && !summaryEditing && <div className="mb-4"><ListenInLanguage text={meeting.summary} /></div>}
+                {meeting.summary && !summaryEditing && <div className="mb-4"><ListenInLanguage text={meeting.summary} title={meeting.title} /></div>}
                 {meeting.summary ? <FormattedSummary summary={meeting.summary} /> : <p className="text-sm text-muted-foreground">No summary is available yet.</p>}
                 {summaryError && <p className="mt-3 text-sm text-destructive">{summaryError}</p>}
               </CardContent>
