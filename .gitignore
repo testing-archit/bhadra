@@ -14,6 +14,8 @@ dist/
 .DS_Store
 *client_secret*.json
 *.pem
+**/figma-auth*.json
+backend/bot/data/
 .bug-hunter/
 .claude/
 nginx/ssl.conf

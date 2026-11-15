@@ -31,6 +31,8 @@ STATE_DIR = Path(_env("STATE_DIR", str(Path(__file__).parent / "data")))
 # Playwright storage state (cookies) for the notetaker's Google login.
 # Rewritten after every meeting so Google's rotating cookies stay current.
 AUTH_STATE_PATH = Path(_env("AUTH_STATE_PATH", str(STATE_DIR / "auth.json")))
+# Separate from Google/Meet. Created by the interactive Figma login helper.
+FIGMA_AUTH_STATE_PATH = Path(_env('FIGMA_AUTH_STATE_PATH', str(STATE_DIR / 'figma-auth.json')))
 
 POLL_SECONDS = int(_env("POLL_SECONDS", "30"))
 # "Send notetaker" requests are checked far more often than the calendar:

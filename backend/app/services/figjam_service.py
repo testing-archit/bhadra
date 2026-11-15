@@ -14,6 +14,8 @@ def now():
 
 
 def connected(connection):
+    if connection.transport == 'browser':
+        return bool(connection.last_seen_at and connection.expires_at > now())
     return bool(connection.token_hash and connection.expires_at > now() and connection.last_seen_at
                 and (now()-connection.last_seen_at).total_seconds() < 8)
 

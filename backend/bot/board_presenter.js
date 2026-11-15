@@ -6,6 +6,7 @@
   const ctx = canvas.getContext('2d');
   const original = navigator.mediaDevices?.getDisplayMedia?.bind(navigator.mediaDevices);
   let armed = false, stream = null, version = null, lastBoard = null, frameTimer = null;
+  let nativeImage = null, nativeSource = null;
   const color = (token, fallback) => getComputedStyle(document.documentElement).getPropertyValue(token).trim() || fallback;
   function wrap(text, x, y, width, lines) {
     const words = String(text || '').split(/\s+/); let line = '', count = 0;
@@ -21,6 +22,22 @@
   function draw(board) {
     lastBoard = board;
     version = board.version;
+    if (board.frame_image) {
+      if (nativeSource !== board.frame_image) {
+        nativeSource = board.frame_image;
+        const source = nativeSource, next = new Image();
+        next.onload = () => { if (nativeSource === source) { nativeImage = next; draw(lastBoard); } };
+        next.src = source;
+      }
+      ctx.fillStyle = 'white'; ctx.fillRect(0, 0, 1280, 720);
+      if (nativeImage) {
+        const scale = Math.min(1280/nativeImage.width, 720/nativeImage.height);
+        const w = nativeImage.width*scale, h = nativeImage.height*scale;
+        ctx.drawImage(nativeImage, (1280-w)/2, (720-h)/2, w, h);
+      }
+      return;
+    }
+    nativeImage = null; nativeSource = null;
     const background = color('--background', 'white');
     const ink = color('--foreground', 'black');
     const primary = color('--primary', 'rebeccapurple');

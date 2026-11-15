@@ -73,6 +73,7 @@ jobs:
             docker compose -f docker-compose.prod.yml exec -T notetaker python - <<'PYDIAG'
           import config
           print({"presentation_enabled": config.PRESENT_BOARD, "google_auth_state_present": config.AUTH_STATE_PATH.is_file()})
+          print({"figma_auth_state_present": getattr(config, 'FIGMA_AUTH_STATE_PATH', config.STATE_DIR / 'figma-auth.json').is_file()})
           PYDIAG
           REMOTE
 

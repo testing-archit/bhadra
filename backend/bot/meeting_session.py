@@ -36,6 +36,7 @@ import config
 import board_presenter
 import browser_voice
 from agent_client import AgentClient, AgentBusy
+from figjam_browser import FigJamBrowser, run_actions
 from board_intent import board_intent, normalize, opening_only, requires_plan
 from command_runtime import Command, CommandRuntime, stage
 import meet_chat
@@ -551,6 +552,7 @@ class MeetingSession:
         self._standins_introduced: set[str] = set()
         self._pause_reminded = False
         self._agent = None
+        self._figjam_browser = None
         self._pending_commands = {}
         self._progress_shown = set()
         self._agent_runtime = None
@@ -951,7 +953,7 @@ class MeetingSession:
                 # Keep the explicit task description, rather than its routing prefix.
                 command.question = task
                 return await self.submit_agent_command(page, command, "add_task")
-            action_request = bool(re.match(r"(?:build|make|create|design|map|draw|send|email|research|find|schedule|mark|complete|assign|reassign|update|delete|remove|move|invite)\b", normalize(question), re.I))
+            action_request = bool(re.match(r"(?:open|launch|build|make|create|design|map|draw|send|email|research|find|schedule|mark|complete|assign|reassign|update|delete|remove|move|invite)\b", normalize(question), re.I))
             compound = requires_plan(question)
             return await self.submit_agent_command(page, command, "auto" if action_request or compound else "answer")
         if reply:
@@ -1211,6 +1213,12 @@ class MeetingSession:
         if not config.PRESENT_BOARD or not self.USES_GOOGLE_LOGIN:
             return "Automatic presentation isn't enabled here. Open the board link and share that tab in Meet."
         try:
+            if self._figjam_browser and self._figjam_browser.file_url:
+                frame = await self._figjam_browser.frame()
+                if frame:
+                    async with self._browser_lock:
+                        started = await board_presenter.start(page, frame)
+                    return 'Meet shows FigJam as presenting.' if started else 'I could not start presenting FigJam. Open its link and share that tab.'
             board = await asyncio.to_thread(uploader.board_state, self.capture_request_id)
             if board and board.get('external_url'):
                 return 'Your board is in FigJam. Open its shared link and present that tab in Meet.'
@@ -1275,6 +1283,8 @@ class MeetingSession:
             if self.capture_request_id:
                 self._agent = AgentClient(self.capture_request_id)
             result_task = asyncio.create_task(self.agent_results_loop(page, runtime))
+            browser_task = asyncio.create_task(run_actions(self._agent, self._figjam_browser,
+                lambda: bool(self._pending_commands), self.session_id)) if self._agent and self._figjam_browser else None
             announce_task = asyncio.create_task(self.announce_voice_updates(page))
             # Caption revisions wake intake immediately; the short timeout also
             # checks settled captions and typed chat without a DOM observer.
@@ -1288,9 +1298,12 @@ class MeetingSession:
                 present_task.cancel()
                 result_task.cancel()
                 announce_task.cancel()
+                if browser_task:
+                    browser_task.cancel()
                 if self._voice_update_task:
                     self._voice_update_task.cancel()
                 await asyncio.gather(flush_task, present_task, result_task, announce_task,
+                                     *([browser_task] if browser_task else []),
                                      *([self._voice_update_task] if self._voice_update_task else []), return_exceptions=True)
                 if self._agent:
                     await self._agent.close()
@@ -1306,6 +1319,15 @@ class MeetingSession:
                 if config.PRESENT_BOARD and self.USES_GOOGLE_LOGIN and self.capture_request_id:
                     state = await page.evaluate('() => window.__wilcoBoard?.state()')
                     if state and state.get('active'):
+                        if self._figjam_browser and self._figjam_browser.file_url:
+                            frame = await self._figjam_browser.frame()
+                            if frame:
+                                await page.evaluate('(board) => window.__wilcoBoard.draw(board)', frame)
+                            else:
+                                async with self._browser_lock:
+                                    await board_presenter.stop(page)
+                            await asyncio.sleep(1)
+                            continue
                         board = await asyncio.to_thread(uploader.board_state, self.capture_request_id)
                         if board and board['version'] != state['version']:
                             await page.evaluate('(board) => window.__wilcoBoard.draw(board)', board)
@@ -1437,6 +1459,7 @@ class MeetingSession:
         self.create_sink()
         try:
             async with async_playwright() as p:
+                self._figjam_browser = FigJamBrowser(p)
                 browser = await p.chromium.launch(
                     headless=False,  # on Xvfb — headless Chromium renders no WebRTC audio
                     env={**os.environ, "PULSE_SINK": self.sink, "PULSE_SOURCE": self.voice_mic, "PULSE_LATENCY_MSEC": str(PULSE_LATENCY_MS)},
@@ -1478,6 +1501,7 @@ class MeetingSession:
                     raise
                 finally:
                     self.stop_recording()
+                    await self._figjam_browser.close()
                     if storage:
                         await self.save_auth(context)
                     await browser.close()

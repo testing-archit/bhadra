@@ -9,6 +9,10 @@ sys.path.pop(0)
 
 @pytest.mark.parametrize('question,active,task,expected', [
     ('open a whiteboard', False, False, 'open'),
+    ('Open Fig Jam', False, False, 'open'),
+    ('Please just open up FigJam', False, False, 'open'),
+    ('I need you to open Jam boards', False, False, 'open'),
+    ('Launch FigJam', False, False, 'open'),
     ('can you please open and present the whiteboard', False, False, 'open_present'),
     ('present the board', False, False, 'present'),
     ('stop presenting', True, False, 'stop'),

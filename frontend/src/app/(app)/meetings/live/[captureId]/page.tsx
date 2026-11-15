@@ -4,8 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { ArrowLeft, AudioLines, ExternalLink } from "lucide-react";
-import { MeetingBoard } from "@/components/meeting/meeting-board";
-import { FigJamConnection } from "@/components/meeting/figjam-connection";
+import { FigJamBoard } from "@/components/meeting/figjam-board";
 import { api, type CaptureRequestItem, type LiveBoardCaption } from "@/lib/api";
 
 export default function LiveMeetingBoardPage() {
@@ -13,7 +12,6 @@ export default function LiveMeetingBoardPage() {
   const [capture, setCapture] = useState<CaptureRequestItem | null>(null);
   const [captions, setCaptions] = useState<LiveBoardCaption[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [showDraft, setShowDraft] = useState(false);
 
   const refresh = useCallback(async () => {
     try {
@@ -38,13 +36,12 @@ export default function LiveMeetingBoardPage() {
       <div>
         <p className="flex items-center gap-2 text-sm font-medium text-primary"><AudioLines className="size-4" />{capture?.status === "capturing" ? "Live meeting" : capture?.status_label || "Meeting session"}</p>
         <h1 className="mt-1 font-heading text-2xl font-semibold tracking-tight sm:text-3xl">{capture?.title || "Meeting board"}</h1>
-        <p className="mt-2 max-w-2xl text-sm text-muted-foreground">Connect your shared FigJam file and ask Wilco to draw with your voice.</p>
+        <p className="mt-2 max-w-2xl text-sm text-muted-foreground">Ask Wilco to open FigJam from the meeting.</p>
       </div>
       {capture?.meeting_id && <Link href={`/meetings/${capture.meeting_id}?tab=board`} className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline">Open finished meeting <ExternalLink className="size-4" /></Link>}
     </header>
     {error && <p className="rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive" role="alert">{error}</p>}
-    <FigJamConnection captureId={captureId} />
-    <details onToggle={event => setShowDraft(event.currentTarget.open)}><summary className="cursor-pointer text-sm text-muted-foreground">Built-in meeting draft</summary>{showDraft && <div className="mt-3"><MeetingBoard captureId={captureId} /></div>}</details>
+    <FigJamBoard captureId={captureId} />
     <section id="live-captions" className="rounded-2xl border bg-card p-4 sm:p-5" aria-label="Live transcript">
       <div className="flex items-baseline justify-between gap-3"><h2 className="font-heading text-lg font-semibold">Live transcript</h2><span className="text-xs text-muted-foreground">Caption updates may take a few seconds</span></div>
       {captions.length ? <div className="mt-4 max-h-96 space-y-3 overflow-y-auto pr-2">{captions.map((caption) => <p key={caption.seq} className="grid gap-1 border-b pb-3 text-sm last:border-b-0 sm:grid-cols-[5rem_9rem_minmax(0,1fr)]">
