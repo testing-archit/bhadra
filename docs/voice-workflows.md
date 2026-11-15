@@ -1,6 +1,6 @@
 # Voice workflows
 
-Implemented from main `d184828` on `codex/voice-workflows-20261115`. No database migration or new package is needed. This checkpoint has not been deployed.
+Implemented from main `d184828` on `codex/voice-workflows-20261115`. No database migration or new package is needed. The user authorized production release on 15 November 2026; deployment is being verified.
 
 ## Try the features
 
@@ -32,3 +32,10 @@ The players generate speech only after a tap, reuse the existing translation/Tim
 - Nine browser checks passed with synthetic API data: ready brief, pending-audio cancellation, Hinglish text/playback, narrow Home layout, source speaker/time, audio controls, narrow Delivery layout, playback removal on close and desktop Delivery layout.
 
 These checks do not validate real Jira assignments, Prisma/Timbre speech quality, real-call chat delivery, translation accuracy or acoustic latency. Real service/call acceptance remains required after deployment. No Jira issue, real meeting recording or external chat message was created during verification.
+
+
+## Pre-release correction
+
+A focused local-sequential Bug Hunter review covered voice task dispatch, task intent, running translations and the Live route (four source files, two confirmed issues, none dismissed). Both issues were reproduced before fixing: merely mentioning Jira inside an internal task could trigger an external issue, and one failing translation language could starve later subscribers. Jira dispatch now requires an explicit Jira ticket/issue/task creation destination; each translation language handles its own ordinary provider/delivery failure while cancellation still propagates. “Issue” creation requests are recognized alongside tickets.
+
+After correction: 560 backend tests passed, including two new reproductions; frontend production build/typecheck, extension checks and five native FigJam checks passed. The release probe now checks signed-in stand-up and decision-source routes, invalid credentials, synthetic cleanup and (in model-canary mode) the real translation endpoint. Its authenticated local HTTP run passed without provider calls. Production verification remains pending below.

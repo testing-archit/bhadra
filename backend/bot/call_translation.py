@@ -3,10 +3,12 @@
 Each language advances only after its summary reaches chat. Translation never
 plays speech, avoiding overlap with the discussion and the command microphone.
 """
+import logging
 import re
 import time
 
 LANGUAGES = {"english": "en-IN", "hinglish": "hi-en", "hindi": "hi-IN", "tamil": "ta-IN", "telugu": "te-IN", "kannada": "kn-IN", "malayalam": "ml-IN", "marathi": "mr-IN", "bengali": "bn-IN", "gujarati": "gu-IN", "punjabi": "pa-IN"}
+log = logging.getLogger(__name__)
 STOP = {"stop translation", "stop translating", "stop translations", "turn off translation"}
 
 
@@ -49,9 +51,14 @@ class RunningTranslations:
             delta = [row for row in captions if float(row.get('end', 0)) > cursor and float(row.get('end', 0)) <= elapsed - 8][-60:]
             if not delta:
                 continue
-            result = await translate(LANGUAGES[language], delta)
             if revision != self.revision or paused():
                 return
-            if result and await send(f"[{language.title()} · running summary] {result}"):
-                if revision == self.revision:
-                    self.languages[language] = max(float(row['end']) for row in delta)
+            try:
+                result = await translate(LANGUAGES[language], delta)
+                if revision != self.revision or paused():
+                    return
+                if result and await send(f"[{language.title()} · running summary] {result}"):
+                    if revision == self.revision:
+                        self.languages[language] = max(float(row['end']) for row in delta)
+            except Exception as error:
+                log.warning("Running translation unavailable (%s, %s)", language, type(error).__name__)

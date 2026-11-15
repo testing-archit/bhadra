@@ -185,3 +185,25 @@ def test_translation_uses_fast_model_and_billed_feature():
     assert model.call_args.kwargs["feature"] == "live_translation"
     assert model.call_args.kwargs["model"] == settings.gemini_fast_model
     assert "Tamil" in model.call_args.args[0]
+
+
+def test_jira_requires_an_explicit_external_ticket_instruction():
+    for command in ("Create a Jira ticket: fix retries", "Please raise an issue in Jira for retries", "Make a task on Jira to fix retries", "Jira pe ticket bana do: fix retries"):
+        assert voice_tasks.requests_jira(command), command
+        assert live_conversation.looks_like_task(command), command
+    for command in ("Add a task to review Jira permissions", "Create a reminder to check Jira", "Create a task: inspect the Jira webhook", "What Jira tickets are open?"):
+        assert not voice_tasks.requests_jira(command), command
+
+
+async def test_failing_translation_does_not_starve_other_languages():
+    state = running_class()()
+    captions = [{"speaker": "Vedant", "text": "Fix retries", "start": 1, "end": 3}]
+    state.command("translate to Tamil", []); state.command("translate to Hindi", [])
+    async def translate(language, captions):
+        if language == "ta-IN":
+            raise RuntimeError("temporary provider failure")
+        return "हिन्दी सारांश"
+    send = AsyncMock(return_value=True)
+    await state.flush(captions, 20, translate, send, lambda: False)
+    assert "Hindi" in send.call_args.args[0]
+    assert state.languages["tamil"] == 0 and state.languages["hindi"] == 3

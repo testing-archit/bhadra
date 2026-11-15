@@ -70,8 +70,8 @@ async def meeting_digest(db, user: User) -> str:
 
 
 _TASK_WORDS = re.compile(
-    r"(\b(add|create|make|log|note|open|raise|file)\b.*\b(task|todo|to-do|action item|ticket|reminder)\b"
-    r"|\b(task|ticket|todo|reminder)\b.*\b(bana do|banao|bana de|daal do|daalo|add karo|add kar do|likh lo|likh do|create karo|kar do)\b"
+    r"(\b(add|create|make|log|note|open|raise|file)\b.*\b(task|todo|to-do|action item|ticket|issue|reminder)\b"
+    r"|\b(task|ticket|issue|todo|reminder)\b.*\b(bana do|banao|bana de|daal do|daalo|add karo|add kar do|likh lo|likh do|create karo|kar do)\b"
     r"|^\s*remind me to\b|^\s*(yaad dila|yaad dilana)\b)",
     re.I,
 )

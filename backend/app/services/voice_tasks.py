@@ -18,7 +18,13 @@ from app.services import jira_service, live_assist
 
 
 def requests_jira(command: str) -> bool:
-    return bool(re.search(r"\bjira\b", command, re.I))
+    # Require the destination in the creation instruction, rather than a
+    # product mentioned inside the task description ("review Jira permissions").
+    return bool(re.search(
+        r"\b(?:create|make|open|raise|file|add)\s+(?:(?:a|an|the|new)\s+)*jira\s+(?:ticket|issue|task)\b"
+        r"|\b(?:create|make|open|raise|file|add)\s+(?:(?:a|an|the|new)\s+)*(?:ticket|issue|task)\s+(?:in|on|to)\s+jira\b"
+        r"|\bjira\s+(?:(?:pe|par|mein|me)\s+)?(?:ticket|issue|task)\s+(?:bana do|banao|bana de|create karo|add karo)\b",
+        command, re.I))
 
 
 async def create(db, user, command: str, audio: bytes) -> tuple[dict, str]:
