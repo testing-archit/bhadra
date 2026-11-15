@@ -118,5 +118,5 @@ async def live_turn(
                'total_ms': round((time.monotonic()-started)*1000, 2)}
     logger.info('live_turn_timing %s', json.dumps(timings))
     return {"transcript": text, "reply": answer, "audio": encoded, "language": heard.get("language"),
-            'timings': timings, 'task_added': task_added, 'reply_model': reply_model, 'heard_model': settings.gnani_stt_model, 'speech_provider': 'gnani', 'speech_model': tts_service.voice_for(spoken_language)[0],
+            'timings': timings, 'task_added': task_added, 'reply_model': reply_model, 'heard_model': heard.get('metadata', {}).get('diarizer', settings.gnani_stt_model), 'speech_provider': 'gnani', 'speech_model': tts_service.voice_for(spoken_language)[0],
             'speech_voice': tts_service.voice_for(spoken_language)[1], 'speech_language': spoken_language}

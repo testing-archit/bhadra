@@ -57,7 +57,7 @@ async def try_prisma(request: Request, audio: UploadFile = File(...), user: User
     started = time.monotonic()
     try:
         heard = await transcriber.transcribe_audio_detailed(
-            data, audio.content_type or "audio/webm", "auto", timeout_seconds=20, interactive=True)
+            data, audio.content_type or "audio/webm", "auto", timeout_seconds=20, interactive=True, profile="standard")
     except transcriber.TranscriptionNotConfigured as error:
         raise HTTPException(status_code=503, detail=str(error)) from error
     except Exception as error:

@@ -1,54 +1,28 @@
 import asyncio
 import json
 import logging
-import os
+import math
 import re
-import subprocess
-import tempfile
 from collections import Counter
 from typing import Any
 
 import httpx
 
 from app.config import settings
-from app.services import usage_ledger, vocabulary_service
+from app.services import scribe_service, usage_ledger, vocabulary_service
 from app.services.speech_admission import SpeechAdmission
+from app.services.audio_preparation import enhanced_upload, prepare_audio
 
 logger = logging.getLogger(__name__)
 
 # Prisma v3.0 accepts recorded media through the Gnani REST endpoint. The
-# product's language selector maps to BCP-47 where a person chooses a single
-# language; Hinglish and Auto deliberately use Prisma's Auto-LID instead.
+# language selector sends Hindi/English hints for Hinglish and Auto-LID
+# when the source language is unknown.
 # Prisma's Auto-LID code is "indic-auto"; a bare "auto" is rejected with
 # INVALID_LANGUAGE_CODE.
 _AUTO_LID = "indic-auto"
-_LANGUAGE_MAP = {"en": "en-IN", "hi": "hi-IN", "hinglish": _AUTO_LID, "auto": _AUTO_LID}
+_LANGUAGE_MAP = {"en": "en-IN", "hi": "hi-IN", "hinglish": "hi-IN,en-IN", "auto": _AUTO_LID}
 
-# Prisma accepts only these containers (UNSUPPORTED_AUDIO_FORMAT otherwise).
-# Everything Wilco records is WebM (Opus), so it is repackaged as Ogg:
-# the same Opus audio in a container Prisma takes, copied, not re-encoded.
-_SUPPORTED_UPLOADS = {
-    "audio/ogg": "ogg", "audio/opus": "ogg", "audio/mpeg": "mp3", "audio/mp3": "mp3",
-    "audio/wav": "wav", "audio/x-wav": "wav", "audio/wave": "wav", "audio/flac": "flac",
-    "audio/x-flac": "flac", "audio/aac": "aac", "audio/mp4": "m4a", "audio/x-m4a": "m4a",
-    "audio/m4a": "m4a",
-}
-_CONVERT_TIMEOUT_SECONDS = 300
-
-
-def _ffmpeg_to_ogg(audio_bytes: bytes, reencode: bool) -> bytes:
-    codec = ["-c:a", "libopus", "-b:a", "48k", "-ac", "1"] if reencode else ["-c:a", "copy"]
-    result = subprocess.run(
-        ["ffmpeg", "-nostdin", "-v", "error", "-i", "pipe:0", "-vn", *codec, "-f", "ogg", "pipe:1"],
-        input=audio_bytes, capture_output=True, timeout=_CONVERT_TIMEOUT_SECONDS, check=True,
-    )
-    if not result.stdout:
-        raise RuntimeError("ffmpeg produced no audio")
-    return result.stdout
-
-
-_CHUNK_SECONDS = 25.0
-_MAX_SINGLE_SECONDS = 28.0
 # The Gnani account allows one active request at a time (429 RATE_LIMITED
 # otherwise), so every Prisma call in this process queues on one lock and a
 # 429 from elsewhere (another process) is retried with a short back-off.
@@ -63,65 +37,6 @@ def _lock() -> SpeechAdmission:
     return _prisma_lock
 
 
-def _probe_seconds(path: str) -> float | None:
-    try:
-        result = subprocess.run(
-            ["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "default=nw=1:nk=1", path],
-            capture_output=True, text=True, timeout=60, check=True,
-        )
-        return float(result.stdout.strip())
-    except (OSError, ValueError, subprocess.SubprocessError):
-        return None
-
-
-def _segment_to_ogg(path: str, out_dir: str) -> list[str]:
-    subprocess.run(
-        ["ffmpeg", "-nostdin", "-v", "error", "-y", "-i", path, "-vn", "-ac", "1", "-ar", "16000",
-         "-c:a", "libopus", "-b:a", "32k", "-f", "segment", "-segment_time", str(_CHUNK_SECONDS),
-         "-reset_timestamps", "1", os.path.join(out_dir, "chunk_%04d.ogg")],
-        capture_output=True, timeout=_CONVERT_TIMEOUT_SECONDS, check=True,
-    )
-    return sorted(os.path.join(out_dir, name) for name in os.listdir(out_dir) if name.startswith("chunk_"))
-
-
-async def _split_for_prisma(audio_bytes: bytes, mime_type: str) -> list[tuple[float, float, tuple[str, bytes, str]]]:
-    """(offset seconds, length seconds, upload) pieces of at most ~25 s each.
-    Audio ffprobe can't read, or that is short enough, goes up whole."""
-    with tempfile.TemporaryDirectory(prefix="prisma-") as work:
-        source = os.path.join(work, "source")
-        with open(source, "wb") as handle:
-            handle.write(audio_bytes)
-        seconds = await asyncio.to_thread(_probe_seconds, source)
-        if seconds is None or seconds <= _MAX_SINGLE_SECONDS:
-            return [(0.0, seconds or 0.0, await _prisma_upload(audio_bytes, mime_type))]
-        files = await asyncio.to_thread(_segment_to_ogg, source, work)
-        pieces = []
-        for index, path in enumerate(files):
-            offset = index * _CHUNK_SECONDS
-            with open(path, "rb") as handle:
-                pieces.append((offset, min(_CHUNK_SECONDS, max(seconds - offset, 0.0)), (f"meeting_{index:04d}.ogg", handle.read(), "audio/ogg")))
-        logger.info("Split %.0f s of audio into %d Prisma chunks", seconds, len(pieces))
-        return pieces
-
-
-async def _prisma_upload(audio_bytes: bytes, mime_type: str) -> tuple[str, bytes, str]:
-    """(filename, bytes, content type) in a container Prisma accepts. WebM and
-    anything unknown become Ogg: a stream copy first (milliseconds, lossless),
-    then a re-encode to Opus if the codec can't go into Ogg as-is. If ffmpeg
-    can't read the audio at all, the original is sent and Prisma's own error
-    explains the problem."""
-    base = (mime_type or "").split(";")[0].strip().lower()
-    extension = _SUPPORTED_UPLOADS.get(base)
-    if extension:
-        return f"meeting.{extension}", audio_bytes, base
-    for reencode in (False, True):
-        try:
-            converted = await asyncio.to_thread(_ffmpeg_to_ogg, audio_bytes, reencode)
-            return "meeting.ogg", converted, "audio/ogg"
-        except (OSError, RuntimeError, subprocess.SubprocessError) as error:
-            logger.info("Converting %s audio to Ogg (reencode=%s) failed: %s", base or "unknown", reencode, error)
-    logger.warning("Sending %s audio to Prisma unconverted", base or "unknown")
-    return "meeting.webm", audio_bytes, mime_type or "audio/webm"
 _LOW_SPEAKER_CONFIDENCE = 0.62
 
 
@@ -240,7 +155,8 @@ def _fixture_transcription() -> dict[str, Any]:
 
 def _number(value: Any, default: float = 0.0) -> float:
     try:
-        return float(value)
+        number = float(value)
+        return number if math.isfinite(number) else default
     except (TypeError, ValueError):
         return default
 
@@ -312,94 +228,130 @@ async def transcribe_audio_detailed(
     # for ahead of everyone else at the company.
     people: list[str] | None = None,
     interactive: bool = False,
+    channel_mode: str = "preserve",
+    profile: str | None = None,
 ) -> dict[str, Any]:
-    if not settings.gnani_api_key:
+    profile = profile or settings.stt_profile
+    if profile not in {"standard", "robust"}:
+        raise ValueError("Unknown transcription profile")
+    robust = profile == "robust"
+    provider, model = ("elevenlabs", scribe_service.MODEL) if robust else ("gnani", settings.gnani_stt_model)
+    if not (settings.eleven_labs_api_key if robust else settings.gnani_api_key):
         if settings.fixture_mode_active:
             return _fixture_transcription()
-        raise TranscriptionNotConfigured("Transcription is not set up: GNANI_API_KEY is missing")
-    # Prisma's REST API accepts multipart audio. `format` keeps compatibility
-    # with the currently documented REST field; `mode` selects the v3 output
-    # style. We intentionally do not set Content-Type: httpx supplies the
-    # multipart boundary.
+        raise TranscriptionNotConfigured("Transcription is not set up for the selected profile")
+    # Prisma REST uses format/keyterms. httpx supplies the multipart boundary.
     vocabulary = await vocabulary_service.active_vocabulary()
     terms = vocabulary_service.keyterms(settings.team_roster_list, vocabulary, people or ())[:200]
     data = {
         "model": settings.gnani_stt_model,
-        "mode": settings.gnani_stt_mode,
-        "format": "transcribe",
+        "format": settings.gnani_stt_mode,
         "language_code": _LANGUAGE_MAP.get(meeting_language, _AUTO_LID),
-        "preferred_language": _LANGUAGE_MAP.get(meeting_language, _AUTO_LID),
     }
     if terms:
-        data["key_terms"] = json.dumps(terms, ensure_ascii=False)
+        data["keyterms"] = json.dumps(terms, ensure_ascii=False)
 
     # Prisma's REST endpoint takes at most 30 s of audio per request
-    # (MAX_AUDIO_DURATION_EXCEEDED), so longer audio goes up in ~25 s chunks,
-    # a few at a time, and the turns are stitched back on one timeline.
-    pieces = await _split_for_prisma(audio_bytes, mime_type)
+    # (MAX_AUDIO_DURATION_EXCEEDED). Submit lossless pieces serially, letting
+    # live requests go ahead of the next batch piece.
     timeout = httpx.Timeout(min(timeout_seconds, 300.0), connect=20.0)
 
-    async def transcribe_piece(client: httpx.AsyncClient, upload: tuple[str, bytes, str]) -> dict:
+    async def transcribe_piece(client: httpx.AsyncClient, upload: tuple[str, bytes, str], request_data: dict) -> dict:
         for attempt in range(2 if interactive else _RATE_LIMIT_RETRIES):
             async with _lock().slot(interactive):
                 response = await client.post(
                     settings.gnani_stt_url,
                     headers={"X-API-Key-ID": settings.gnani_api_key},
                     files={"audio_file": upload},
-                    data=data,
+                    data=request_data,
                 )
             if response.status_code == 429 or (response.status_code >= 500 and attempt < 1):
                 await asyncio.sleep(min(1.0 + attempt, 5.0))
                 continue
             break
         if not response.is_success:
-            raise RuntimeError(f"Gnani Prisma error {response.status_code}: {response.text}")
+            raise RuntimeError(f"Gnani Prisma error {response.status_code}")
         piece_payload = response.json()
         if piece_payload.get("success") is False:
-            raise RuntimeError(f"Gnani Prisma rejected the audio: {piece_payload.get('message') or piece_payload.get('error') or 'unknown error'}")
+            raise RuntimeError("Gnani Prisma rejected the audio")
         return piece_payload
-
-    async with httpx.AsyncClient(timeout=timeout) as client:
-        payloads = [await transcribe_piece(client, upload) for _, _, upload in pieces]
 
     turns = []
     languages: Counter[str] = Counter()
+    enhancement_counts: Counter[str] = Counter()
     next_speaker = 0
-    for (offset, length, _upload), piece_payload in zip(pieces, payloads):
-        if piece_payload.get("detected_language_code"):
-            languages[piece_payload["detected_language_code"]] += 1
-        piece_turns = _turns_from_prisma(piece_payload)
-        # REST calls number speakers independently. Reusing a number across
-        # chunks would merge different people in the transcript and review.
-        local_speakers = {
-            speaker: next_speaker + index
-            for index, speaker in enumerate(sorted({turn["speaker"] for turn in piece_turns}))
-        } if len(pieces) > 1 else {}
-        next_speaker += len(local_speakers)
-        for turn in piece_turns:
-            if len(pieces) > 1:
-                turn["speaker"] = local_speakers[turn["speaker"]]
-                turn["start"] = round(turn["start"] + offset, 3)
-                turn["end"] = round(max(turn["end"] + offset, turn["start"]) if turn["end"] else offset + length, 3)
-            turns.append(turn)
-    payload = payloads[0] if len(payloads) == 1 else {"detected_language_code": languages.most_common(1)[0][0] if languages else None}
-    total_seconds = sum(length for _, length, _ in pieces)
+    previous: dict[int | None, str] = {}
+    request_count = 0
+    submitted_seconds = skipped_seconds = 0.0
+    last_request_id = None
+    async with prepare_audio(audio_bytes, channel_mode) as prepared, httpx.AsyncClient(timeout=timeout) as client:
+        for piece in prepared.pieces():
+            if piece.silent:
+                skipped_seconds += piece.duration
+                previous.pop(piece.channel, None)
+                continue
+            # Benchmark selected native PCM for Scribe; keep experimental
+            # frontend denoisers confined to the standard profile.
+            upload, enhancement = await enhanced_upload(piece, "off" if robust else settings.stt_enhancement, settings.stt_rnnoise_model_path)
+            enhancement_counts[enhancement] += 1
+            request_data = dict(data)
+            if settings.stt_previous_context and previous.get(piece.channel):
+                request_data["previous_text"] = previous[piece.channel][-600:]
+            if robust:
+                piece_payload = await scribe_service.transcribe(client, upload, meeting_language, interactive=interactive)
+            else:
+                piece_payload = await transcribe_piece(client, upload, request_data)
+            # Account for each successful request even if a later chunk fails.
+            usage_ledger.record_audio("transcription", provider, model, piece.duration)
+            submitted_seconds += piece.duration
+            request_count += 1
+            piece_metadata = piece_payload.get("metadata") or {}
+            last_request_id = piece_payload.get("request_id") or piece_metadata.get("request_id")
+            language = piece_payload.get("detected_language_code") or piece_metadata.get("detected_language_code") or piece_payload.get("language_code")
+            if language:
+                languages[language] += 1
+            piece_turns = scribe_service.turns(piece_payload) if robust else _turns_from_prisma(piece_payload)
+            previous[piece.channel] = " ".join(turn["text"] for turn in piece_turns)[-600:]
+            local_speakers = {speaker: next_speaker + index for index, speaker in enumerate(
+                sorted({turn["speaker"] for turn in piece_turns}))}
+            next_speaker += len(local_speakers)
+            for turn in piece_turns:
+                # Channel labels are stable only when the caller explicitly
+                # declares one party per channel. Mono diarization is local.
+                turn["speaker"] = piece.channel if piece.channel is not None else local_speakers[turn["speaker"]]
+                if piece.channel is not None:
+                    turn["channel"] = piece.channel
+                start = min(piece.duration, max(0.0, turn["start"]))
+                end = min(piece.duration, max(start, turn["end"] or piece.duration))
+                turn["start"] = round(piece.offset + start, 3)
+                turn["end"] = round(piece.offset + end, 3)
+                if turn.get("words"):
+                    turn["words"] = [[round(1000 * piece.offset) + min(round(piece.duration * 1000), max(0, value))
+                                      for value in span] for span in turn["words"]]
+                turns.append(turn)
+        duration = prepared.duration
+        audio_metadata = {"sample_rate": prepared.rate, "channels": prepared.channels,
+                          "channel_mode": channel_mode, "encoding": "pcm_s16le",
+                          "enhancement": dict(enhancement_counts), "requests": request_count,
+                          "submitted_seconds": round(submitted_seconds, 3),
+                          "digital_silence_skipped_seconds": round(skipped_seconds, 3)}
+    turns.sort(key=lambda turn: (turn["start"], turn["speaker"]))
 
     await vocabulary_service.record_applied(vocabulary_service.apply_to_turns(turns, vocabulary.rules))
     diagnostics = _diagnostics(turns, expected_speakers)
-    metadata = payload.get("metadata") or {}
-    duration = _number(metadata.get("duration", payload.get("duration", 0))) or total_seconds
-    usage_ledger.record_audio("transcription", "gnani", settings.gnani_stt_model, duration)
     return {
         "transcript": format_transcript(turns),
         "turns": turns,
         "diagnostics": diagnostics,
         # e.g. "hi-IN", "ta-IN"; set when Prisma's Auto-LID ran.
-        "language": payload.get("detected_language_code") or metadata.get("detected_language_code"),
+        "language": languages.most_common(1)[0][0] if languages else None,
         "metadata": {
-            "request_id": payload.get("request_id") or metadata.get("request_id"),
+            "request_id": last_request_id,
             "duration": duration,
-            "diarizer": "prisma-v3.0",
+            "diarizer": model,
+            "provider": provider,
+            "profile": profile,
+            "audio": audio_metadata,
         },
     }
 

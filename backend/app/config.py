@@ -1,3 +1,5 @@
+from typing import Literal
+
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -45,6 +47,13 @@ class Settings(BaseSettings):
     gnani_stt_url: str = "https://api.vachana.ai/stt/v3"
     gnani_stt_model: str = "prisma-v3.0"
     gnani_stt_mode: str = "codemix"
+    # Preserve native-rate PCM by default. Denoising must win a domain WER
+    # comparison before enabling it; it can erase weak consonants.
+    stt_enhancement: Literal["off", "spectral", "rnnoise"] = "off"
+    stt_rnnoise_model_path: str = ""
+    stt_previous_context: bool = True
+    stt_profile: Literal["standard", "robust"] = "standard"
+    eleven_labs_api_key: str = ""
     # Local, CPU speaker embedding model. Used only for enrolled employees.
     speaker_embedding_model_path: str = "models/wespeaker_en_voxceleb_resnet34.onnx"
     speaker_match_threshold: float = 0.72

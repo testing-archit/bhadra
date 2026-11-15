@@ -1,5 +1,9 @@
 # Team coordination
 
+## Noise Canceller implementation, 15 November 2026
+
+Codex owns native-rate audio preparation, opt-in local enhancement, explicit Scribe v3 quality profile, usage attribution and noisy telephony evaluation in `/Users/vedantmoghe/Downloads/bhadra-noisy-telephony` on `codex/noisy-telephony-20261115`. The environment transition cleared the temporary worktree; source was restored from this session's patch records into this persistent checkout. Shared unfinished application files remain untouched. Initial 29-clip synthetic comparison favored Scribe; fresh ElevenLabs validation is running with retained evidence in `/Users/vedantmoghe/Downloads/wilco-audio-evidence`. Focused tests pass 71/71 against a disposable local Postgres. No production deployment or real-call acceptance is claimed.
+
 Updated 15 November 2026. Read this before editing or synchronizing this checkout.
 
 ## Ownership

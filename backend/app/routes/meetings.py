@@ -1234,6 +1234,8 @@ async def ingest_meeting(
     tasks_sheet_name: str | None = Form(None),
     notes_sheet_name: str | None = Form(None),
     meeting_language: str = Form("hinglish"),
+    audio_channel_mode: str = Form("preserve"),
+    transcription_profile: str | None = Form(None),
     transcript: str | None = Form(None),
     audio: UploadFile | None = File(None),
     client_meeting_id: str | None = Form(None),
@@ -1253,6 +1255,10 @@ async def ingest_meeting(
         raise HTTPException(status_code=400, detail="Duration cannot be negative")
     if meeting_language not in SUPPORTED_LANGUAGES:
         raise HTTPException(status_code=400, detail="Unsupported meeting language")
+    if audio_channel_mode not in {"preserve", "separate"}:
+        raise HTTPException(status_code=400, detail="Unsupported audio channel mode")
+    if transcription_profile not in {None, "standard", "robust"}:
+        raise HTTPException(status_code=400, detail="Unsupported transcription profile")
     transcript = transcript.strip() if transcript and transcript.strip() else None
     if transcript is None and audio is None:
         raise HTTPException(status_code=400, detail="Provide either transcript or audio")
@@ -1321,6 +1327,8 @@ async def ingest_meeting(
             detailed = await transcriber.transcribe_audio_detailed(
                 audio_bytes, audio.content_type or "audio/webm", meeting_language,
                 people=vocabulary_service.people_from_attendees(requested_attendees),
+                channel_mode=audio_channel_mode,
+                profile=transcription_profile,
             )
             transcript = detailed["transcript"]
             transcription_requests = 1
