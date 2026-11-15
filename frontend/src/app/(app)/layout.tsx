@@ -45,7 +45,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     <ShellProvider>
       {/* The ink frame: the sidebar sits on it and every page is a sheet laid
           inside it. The sheet scrolls, not the window. */}
-      <div className="hackathon-shell flex h-dvh flex-1 overflow-hidden bg-sidebar">
+      <div className="hackathon-shell flex h-dvh shrink-0 overflow-hidden bg-sidebar">
         <a
           href="#main"
           className="sr-only z-50 rounded-lg bg-marigold px-3 py-2 text-sm font-semibold text-marigold-foreground focus:not-sr-only focus:absolute focus:top-3 focus:left-3"
