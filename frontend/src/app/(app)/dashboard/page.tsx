@@ -1,5 +1,7 @@
 "use client";
 
+import { StandupCatchup, UpcomingVoiceBriefs } from "@/components/standup-catchup";
+
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -292,6 +294,9 @@ export default function HomePage() {
           </nav>
         </div>
       </div>
+
+      <UpcomingVoiceBriefs />
+      <StandupCatchup />
 
       <section
         className="home-work-panel home-recent-panel"

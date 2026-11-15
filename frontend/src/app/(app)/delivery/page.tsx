@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { ArrowRight, CircleAlert, Clock3, GitPullRequest, Radar, RefreshCw, Sparkles } from "lucide-react";
 import { api, type DecisionListItem, type ProjectSummary, type TaskListItem } from "@/lib/api";
+import { DecisionQuote } from "@/components/decision-quote";
 import "./delivery-radar.css";
 
 type RadarFilter = "attention" | "all" | "completed";
@@ -113,7 +114,7 @@ export default function DeliveryRadarPage() {
         <div className="delivery-side">
           <section className="delivery-panel" aria-labelledby="delivery-decisions-title">
             <div className="delivery-panel-head"><div><span className="delivery-panel-icon"><CircleAlert aria-hidden="true" /></span><h2 id="delivery-decisions-title">Recent decisions</h2></div><Link href="/decisions">See all <ArrowRight aria-hidden="true" /></Link></div>
-            {loading && decisions === null ? <p className="delivery-empty">Loading decisions…</p> : recentDecisions.length ? <ul className="delivery-decision-list">{recentDecisions.map((decision) => <li key={decision.id}><Link href={`/meetings/${decision.meeting_id}`}><strong>{decision.decision}</strong><small>{decision.project || decision.meeting_title}</small><ArrowRight aria-hidden="true" /></Link></li>)}</ul> : <div className="delivery-empty"><p>Decisions from your meetings will appear here.</p><Link href="/meetings">Browse meetings</Link></div>}
+            {loading && decisions === null ? <p className="delivery-empty">Loading decisions…</p> : recentDecisions.length ? <ul className="delivery-decision-list">{recentDecisions.map((decision) => <li key={decision.id}><Link href={`/meetings/${decision.meeting_id}`}><strong>{decision.decision}</strong><small>{decision.project || decision.meeting_title}</small><ArrowRight aria-hidden="true" /></Link><DecisionQuote id={decision.id} label={decision.decision} /></li>)}</ul> : <div className="delivery-empty"><p>Decisions from your meetings will appear here.</p><Link href="/meetings">Browse meetings</Link></div>}
           </section>
           <section className="delivery-panel" aria-labelledby="delivery-projects-title">
             <div className="delivery-panel-head"><div><span className="delivery-panel-icon"><Clock3 aria-hidden="true" /></span><h2 id="delivery-projects-title">Project activity</h2></div><Link href="/projects">See all <ArrowRight aria-hidden="true" /></Link></div>
