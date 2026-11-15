@@ -57,7 +57,14 @@ export default function LoginPage() {
           </figure>
         </div>
 
-        <p className="text-sm text-band-muted">Hears Hinglish and 10+ Indian languages with Gnani Prisma. Speaks them back with Gnani Timbre.</p>
+        <div className="flex flex-col gap-2.5">
+          <p className="text-sm text-band-muted">Hears Hinglish and 10+ Indian languages with Gnani Prisma. Speaks them back with Gnani Timbre.</p>
+          <ul className="flex flex-wrap gap-1.5" aria-label="Built on Gnani AI models">
+            {["Prisma v3 · speech to text", "Timbre v2.5 + v3 · 11 languages", "Timbre voice cloning", "Evon v3.3 ready"].map((model) => (
+              <li key={model} className="rounded-full border border-white/15 px-2.5 py-1 text-[11px] text-band-muted">{model}</li>
+            ))}
+          </ul>
+        </div>
       </section>
 
       <section className="flex flex-col items-center justify-center rounded-[1.4rem] bg-background px-4 py-12 sm:px-8 lg:ml-2">
