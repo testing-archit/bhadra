@@ -62,7 +62,9 @@ def test_interactive_generation_limits_retry_and_thinking():
     with patch.object(gemini_service,'_client',return_value=client) as factory, patch.object(gemini_service.usage_ledger,'record_tokens'):
         gemini_service.generate_structured('system','prompt',_Notes,timeout_seconds=15,attempts=1,thinking_budget=0)
     factory.assert_called_once_with(15)
-    assert client.models.generate_content.call_args.kwargs['config'].thinking_config.thinking_budget==0
+    config = client.models.generate_content.call_args.kwargs['config']
+    assert config.thinking_config.thinking_budget is None
+    assert config.thinking_config.thinking_level == 'LOW'
 
 
 def test_strict_board_schema_reaches_api_as_json_schema_and_validates_reply():
@@ -76,6 +78,10 @@ def test_strict_board_schema_reaches_api_as_json_schema_and_validates_reply():
         requests.append(body)
         config = body['generationConfig']
         assert 'responseSchema' not in config
+        thinking = config['thinkingConfig']
+        assert thinking.get('thinkingLevel', thinking.get('thinking_level')) == 'MINIMAL'
+        assert 'thinkingBudget' not in thinking and 'thinking_budget' not in thinking
+        assert 'temperature' not in config
         assert config['responseJsonSchema']['$defs']['BoardOperation']['additionalProperties'] is False
         # A provider response must still pass our strict local schema.
         reply = {'message': 'Added', 'operations': [{'op': 'create_node', 'title': 'Release check', 'unexpected': True}]}
@@ -85,6 +91,13 @@ def test_strict_board_schema_reaches_api_as_json_schema_and_validates_reply():
     with patch.object(gemini_service, '_client', return_value=client), \
             patch.object(gemini_service.usage_ledger, 'record_tokens') as billed, \
             pytest.raises(ValidationError):
-        gemini_service.generate_structured('system', 'synthetic board command', BoardCommandPlan, attempts=1)
+        gemini_service.generate_structured('system', 'synthetic board command', BoardCommandPlan, attempts=1,
+                                          model='gemini-3.5-flash-lite', thinking_budget=0)
     assert len(requests) == 1
     billed.assert_called_once()
+
+
+def test_legacy_models_keep_numeric_thinking_budgets():
+    assert gemini_service._thinking_config('gemini-2.5-flash-lite', 0).thinking_budget == 0
+    assert gemini_service._thinking_config('gemini-3.5-flash-lite', None) is None
+    assert gemini_service._thinking_config('gemini-3.8-flash', 256).thinking_level == 'LOW'

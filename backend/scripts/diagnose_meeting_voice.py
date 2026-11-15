@@ -12,6 +12,9 @@ from app.config import settings
 from app.database.db import async_session
 from app.database.models import AiUsageEvent, MeetingAgentJob, MeetingBoard
 from app.services import tts_service, usage_ledger
+from app.services import gemini_service
+from app.services.board_commands import BoardCommandPlan, SYSTEM_PROMPT
+from google.genai.errors import APIError
 
 
 async def main():
@@ -20,7 +23,19 @@ async def main():
         'host': urlparse(settings.gnani_tts_url).hostname,
         'model': settings.gnani_tts_model, 'voice': settings.gnani_tts_voice,
         'language': settings.gnani_tts_language, 'interactive_model': settings.gemini_fast_model,
+        'agent_provider_seconds': settings.meeting_agent_provider_seconds,
     }}))
+    try:
+        plan, _ = gemini_service.generate_structured(SYSTEM_PROMPT,
+            'Add one idea named Release check. Board: {"nodes":[],"edges":[]}', BoardCommandPlan,
+            model=settings.gemini_fast_model, feature='agent_release_fast_probe', thinking_budget=0,
+            timeout_seconds=settings.meeting_agent_provider_seconds, attempts=1)
+        print(json.dumps({'fast_model_probe': 'ok', 'operations':len(plan.operations)}))
+    except APIError as error:
+        print(json.dumps({'fast_model_probe': 'provider_error', 'code':error.code,
+            'message':str(error.message).replace(settings.gemini_api_key, '[REDACTED]')[:1500]}))
+    except Exception as error:
+        print(json.dumps({'fast_model_probe': 'failed', 'error_type':type(error).__name__}))
     async with async_session() as db:
         jobs = (await db.scalars(select(MeetingAgentJob).order_by(MeetingAgentJob.created_at.desc()).limit(15))).all()
         for job in jobs:
@@ -37,13 +52,13 @@ async def main():
         print(json.dumps({'paid_usage_counts': [list(row) for row in usage]}))
     started = time.monotonic()
     try:
-        audio = await tts_service.synthesize('Namaste. I am ready to help your team.')
+        audio = await tts_service.synthesize('Namaste. I am ready to help your team.', 'en-IN')
         with tempfile.TemporaryDirectory() as folder:
             path = Path(folder) / 'probe.mp3'
             path.write_bytes(audio)
             proc = subprocess.run(['ffprobe', '-v', 'error', '-show_entries', 'stream=codec_name,sample_rate,channels:format=duration', '-of', 'json', str(path)], capture_output=True, text=True, timeout=10)
             metadata = json.loads(proc.stdout) if proc.returncode == 0 else {'decode': 'failed'}
-        print(json.dumps({'synthetic_speech': {'elapsed_ms': round((time.monotonic()-started)*1000), 'bytes': len(audio), **metadata}}))
+        print(json.dumps({'synthetic_speech': {'elapsed_ms': round((time.monotonic()-started)*1000), 'bytes': len(audio), 'language': 'en-IN', 'voice': tts_service.voice_for('en-IN')[1], **metadata}}))
     except Exception as error:
         print(json.dumps({'synthetic_speech': {'error_type': type(error).__name__}}))
     pending = list(usage_ledger._pending)

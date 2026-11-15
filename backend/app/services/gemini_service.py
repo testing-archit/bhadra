@@ -37,31 +37,47 @@ def usage_dict(response) -> dict:
     }
 
 
+def _thinking_config(model: str, budget: int | None):
+    if budget is None:
+        return None
+    name = model.removeprefix('models/').lower()
+    if name.startswith('gemini-3'):
+        # Gemini 3 uses levels. Numeric budgets can return INVALID_ARGUMENT;
+        # 3.7/3.8 and Pro do not support MINIMAL, while Flash-Lite does.
+        if budget < 0:
+            return None
+        minimal = 'flash-lite' in name or name.startswith(('gemini-3-flash', 'gemini-3.5-flash', 'gemini-3.6-flash'))
+        level = 'MINIMAL' if budget == 0 and minimal else ('LOW' if budget <= 1024 else 'MEDIUM' if budget <= 8192 else 'HIGH')
+        return types.ThinkingConfig(thinking_level=level)
+    return types.ThinkingConfig(thinking_budget=budget)
+
+
+def _temperature(model: str, value: float | None):
+    return None if model.removeprefix('models/').lower().startswith('gemini-3') else value
+
+
 def generate_text(
     system_instruction: str,
     prompt: str,
     *,
     max_output_tokens: int = 1000,
-    temperature: float = 0.1,
+    temperature: float | None = 0.1,
     thinking_budget: int | None = None,
     feature: str = "other",
     model: str | None = None,
     timeout_seconds: float | None = None,
 ) -> tuple[str, dict]:
-    thinking_config = (
-        types.ThinkingConfig(thinking_budget=thinking_budget)
-        if thinking_budget is not None
-        else None
-    )
+    chosen_model = model or settings.gemini_model
+    thinking_config = _thinking_config(chosen_model, thinking_budget)
     client = _client(timeout_seconds) if timeout_seconds else _client()
     try:
         response = client.models.generate_content(
-            model=model or settings.gemini_model,
+            model=chosen_model,
             contents=prompt,
             config=types.GenerateContentConfig(
                 system_instruction=system_instruction,
                 max_output_tokens=max_output_tokens,
-                temperature=temperature,
+                temperature=_temperature(chosen_model, temperature),
                 thinking_config=thinking_config,
             ),
         )
@@ -109,8 +125,8 @@ def generate_structured(
                     # Pydantic validation below, including forbidden fields.
                     response_json_schema=schema.model_json_schema(),
                     max_output_tokens=budget,
-                    temperature=0.1,
-                    thinking_config=types.ThinkingConfig(thinking_budget=thinking_budget) if thinking_budget is not None else None,
+                    temperature=_temperature(model or settings.gemini_model, 0.1),
+                    thinking_config=_thinking_config(model or settings.gemini_model, thinking_budget),
                 ),
             )
         finally:

@@ -1498,6 +1498,7 @@ export interface MeetingBoardNode {
 export interface MeetingBoardEdge { id: string; source: string; target: string }
 
 export interface MeetingBoardRecord {
+  external_url?: string | null;
   id: string;
   meeting_id: string | null;
   capture_request_id: string | null;

@@ -68,10 +68,10 @@ export function MeetingBoard({ meetingId, captureId }: { meetingId?: string; cap
 
   useEffect(() => { void load().catch(() => setError("Could not load this board.")); }, [load]);
   useEffect(() => {
-    if (dirty) return;
+    if (dirty || board?.external_url) return;
     const timer = window.setInterval(() => { void load().catch(() => undefined); }, 8000);
     return () => window.clearInterval(timer);
-  }, [dirty, load]);
+  }, [dirty, load, board?.external_url]);
 
   const selected = useMemo(() => board?.nodes.find((item) => item.id === selectedId) ?? null, [board, selectedId]);
 
@@ -146,6 +146,11 @@ export function MeetingBoard({ meetingId, captureId }: { meetingId?: string; cap
   }
 
   if (!board) return <div className="rounded-2xl border p-8 text-sm text-muted-foreground">{error || "Loading the meeting board…"}</div>;
+  if (board.external_url) return <section className="flex flex-col gap-3 rounded-2xl border bg-card p-5" aria-label="Shared FigJam board">
+    <h2 className="font-heading text-lg font-semibold">Your board is in FigJam</h2>
+    <p className="text-sm text-muted-foreground">Open the editable file and use Figma’s Share button to invite collaborators.</p>
+    <Button className="w-fit" render={<a href={board.external_url} target="_blank" rel="noopener noreferrer" />}><ArrowUpRight data-icon="inline-start" />Open FigJam</Button>
+  </section>;
 
   return <section className="overflow-hidden rounded-2xl border bg-card" aria-label="Meeting whiteboard">
     <div className="flex flex-wrap items-center gap-3 border-b px-4 py-3 sm:px-5">

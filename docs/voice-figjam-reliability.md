@@ -11,7 +11,8 @@ The real-call test exposed the difference between a successful model/API canary 
 - Chat delivery waits for the input to clear rather than always sleeping 800 ms after sending. URLs and opaque board IDs stay in chat and are omitted from spoken confirmations.
 - Meet speech uses a Web Audio microphone containing only decoded provider speech and silence. It never captures meeting playback. Playback cancellation stops its source; microphone state is set explicitly rather than blindly toggled. Teams retains its older Pulse playback path.
 - Live pauses automatic voice activity detection during playback and for 350 ms afterward. Use Interrupt to stop speech. Automatic spoken barge-in is intentionally unavailable until acoustic echo handling is validated. The utterance silence wait is 550 ms, down from 900 ms.
-- Interactive planning, whiteboard generation and Live replies use the configured fast model. Live replies have an eight-second provider timeout. Independent transcription/context work runs together; the meeting digest uses three batched queries instead of up to 25 sequential queries.
+- Interactive planning, whiteboard generation and Live replies use the configured fast model. Live replies have a twelve-second provider timeout (the provider rejects deadlines below ten seconds). Independent transcription/context work runs together; the meeting digest uses three batched queries instead of up to 25 sequential queries.
+- Gemini 3 requests use supported thinking levels and omit deprecated sampling settings. The live provider rejected the old numeric zero-budget setting on Flash-Lite; corrected text and structured board probes both succeeded. Legacy Gemini 2.5 numeric settings are preserved.
 - Live transcription gets priority before the next batch chunk. It has bounded retries and a 12-second deadline. It cannot preempt an already running provider request. Account concurrency and cross-process 429s still limit throughput; this does not increase a vendor quota.
 - English speech requests use `en-IN` and the configured English voice, default Shlok. Hinglish retains the configured fast voice. Regional voices retain their existing path. Every paid request remains on the existing usage ledger.
 
@@ -42,13 +43,16 @@ Tool output is mirrored internally for planning and saved as a durable delivery.
 
 The built-in live draft is now optional and does not mount or run its polling while collapsed. Existing notes/revisions remain available. Pairing starts a fresh FigJam mirror and preserves the prior internal draft in revision history.
 
+The finished meeting retains the shared FigJam link. Its Board view opens that native file and stops polling the internal canvas, so the editable artifact remains convenient to share after the call.
+
 ## Verification
 
-- 468 backend tests passed on isolated Postgres, including paired/unpaired routing, token scope/replay, native acknowledgment, cancellation, cross-origin scope, command recognition, mixed instructions, priority admission and audio cancellation.
-- Three Node tests exercised the native shape/connector implementation, replay, human-edit conflicts, and preservation of unrelated objects.
+- 470 backend tests passed on isolated Postgres, including paired/unpaired routing, token scope/replay, native acknowledgment, cancellation, cross-origin scope, finished-meeting links, command recognition, mixed instructions, priority admission, audio cancellation, and real SDK request serialization.
+- Five Node tests exercised the native shape/connector implementation, replay, human-edit conflicts, locks/deletions during planning, and preservation of unrelated objects.
 - Frontend typecheck and production build passed.
 - Real Chromium/WebRTC audio proof: 24 kHz synthetic speech decoded at 48 kHz, remote RMS 0.19454 with dominant frequency 433.59 Hz for a 440 Hz source, unrelated speaker RMS below 0.005, stopped RMS zero, malformed audio rejected. This is synthetic transport validation, not a real Meet voice test.
 - Native MLflow dataset/scorer evaluation: 10 synthetic command routes, all correct. Run `414daf761f2f45a9a0385cc8bec0d489`; persisted application trace `tr-d16c0829b723472e1d542df8fe127eec`. This evaluates routing, not live model/audio accuracy or Figma account access.
+- Browser walkthrough: pairing/code copy, connected shared link, no hidden-draft requests, mobile overflow, speaker-echo injection without another turn, and interruption followed by another captured turn all passed. API writes and voice responses were mocked; the browser used real Web Audio/MediaRecorder playback with a synthetic tone. [Desktop](screenshots/wilco-figjam-connection.png) / [mobile](screenshots/wilco-figjam-mobile.png).
 
 Reproduce the optional evaluation and browser proof with the tracing/browser tools installed:
 

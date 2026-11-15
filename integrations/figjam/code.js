@@ -3,6 +3,7 @@ const API = "__API_ORIGIN__";
 let connection = null;
 let pendingAck = null;
 let polling = false;
+let pairing = false;
 let stopped = false;
 let dirty = true;
 let remoteVersion = 0;
@@ -63,6 +64,16 @@ function applySnapshot(delivery) {
     const native = byId.get(id);
     if (!native || native.locked || native.connectorStart.endpointNodeId !== byId.get(previous.source)?.id ||
         native.connectorEnd.endpointNodeId !== byId.get(previous.target)?.id) return "conflict";
+  }
+  for (const edge of snapshot.edges) {
+    const previous = edgeBefore.get(edge.id);
+    if (previous && previous.source === edge.source && previous.target === edge.target) continue;
+    for (const id of [edge.source, edge.target]) {
+      const native = byId.get(id);
+      // A collaborator may lock/delete an unchanged point while inference
+      // runs. Reject before creating anything or connecting to that point.
+      if ((before.has(id) && !native) || native?.locked) return "conflict";
+    }
   }
   for (const value of snapshot.nodes) {
     const previous = before.get(value.id);
@@ -148,7 +159,10 @@ async function tick() {
     }
   } catch (error) {
     figma.ui.postMessage({status: error.message});
-    if (error.status === 401 || error.status === 410) { connection = null; stopped = true; }
+    if (error.status === 401 || error.status === 410) {
+      connection = null; stopped = true;
+      figma.ui.postMessage({status:'Get a new pairing code from Wilco to reconnect this file.', connected:false});
+    }
   } finally { polling = false; }
 }
 figma.ui.onmessage = async message => {
@@ -156,15 +170,17 @@ figma.ui.onmessage = async message => {
     if (connection) { try { await request('/disconnect'); } catch {} }
     stopped = true; connection = null; figma.closePlugin(); return;
   }
-  if (message.type !== "pair" || polling) return;
+  if (message.type !== "pair" || polling || pairing) return;
+  pairing = true;
   try {
     const key = message.file_url.match(/^https:\/\/(?:www\.)?figma\.com\/(?:board|file)\/([a-zA-Z0-9]+)/)?.[1];
     if (!key || (figma.fileKey && figma.fileKey !== key)) throw new Error("Open the FigJam file matching that link before connecting.");
     await figma.loadFontAsync({family: "Inter", style: "Regular"});
     connection = await request("/pair", { code: message.code.trim(), file_key: key }, false);
-    stopped = false; dirty = true;
+    stopped = false; dirty = true; pendingAck = null;
     figma.ui.postMessage({status: "Connected. Say ‘Wilco, draw a flow’ in your meeting.", connected: true});
     await tick();
   } catch (error) { figma.ui.postMessage({status: error.message}); }
+  finally { pairing = false; }
 };
 setInterval(tick, 750);
