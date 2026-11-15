@@ -388,6 +388,11 @@
 .header-icon-button:hover {
   background: var(--accent);
 }
+/* Unlayered rules outrank Tailwind's layered utilities: keep the menu
+   button hidden on desktop, where the sidebar is always visible. */
+@media (min-width: 64rem) {
+  .header-icon-button.lg\:hidden { display: none; }
+}
 .dashboard-columns {
   display: grid;
   grid-template-columns: minmax(0, 1.24fr) minmax(0, 0.95fr);
