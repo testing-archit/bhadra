@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Doto, Geist, Geist_Mono, Mukta } from "next/font/google";
 import "./globals.css";
+import "./signal-light.css";
 import { AuthProvider } from "@/lib/auth-context";
 import { ThemeProvider, themeBootScript } from "@/lib/theme";
 

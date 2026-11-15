@@ -1,12 +1,18 @@
 # UI refresh handoff
 
+## Current implementation
+
+The Signal Room implementation now spans Home, Meetings, Tasks, Delivery Radar, Decisions, Projects, Memory, Live, the meeting board and setup flows, settings/admin, account recovery, extension setup, and shared links. The sidebar renders normal links instead of a **More** disclosure. Voice lab (`/gnani`) is the focused speech/voice showcase; advanced model details are secondary. `/khata` redirects to `/delivery` while the legacy API stays available for existing integrations. The design contract is [DESIGN.md](../DESIGN.md), with route-family CSS under `frontend/src/app/`.
+
+The interface uses original signal graphics and short CSS motion. Reduced-motion settings suppress those effects. Reuse existing meeting, task, and project API data; do not substitute concept-image numbers. Browser preview and build checks belong to the current branch, while older `wilco-violet-*` screenshots below document earlier passes.
+
 ## Context
 
 The user does not like the current Wilco UI and asked for more online UI skills on a separate branch while other agents work. They then asked for an ambitious hackathon interface aimed at software companies, using a shared reel of design-resource libraries as inspiration. See [the signal-room direction](hackathon-ui-direction.md). The earlier teal/orange mascot treatment is a baseline to inspect, not a direction to preserve.
 
 The current design contract is `DESIGN.md`. Use `docs/screenshots/wilco-followthrough-home-desktop.png`, `wilco-followthrough-home-mobile.png`, and the corresponding task, review, Memory, and Live screenshots as evidence. The older `wilco-violet-*` screenshots and `docs/ui-reference.md` document a prior version.
 
-## First design pass
+## Original design brief
 
 Review one complete flow before broad restyling: **Home → invite notetaker → live meeting → review notes → act on a task**. The user's dissatisfaction may concern visual taste, task clarity, density, or both; do not claim a cause from screenshots alone. Use `better-interface` and its domain skills against the implementation. The chosen first concept is the signal room; refine it against real Wilco content and preserve the existing consent, access, and error flows.
 

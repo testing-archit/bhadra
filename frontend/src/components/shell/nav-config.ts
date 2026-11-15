@@ -31,25 +31,25 @@ export interface NavGroup {
 
 export const NAV_GROUPS: NavGroup[] = [
   {
-    label: null,
+    label: "Workspace",
     items: [
       { href: "/dashboard", label: "Home", icon: House, exact: true },
       { href: "/meetings", label: "Meetings", icon: Video },
       { href: "/tasks", label: "Tasks", icon: ListChecks },
       { href: "/delivery", label: "Delivery radar", icon: Radar },
+      { href: "/decisions", label: "Decisions", icon: Scale },
+      { href: "/projects", label: "Projects", icon: FolderKanban },
       { href: "/memory", label: "Memory", icon: Sparkles },
       { href: "/live", label: "Talk to Wilco", icon: AudioLines },
     ],
   },
   {
-    label: "More",
+    label: "Tools",
     items: [
       { href: "/recap", label: "Call & voice recap", icon: FileAudio },
-      { href: "/decisions", label: "Decisions", icon: Scale },
-      { href: "/projects", label: "Projects", icon: FolderKanban },
       { href: "/policy", label: "Policies", icon: BookOpenCheck },
       { href: "/vocabulary", label: "Vocabulary", icon: SpellCheck },
-      { href: "/gnani", label: "Built on Gnani", icon: Cpu },
+      { href: "/gnani", label: "Voice lab", icon: Cpu },
       { href: "/admin", label: "Admin", icon: ShieldCheck, adminOnly: true },
     ],
   },

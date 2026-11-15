@@ -19,13 +19,17 @@ The [concept screenshot](design-references/hackathon-signal-room-concept.png) is
 
 Geist remains the readable product face. Geist Mono and the existing Doto face can label signal time, source references, and large meaningful numbers. Avoid a terminal costume: source and activity metaphors help explain meetings, but tasks and consent stay in plain language.
 
-Desktop structure: narrow navigation rail, precise top command bar, one dramatic two-column hero with a signal visualization, and a grounded work area below for owned actions, live/upcoming meetings, and recent notes. Mobile stacks the hero above the same real actions and retains an obvious capture action. Use contrast, scale, and one luminous visual focal point rather than putting glow on every card.
+Desktop structure: compact navigation rail with direct links, precise top command bar, one dramatic two-column Home hero with a signal visualization, and a grounded work area below for owned actions, live/upcoming meetings, and recent notes. Mobile stacks the hero above the same real actions and retains an obvious capture action. Use contrast, scale, and one luminous visual focal point rather than putting glow on every card.
 
 Motion explains a state or relationship: live listening has a halo, work-page headers carry a short signal trace, and Delivery Radar has a slow scanning sweep. Animations use transforms or opacity and stop for `prefers-reduced-motion`. Keep all actions keyboard reachable and verify at phone and desktop widths.
 
 ## Product navigation
 
 The retail Voice khata page has been replaced by **Delivery Radar** at `/delivery`. It summarizes accessible meeting tasks, overdue and high-priority work, decisions, and project activity from existing API data. Old `/khata` bookmarks redirect to the radar. The legacy khata API remains available for existing integrations; it is not part of the software-team navigation or demo.
+
+The sidebar shows all destinations as direct links. There is no **More** dropdown. The top bar provides command search, the orange meeting action opens capture/import options, and the account menu sits at the bottom. Keep the rail compact and scrollable on shorter screens; the mobile menu exposes the same destinations.
+
+The `/gnani` route is **Voice lab** in navigation. Lead with a short visual explanation and live speech/voice demos. Keep detailed model and server setup out of the first viewport; advanced controls remain reachable and attribution to Gnani remains visible.
 
 The Signal Room visual system now covers Meetings, Tasks, Decisions, Projects, Memory, Live, meeting details and setup, settings, admin, voice tools, extension setup, shared links, and account recovery. Route families use scoped semantic colors so the shell and page content meet without a light gutter.
 

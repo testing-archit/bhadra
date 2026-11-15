@@ -1,11 +1,11 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
   Bot,
   ChevronsUpDown,
-  ChevronRight,
   FileAudio,
   FileText,
   ListPlus,
@@ -16,7 +16,6 @@ import {
   NotebookPen,
   Plus,
   Puzzle,
-  Search,
   Settings,
   Square,
   Sun,
@@ -34,7 +33,7 @@ import {
   MenuSeparator,
   MenuTrigger,
 } from "@/components/ui/menu";
-import { BrandMark, WilcoMascot } from "@/components/brand";
+import { BrandMark } from "@/components/brand";
 import { NAV_GROUPS, isNavActive } from "./nav-config";
 import { isCaptureLive, useShell } from "./shell-context";
 
@@ -63,7 +62,22 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   const router = useRouter();
   const { user, logout } = useAuth();
   const { preference, setPreference } = useTheme();
-  const { setCommandOpen, openNotetaker } = useShell();
+  const { openNotetaker } = useShell();
+  const activeLinkRef = useRef<HTMLAnchorElement>(null);
+  const navRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    const nav = navRef.current;
+    const active = activeLinkRef.current;
+    if (!nav || !active) return;
+    const navBounds = nav.getBoundingClientRect();
+    const activeBounds = active.getBoundingClientRect();
+    if (activeBounds.bottom > navBounds.bottom) {
+      nav.scrollTop += activeBounds.bottom - navBounds.bottom;
+    } else if (activeBounds.top < navBounds.top) {
+      nav.scrollTop += activeBounds.top - navBounds.top;
+    }
+  }, [pathname]);
 
   function go(href: string) {
     onNavigate?.();
@@ -71,8 +85,8 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   }
 
   return (
-    <div className="mascot-sidebar signal-sidebar flex h-full flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground">
-      <div className="signal-brand flex h-20 shrink-0 items-center gap-2.5 px-5">
+    <div className="signal-sidebar flex h-full flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground">
+      <div className="signal-brand flex shrink-0 items-center gap-2.5 px-5">
         <Link
           href="/dashboard"
           onClick={onNavigate}
@@ -88,7 +102,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
         </Link>
       </div>
 
-      <div className="flex flex-col gap-1.5 px-3 pb-3">
+      <div className="signal-sidebar-actions flex shrink-0 flex-col px-3 pb-3">
         <Menu>
           <MenuTrigger className="signal-new-meeting flex h-10 w-full items-center justify-center gap-2 rounded-xl bg-sidebar-primary text-sm font-semibold text-sidebar-primary-foreground outline-none transition-[background-color,transform] duration-150 hover:bg-sidebar-primary/90 active:scale-[0.98] focus-visible:ring-3 focus-visible:ring-sidebar-ring">
             <Plus className="size-4" /> New meeting
@@ -123,85 +137,48 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
             </MenuItem>
           </MenuContent>
         </Menu>
-        <button
-          type="button"
-          onClick={() => {
-            onNavigate?.();
-            setCommandOpen(true);
-          }}
-          className="signal-search flex h-9 w-full items-center gap-2 rounded-lg border border-sidebar-border bg-sidebar-accent/50 px-3 text-sm text-sidebar-foreground/65 outline-none transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground focus-visible:ring-2 focus-visible:ring-sidebar-ring"
-        >
-          <Search className="size-4" />
-          <span className="flex-1 text-left">Search</span>
-          <kbd className="rounded border border-sidebar-border bg-sidebar px-1.5 font-sans text-[10px] font-medium">
-            ⌘K
-          </kbd>
-        </button>
       </div>
 
       <nav
-        className="signal-nav flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-3 py-2"
+        ref={navRef}
+        className="signal-nav flex min-h-0 flex-1 flex-col overflow-y-auto px-3 py-2"
         aria-label="Primary"
       >
         {NAV_GROUPS.map((group) => {
-          const items = group.items.filter(
-            (item) => !item.adminOnly || user?.is_admin,
-          );
+          const items = group.items.filter((item) => !item.adminOnly || user?.is_admin);
           if (!items.length) return null;
-          const links = items.map((item) => {
-            const active = isNavActive(item, pathname);
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={onNavigate}
-                aria-current={active ? "page" : undefined}
-                className={cn(
-                  "flex min-h-10 items-center gap-3 rounded-xl px-3 text-sm text-sidebar-foreground/80 outline-none transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground focus-visible:ring-2 focus-visible:ring-sidebar-ring",
-                  active &&
-                    "bg-sidebar-accent font-medium text-sidebar-accent-foreground",
-                )}
-              >
-                <item.icon
-                  className={cn(
-                    "size-4 shrink-0",
-                    active && "text-sidebar-primary",
-                  )}
-                  aria-hidden="true"
-                />
-                {item.label}
-              </Link>
-            );
-          });
-          return group.label ? (
-            <details
-              key={group.label}
-              className="group/more"
-              open={
-                items.some((item) => isNavActive(item, pathname)) || undefined
-              }
-            >
-              <summary className="flex min-h-10 cursor-pointer list-none items-center gap-3 rounded-xl px-3 text-sm text-sidebar-foreground/80 hover:bg-sidebar-accent focus-visible:outline-2 focus-visible:outline-sidebar-ring">
-                <ChevronRight
-                  className="size-4 transition-transform group-open/more:rotate-90"
-                  aria-hidden="true"
-                />
-                More
-              </summary>
-              <div className="mt-1 flex flex-col gap-1">{links}</div>
-            </details>
-          ) : (
-            <div key="main" className="flex flex-col gap-1">
-              {links}
+          return (
+            <div className="signal-nav-group" key={group.label ?? "main"}>
+              {group.label && <p className="signal-nav-group-label">{group.label}</p>}
+              <div className="signal-nav-links">
+                {items.map((item) => {
+                  const active = isNavActive(item, pathname);
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      ref={active ? activeLinkRef : undefined}
+                      onClick={onNavigate}
+                      aria-current={active ? "page" : undefined}
+                      className={cn(
+                        "flex min-h-10 items-center gap-3 rounded-lg px-3 text-sm text-sidebar-foreground/80 outline-none transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground focus-visible:ring-2 focus-visible:ring-sidebar-ring",
+                        active && "bg-sidebar-accent font-medium text-sidebar-accent-foreground",
+                      )}
+                    >
+                      <item.icon className="size-4 shrink-0" aria-hidden="true" />
+                      {item.label}
+                    </Link>
+                  );
+                })}
+              </div>
             </div>
           );
         })}
       </nav>
 
-      {pathname === "/tasks" && <div className="sidebar-mascot" aria-hidden="true"><WilcoMascot /></div>}
       <LiveNotetakers />
 
-      <div className="flex flex-col gap-0.5 border-t border-sidebar-border p-3">
+      <div className="signal-sidebar-footer flex shrink-0 flex-col gap-0.5 border-t border-sidebar-border p-3">
         <Link
           href="/extension"
           onClick={onNavigate}

@@ -1,12 +1,12 @@
 # Wilco
 
-**Voice-first meeting memory for Indian teams.** Speak in Hindi, English or both in one sentence: in a Google Meet, a Teams call or in person. Wilco turns the conversation into owners, tasks, decisions and searchable memory, draws what you describe on a shared whiteboard, and answers back out loud.
+**Meeting intelligence for software teams.** Wilco joins Google Meet or Teams calls, records decisions and follow-ups with source evidence, and keeps project context searchable. Talk to it in English, Hindi, or both; ask it to recap the call, answer a question, or draw a workflow in FigJam.
 
 Built by **team Bhadra**: Archit and Vedant. (Wilco was called Charcha before the rebrand; you'll still see `charcha` in internal identifiers, env vars and storage keys, which are kept so existing installs keep working.)
 
 **Live app: https://34-58-54-115.sslip.io** (demo data is synthetic)
 
-![Wilco home](docs/screenshots/wilco-violet-home-desktop.png)
+The workspace uses a Signal Room interface for engineering meetings. [Design direction and current page map](docs/hackathon-ui-direction.md). Older screenshots below show earlier UI passes and are retained as history.
 
 ## Built on Gnani AI
 
@@ -22,24 +22,24 @@ The loop is: **Prisma hears, Gemini thinks, Timbre speaks.**
 - **Wilco in the call** (compare [docs/claude-meetings.md](docs/claude-meetings.md)):
   - It joins Google Meet (or Teams by link) with the Wilco mascot on camera, records, turns on captions and announces itself in chat.
   - Say or type **"Wilco, …"**. It answers from the call so far, in chat and out loud, through an isolated microphone that only ever carries its own voice.
-  - **"Wilco, draw a signup, verification and payment flow"** draws on a live meeting whiteboard, or as native shapes in your own **FigJam** file through the Wilco plugin ([docs/voice-figjam-reliability.md](docs/voice-figjam-reliability.md)). Move, rename, connect, remove and "undo that" work by voice too.
-  - **"Wilco recap"** gives the key points, decisions and action items so far. **"Wilco, add task: Vedant to send the invoice by Friday"** creates a real task.
+  - **"Wilco, draw the auth rollback flow"** routes a drawing request to the meeting's FigJam workflow ([docs/meeting-first-figjam.md](docs/meeting-first-figjam.md)). Move, rename, connect, remove and "undo that" are supported by voice too.
+  - **"Wilco recap"** gives the key points, decisions and action items so far. **"Wilco, add task: Vedant to add the cache regression test by Friday"** creates a real task.
   - Requests run as durable jobs with progress messages. "Status", "cancel that" and "stop speaking" control them, and "Wilco, please leave" sends the bot out.
 - **AI stand-in for an absent teammate.** Record your voice once (opt-in), brief your stand-in, and send it to a call you'll miss: it plays your update in an AI copy of your voice and answers "Wilco, ask Vedant, …" only from your briefing, always disclosed as AI, and reports every question back to you (Gnani Timbre voice cloning).
-- **Voice khata for shops.** "Gupta ji ne 500 ka atta udhaar liya" becomes a ledger entry; balances per customer; polite reminders in the customer's language as WhatsApp text or a Timbre voice note; ask "Gupta ji ka kitna baaki hai?" out loud.
-- **Built on Gnani page** (`/gnani`): try Prisma, Timbre v2.5/v3 and voice cloning live; see where each model runs.
-- **Try the demo, no sign-up:** a private sample workspace (kirana, Tanglish distributor call, ASHA intake) from the login page.
+- **Delivery Radar.** A live view of meeting follow-ups, urgent work, decisions, and project activity at `/delivery`. It reads existing tasks, decisions, and projects; old `/khata` bookmarks redirect here. The legacy khata API remains for existing integrations.
+- **Voice lab** (`/gnani`): a concise interactive showcase for Prisma and Timbre, with advanced voice features available on the same page.
+- **Try the demo, no sign-up:** a private sample workspace with engineering incidents, release planning, design reviews, and multilingual meetings.
 - **Wilco Live: talk to your meetings, built on Gnani.** Tap once and talk, in Hindi, English, Hinglish or 8 more Indian languages. An audio-reactive mascot listens, answers from your meetings in your language, and stops when you interrupt.
-- **Ask by voice, hear the answer.** Ask "Sharma ji ka kitna udhaar baaki hai?" and get an answer from your meetings, with line-level citations, read aloud.
+- **Ask by voice, hear the answer.** Ask "Why did we roll back the auth release?" and get an answer from your meetings, with line-level citations, read aloud.
 - **Notes that hold up.** Summaries, tasks with owners and due dates, decisions with reasons and rejected alternatives, reversals and risks, each backed by a quote from the transcript. A guided review lets you confirm them quickly.
 - **Follow-through.** Home shows what needs you today, task cards and focus mode keep owners moving, and stand-up digests track blockers across a series.
-- **In-person recorder** for shops, field visits and gram sabhas, recording in 5-minute segments that survive patchy networks.
+- **In-person recorder** for planning sessions, incident reviews, and workshops, recording in five-minute segments that survive interrupted connections.
 - **Claude connector (MCP).** Claude Desktop, Claude Code or claude.ai can search your meetings, read tasks and decisions, ask memory and add tasks: Settings → Connect Claude.
 - **Privacy by default.** Only the people in a meeting can read it, confidential meetings stay closed even to admins, and live answers in a call never reveal company memory to guests.
 - Notes can be heard in 11 Indian languages and sent on WhatsApp as text or a voice note.
 - Also included: Jira two-way sync, Google Calendar auto-join, pre-meeting briefs, Google Sheets export, a policy assistant, consent-based voice enrolment for speaker names, and learned name corrections for Indian names.
 
-## Screenshots
+## Previous UI screenshots
 
 | | |
 |---|---|
@@ -53,7 +53,7 @@ The loop is: **Prisma hears, Gemini thinks, Timbre speaks.**
 - [docs/testing-guide.md](docs/testing-guide.md): what to test, with questions and expected answers from the demo data.
 - [docs/claude-meetings.md](docs/claude-meetings.md): Claude Meetings research and how Wilco matches it, feature by feature.
 - [docs/voice-whiteboard.md](docs/voice-whiteboard.md), [docs/voice-figjam-reliability.md](docs/voice-figjam-reliability.md) and [docs/meeting-action-agent.md](docs/meeting-action-agent.md): in-call drawing, FigJam and the command agent.
-- [DESIGN.md](DESIGN.md): the design system (light violet by default, with a dark theme).
+- [DESIGN.md](DESIGN.md): the current Signal Room design contract and route styling.
 - [CLAUDE.md](CLAUDE.md): project guide for Claude Code sessions (architecture, conventions, deploy).
 
 ## Architecture
@@ -63,7 +63,7 @@ The loop is: **Prisma hears, Gemini thinks, Timbre speaks.**
 | Web workspace | `frontend/` | Next.js 16, React 19, TypeScript, Tailwind CSS |
 | API + MCP server | `backend/` | FastAPI, SQLAlchemy async, PostgreSQL, MCP Python SDK (`/api/mcp`) |
 | Notetaker bot | `backend/bot/` | Playwright + Chromium on Xvfb, PulseAudio (recording), a Web Audio microphone (voice), ffmpeg |
-| FigJam plugin | `integrations/figjam/` | Figma plugin API (development plugin, paired per meeting) |
+| FigJam integration | `integrations/figjam/`, `backend/bot/` | Native FigJam actions for meeting whiteboards; development plugin tooling remains available |
 | Chrome extension | `src/`, `manifest.json` | Manifest V3, Vite |
 | Speech | `backend/app/services/transcriber.py`, `tts_service.py` | Gnani Prisma v3, Gnani Timbre v2.5 |
 | AI notes and answers | `backend/app/services/` | Gemini |
@@ -144,18 +144,19 @@ The complete backend template is in `backend/.env.example`. Important values:
 - `GNANI_API_KEY`: Gnani Prisma v3.0 audio transcription
 - `JWT_SECRET`: application session signing secret; replace the development value in production
 - `TEAM_ROSTER`: comma-separated names used as transcription keyterms
-- `ADMIN_EMAILS`: comma-separated accounts with organization-wide access
+- `ADMIN_EMAILS`: comma-separated admin accounts; their ordinary workspace lists still follow meeting visibility rules
 - `ALLOWED_ORIGINS`: comma-separated browser origins allowed by CORS
 
 ## Validation
 
 ```bash
 npm run build
-cd frontend && npm run lint && npm run build
+cd frontend && npm run typecheck && npm run build
 cd ../backend && .venv/bin/pytest -q
 ```
 
 Backend tests require a reachable PostgreSQL database configured through `backend/.env`. External AI and Qdrant calls are mocked in route tests where appropriate.
+`npm run lint` is currently blocked by the repository's TypeScript 7 / typescript-eslint compatibility issue.
 
 ## Deployment
 

@@ -1,0 +1,212 @@
+/* Light companion to the Signal Room's dark route styles. Keep semantic values
+   here so the theme control changes the entire workspace, not only the shell. */
+html:not(.dark) {
+  --signal-light-canvas: #f5f7fd;
+  --signal-light-surface: #ffffff;
+  --signal-light-raised: #ebf0fb;
+  --signal-light-line: #cbd6ea;
+  --signal-light-ink: #18243e;
+  --signal-light-muted: #4f617d;
+  --signal-light-cyan: #087c9b;
+  --signal-light-violet: #6855bf;
+  --signal-light-orange: #a94e0a;
+  --signal-light-orange-fill: #ff922e;
+  --signal-light-error: #8b2345;
+  --signal-light-error-bg: #fff0f3;
+}
+
+html:not(.dark) .signal-room,
+html:not(.dark) .signal-work,
+html:not(.dark) .signal-intelligence-page,
+html:not(.dark) .signal-support,
+html:not(.dark) .delivery-radar {
+  --background: var(--signal-light-canvas);
+  --foreground: var(--signal-light-ink);
+  --card: var(--signal-light-surface);
+  --card-foreground: var(--signal-light-ink);
+  --popover: var(--signal-light-surface);
+  --popover-foreground: var(--signal-light-ink);
+  --primary: var(--signal-light-cyan);
+  --primary-foreground: #ffffff;
+  --secondary: var(--signal-light-raised);
+  --secondary-foreground: var(--signal-light-ink);
+  --muted: var(--signal-light-raised);
+  --muted-foreground: var(--signal-light-muted);
+  --accent: #e3edf9;
+  --accent-foreground: var(--signal-light-ink);
+  --border: var(--signal-light-line);
+  --input: #b9c9e0;
+  --ring: var(--signal-light-cyan);
+  --tint-lilac: #eeeafa;
+  --tint-lilac-foreground: #5744a7;
+  --tint-sky: #e4f4f8;
+  --tint-sky-foreground: #116982;
+  --tint-mint: #e3f5ef;
+  --tint-mint-foreground: #246c57;
+  --tint-peach: #fff0e4;
+  --tint-peach-foreground: #8e4915;
+  --tint-rose: #fce8f0;
+  --tint-rose-foreground: #922c55;
+  color-scheme: light;
+}
+
+/* Home: pale canvas, ink typography and a bright technical illustration. */
+html:not(.dark) .signal-content:has(.signal-room) { background: var(--signal-light-canvas); }
+html:not(.dark) .signal-room {
+  background: radial-gradient(ellipse 65% 50% at 80% 1%, #e4e7fb, transparent 80%), var(--background);
+}
+html:not(.dark) .signal-room::before { opacity: .18; background-image: linear-gradient(#9eb6d8 1px, transparent 1px), linear-gradient(90deg, #9eb6d8 1px, transparent 1px); }
+html:not(.dark) .signal-room .signal-hero {
+  border-color: var(--signal-light-line);
+  background: linear-gradient(120deg, #ffffff 10%, #f4f6ff 56%, #e6ecfc 100%);
+  box-shadow: 0 20px 48px #20375b1a, inset 0 1px #ffffff;
+}
+html:not(.dark) .signal-room .signal-kicker { color: var(--signal-light-muted); }
+html:not(.dark) .signal-room .signal-kicker > span { color: var(--signal-light-orange); }
+html:not(.dark) .signal-room .signal-hero h2 { color: var(--signal-light-ink); }
+html:not(.dark) .signal-room .signal-hero-copy > p { color: var(--signal-light-muted); }
+html:not(.dark) .signal-room .signal-secondary-action { border-color: var(--signal-light-line); background: #ffffffc9; color: var(--signal-light-ink); }
+html:not(.dark) .signal-room .signal-secondary-action:hover { border-color: var(--signal-light-cyan); background: var(--signal-light-raised); }
+html:not(.dark) .signal-room .signal-latest-link { border-color: var(--signal-light-line); background: #ffffffd9; }
+html:not(.dark) .signal-room .signal-latest-link:hover { border-color: var(--signal-light-cyan); background: #ffffff; }
+html:not(.dark) .signal-room .signal-latest-icon { border-color: #a5cbd9; color: var(--signal-light-cyan); }
+html:not(.dark) .signal-room .signal-latest-link small,
+html:not(.dark) .signal-room .signal-hero-empty { color: var(--signal-light-muted); }
+html:not(.dark) .signal-room .signal-latest-link strong { color: var(--signal-light-ink); }
+html:not(.dark) .signal-room .signal-latest-review { color: var(--signal-light-orange); }
+html:not(.dark) .signal-room .signal-latest-link > svg { color: var(--signal-light-cyan); }
+html:not(.dark) .signal-room .signal-art { background: radial-gradient(ellipse at 56% 55%, #78cde65e, transparent 55%), radial-gradient(ellipse at 72% 22%, #9986e85c, transparent 52%); }
+html:not(.dark) .signal-room .signal-art-grid { opacity: .3; background-image: linear-gradient(#5c79b3 1px, transparent 1px), linear-gradient(90deg, #5c79b3 1px, transparent 1px); }
+html:not(.dark) .signal-room .signal-stage { border-color: #5cb4c5; background: #ffffffed; box-shadow: 0 5px 22px #2a477b30; color: var(--signal-light-ink); }
+html:not(.dark) .signal-room .signal-stage-three { border-color: var(--signal-light-orange-fill); }
+html:not(.dark) .signal-room .signal-art-caption { color: var(--signal-light-muted); }
+html:not(.dark) .signal-room .signal-section-heading span { color: var(--signal-light-ink); }
+html:not(.dark) .signal-room .signal-section-heading a,
+html:not(.dark) .signal-room .home-panel-heading > a,
+html:not(.dark) .signal-room .home-schedule-list a { color: var(--signal-light-orange); }
+html:not(.dark) .signal-room .home-work-panel { border-color: var(--signal-light-line); background: linear-gradient(155deg, #ffffff, #f8faff); box-shadow: 0 12px 28px #263d6a12; }
+html:not(.dark) .signal-room .home-panel-heading h2,
+html:not(.dark) .signal-room .home-task-link strong,
+html:not(.dark) .signal-room .home-note-title strong { color: var(--signal-light-ink); }
+html:not(.dark) .signal-room .home-panel-heading svg,
+html:not(.dark) .signal-room .home-schedule-list li > span > strong { color: var(--signal-light-cyan); }
+html:not(.dark) .signal-room .home-follow-up-list li,
+html:not(.dark) .signal-room .home-schedule-list li,
+html:not(.dark) .signal-room .home-recent-list li { border-color: var(--signal-light-line); }
+html:not(.dark) .signal-room .home-follow-up-list .task-completion { border-color: #829bc3; }
+html:not(.dark) .signal-room .home-task-link:hover strong,
+html:not(.dark) .signal-room .home-note-title:hover strong { color: var(--signal-light-cyan); }
+html:not(.dark) .signal-room .home-task-due { background: #eae7fa; color: #5744a7; }
+html:not(.dark) .signal-room .home-task-due[data-overdue="true"] { background: var(--signal-light-error-bg); color: var(--signal-light-error); }
+html:not(.dark) .signal-room .home-memory-panel { border-color: #b5cbdc; }
+html:not(.dark) .signal-room .home-memory-panel form [data-slot="input"] { border-color: var(--signal-light-line); background: #ffffff; color: var(--signal-light-ink); }
+html:not(.dark) .signal-room .home-memory-panel form [data-slot="input"]::placeholder { color: var(--signal-light-muted); }
+html:not(.dark) .signal-room .home-memory-panel form [data-slot="button"] { background: var(--signal-light-cyan); color: #ffffff; }
+html:not(.dark) .signal-room .home-question-links a { border-color: var(--signal-light-line); color: #316b87; }
+html:not(.dark) .signal-room .home-question-links a:hover { color: var(--signal-light-cyan); }
+html:not(.dark) .signal-room .home-utility-links a { border-color: var(--signal-light-line); background: #f7f9fe; color: var(--signal-light-muted); }
+html:not(.dark) .signal-room .home-utility-links a:hover { border-color: var(--signal-light-cyan); color: var(--signal-light-ink); }
+html:not(.dark) .signal-room .home-note-icon { background: #e0f3f8; color: var(--signal-light-cyan); }
+html:not(.dark) .signal-room .home-note-status { color: var(--signal-light-orange); }
+html:not(.dark) .signal-room .home-live-strip { border-color: #78bfce; background: #e4f7f8; }
+html:not(.dark) .signal-room .home-live-strip a { color: var(--signal-light-ink); }
+html:not(.dark) .signal-room .home-live-strip small { color: #33707c; }
+html:not(.dark) .signal-room .dashboard-error { border-color: #d997aa; background: var(--signal-light-error-bg); color: var(--signal-light-error); }
+html:not(.dark) .signal-room .dashboard-error button { color: var(--signal-light-error); }
+
+/* Work lists, intelligence and settings use their existing component structure. */
+html:not(.dark) .signal-work {
+  --signal-void: var(--signal-light-canvas);
+  --signal-navy: var(--signal-light-surface);
+  --signal-panel: var(--signal-light-raised);
+  --signal-line: var(--signal-light-line);
+  --signal-text: var(--signal-light-ink);
+  --signal-muted: var(--signal-light-muted);
+  --signal-cyan: var(--signal-light-cyan);
+  --signal-violet: var(--signal-light-violet);
+  --signal-orange: var(--signal-light-orange);
+}
+html:not(.dark) .signal-intelligence-page {
+  --signal-void: var(--signal-light-canvas);
+  --signal-panel: var(--signal-light-surface);
+  --signal-raised: var(--signal-light-raised);
+  --signal-line: var(--signal-light-line);
+  --signal-cyan: var(--signal-light-cyan);
+  --signal-violet: var(--signal-light-violet);
+  --signal-orange: var(--signal-light-orange-fill);
+  --signal-white: var(--signal-light-ink);
+}
+html:not(.dark) body:has(.signal-intelligence-page) { color-scheme: light; }
+html:not(.dark) .signal-support {
+  --support-ink: var(--signal-light-canvas);
+  --support-panel: var(--signal-light-surface);
+  --support-panel-raised: var(--signal-light-raised);
+  --support-line: var(--signal-light-line);
+  --support-text: var(--signal-light-ink);
+  --support-muted: var(--signal-light-muted);
+  --support-cyan: var(--signal-light-cyan);
+  --support-violet: var(--signal-light-violet);
+  --support-orange: var(--signal-light-orange-fill);
+  --marigold-foreground: #241207;
+}
+html:not(.dark) .signal-support [data-slot="tabs-trigger"][data-active] { background: #d9e9f5; }
+html:not(.dark) .signal-support .support-hero { background: radial-gradient(ellipse at 84% 20%, #dedaf68c, transparent 42%), linear-gradient(125deg, #ffffff, #f4f7ff); }
+html:not(.dark) .signal-support .support-dropzone { background: linear-gradient(145deg, #ffffff, #f2f6fd); }
+html:not(.dark) .signal-support .support-primary { color: #241207; }
+html:not(.dark) .voice-lab-hero { --voice-cyan: var(--signal-light-cyan); --voice-violet: var(--signal-light-violet); --voice-orange: var(--signal-light-orange-fill); }
+html:not(.dark) .voice-lab-actions .voice-lab-primary { color: #241207; }
+
+/* Delivery radar keeps its graphic but gains white metric and project surfaces. */
+html:not(.dark) .delivery-radar { --delivery-orange: var(--signal-light-orange); --delivery-violet: var(--signal-light-violet); }
+html:not(.dark) .delivery-radar .delivery-hero { background: linear-gradient(135deg, #ffffff, #e9edfc); }
+html:not(.dark) .delivery-radar .delivery-panel { background: linear-gradient(150deg, #ffffff, #f7f9ff); }
+html:not(.dark) .delivery-radar .delivery-panel-icon { background: #e1f3f8; color: var(--signal-light-cyan); }
+html:not(.dark) .delivery-radar .delivery-text-link { color: var(--signal-light-cyan); }
+html:not(.dark) .delivery-radar .delivery-primary-link { background: var(--signal-light-orange-fill); color: #241207; }
+html:not(.dark) .delivery-radar .delivery-primary-link:hover { background: #ffa653; }
+html:not(.dark) .delivery-radar .delivery-filters button[aria-pressed="true"] { background: #dceef4; color: var(--signal-light-ink); }
+html:not(.dark) .delivery-radar .delivery-graphic::before { background-image: linear-gradient(#7397c0 1px, transparent 1px), linear-gradient(90deg, #7397c0 1px, transparent 1px); }
+html:not(.dark) .delivery-radar .delivery-error { border-color: #d997aa; background: var(--signal-light-error-bg); color: var(--signal-light-error); }
+html:not(.dark) .delivery-radar .delivery-error button { color: var(--signal-light-error); }
+
+/* Public, auth and extension pages follow the same preference. */
+html:not(.dark) .signal-public-auth,
+html:not(.dark) .signal-public-extension,
+html:not(.dark) .signal-public-shared {
+  --public-ink: var(--signal-light-canvas);
+  --public-panel: var(--signal-light-surface);
+  --public-raised: var(--signal-light-raised);
+  --public-line: var(--signal-light-line);
+  --public-text: var(--signal-light-ink);
+  --public-muted: var(--signal-light-muted);
+  --public-cyan: var(--signal-light-cyan);
+  --public-violet: var(--signal-light-violet);
+  --public-orange: var(--signal-light-orange-fill);
+  --primary-foreground: #ffffff;
+  --marigold-foreground: #241207;
+  color-scheme: light;
+}
+html:not(.dark) .signal-public-auth [data-slot="card"] { box-shadow: 0 20px 60px #20375b20; }
+html:not(.dark) .signal-public-auth [data-slot="input"] { background: #ffffff; }
+html:not(.dark) .signal-public-auth button[type="submit"],
+html:not(.dark) .signal-public-extension .signal-extension-cta,
+html:not(.dark) .signal-public-extension .signal-extension-install li > span { color: #241207; }
+html:not(.dark) .signal-public-extension .signal-extension-browser { background: #e6eaf4; box-shadow: 0 30px 60px #20375b24; }
+html:not(.dark) .signal-public-extension .signal-extension-control { background: #ffffffed; }
+
+html:not(.dark) .signal-login {
+  --login-ink: var(--signal-light-canvas);
+  --login-ink-soft: #e9edfc;
+  --login-cyan: var(--signal-light-cyan);
+  --login-violet: var(--signal-light-violet);
+  --login-white: var(--signal-light-ink);
+  --login-orange: var(--signal-light-orange-fill);
+  color-scheme: light;
+}
+html:not(.dark) .signal-login .signal-login-status,
+html:not(.dark) .signal-login .signal-login-quote,
+html:not(.dark) .signal-login .signal-login-result { background: #ffffffdc; }
+html:not(.dark) .signal-login .signal-login-lede,
+html:not(.dark) .signal-login .signal-login-muted { color: var(--signal-light-muted); }
+html:not(.dark) .signal-login .signal-login-chip { background: #e8e5fa; color: var(--signal-light-ink); }
+html:not(.dark) .signal-login .signal-login-auth button[type="submit"] { color: #ffffff; }

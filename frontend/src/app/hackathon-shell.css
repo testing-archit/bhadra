@@ -15,6 +15,21 @@
   --signal-orange-ink: #201006;
 }
 
+html:not(.dark) .hackathon-shell,
+html:not(.dark) .signal-sidebar {
+  --signal-void: #f5f7fd;
+  --signal-navy: #ffffff;
+  --signal-panel: #e9eef9;
+  --signal-line: #cbd6ea;
+  --signal-text: #18243e;
+  --signal-muted: #4f617d;
+  --signal-cyan: #087c9b;
+  --signal-violet: #6855bf;
+  --signal-orange: #ff922e;
+  --signal-orange-hover: #e67918;
+  --signal-orange-ink: #201006;
+}
+
 .signal-sidebar {
   --sidebar: var(--signal-void);
   --sidebar-foreground: var(--signal-text);
@@ -31,7 +46,7 @@
 }
 
 .signal-desktop-rail {
-  width: 258px;
+  width: 242px;
 }
 
 .signal-sidebar {
@@ -39,39 +54,24 @@
   isolation: isolate;
   overflow: hidden;
   border-color: var(--signal-line);
-  background:
-    radial-gradient(ellipse 125% 38% at 100% 3%, color-mix(in srgb, var(--signal-violet) 14%, transparent), transparent 68%),
-    radial-gradient(ellipse 90% 40% at -20% 100%, color-mix(in srgb, var(--signal-cyan) 9%, transparent), transparent 76%),
-    var(--signal-void);
+  background: var(--signal-void);
   color: var(--signal-text);
-}
-
-.signal-sidebar::before {
-  position: absolute;
-  z-index: -1;
-  inset: 0;
-  background-image: linear-gradient(to bottom, color-mix(in srgb, var(--signal-cyan) 5%, transparent) 1px, transparent 1px);
-  background-size: 100% 48px;
-  content: "";
-  mask-image: linear-gradient(to bottom, transparent, black 25%, black 74%, transparent);
-  pointer-events: none;
 }
 
 .signal-brand {
   position: relative;
-  height: 104px;
-  padding-inline: 20px;
+  height: 76px;
+  padding-inline: 16px;
 }
 
 .signal-brand::after {
   position: absolute;
-  right: 20px;
-  bottom: 12px;
-  left: 20px;
+  right: 16px;
+  bottom: 0;
+  left: 16px;
   height: 1px;
-  background: linear-gradient(90deg, var(--signal-cyan), color-mix(in srgb, var(--signal-violet) 65%, transparent), transparent);
+  background: var(--signal-line);
   content: "";
-  opacity: .42;
 }
 
 .signal-brand a {
@@ -79,13 +79,12 @@
 }
 
 .signal-brand img {
-  width: 48px;
-  height: 48px;
-  padding: 3px;
-  border: 1px solid color-mix(in srgb, var(--signal-cyan) 26%, transparent);
-  border-radius: 13px;
-  background: color-mix(in srgb, var(--signal-cyan) 9%, var(--signal-panel));
-  box-shadow: 0 0 24px color-mix(in srgb, var(--signal-cyan) 11%, transparent);
+  width: 40px;
+  height: 40px;
+  padding: 2px;
+  border: 1px solid var(--signal-line);
+  border-radius: 10px;
+  background: var(--signal-panel);
 }
 
 .signal-brand-copy {
@@ -96,7 +95,7 @@
 
 .signal-brand-copy > span:first-child {
   color: var(--signal-text);
-  font-size: 23px;
+  font-size: 20px;
   letter-spacing: -.05em;
 }
 
@@ -108,80 +107,76 @@
 }
 
 .signal-sidebar .signal-new-meeting {
-  min-height: 46px;
-  border: 1px solid color-mix(in srgb, var(--signal-orange) 90%, white);
-  border-radius: 11px;
-  background: linear-gradient(125deg, var(--signal-orange-hover), var(--signal-orange) 70%);
+  min-height: 42px;
+  border: 1px solid var(--signal-orange);
+  border-radius: 9px;
+  background: var(--signal-orange);
   color: var(--signal-orange-ink);
-  box-shadow: 0 5px 20px color-mix(in srgb, var(--signal-orange) 20%, transparent);
+  box-shadow: none;
 }
 
 .signal-sidebar .signal-new-meeting:hover {
   background: var(--signal-orange-hover);
-  box-shadow: 0 7px 28px color-mix(in srgb, var(--signal-orange) 28%, transparent);
 }
 
-.signal-sidebar .signal-search {
-  min-height: 42px;
-  border-color: var(--signal-line);
-  border-radius: 10px;
-  background: color-mix(in srgb, var(--signal-panel) 68%, transparent);
-  color: var(--signal-muted);
-}
-
-.signal-sidebar .signal-search:hover {
-  border-color: color-mix(in srgb, var(--signal-cyan) 45%, var(--signal-line));
-  background: var(--signal-panel);
-  color: var(--signal-text);
-}
-
-.signal-sidebar .signal-search kbd {
-  border-color: var(--signal-line);
-  background: var(--signal-void);
-  color: var(--signal-muted);
-}
-
-.signal-sidebar :is(.signal-new-meeting, .signal-search, a, summary, button):focus-visible {
+.signal-sidebar :is(.signal-new-meeting, a, button):focus-visible {
   outline: 2px solid var(--signal-cyan);
   outline-offset: 3px;
   box-shadow: none;
 }
 
 .signal-sidebar .signal-nav {
-  gap: 13px;
-  padding-block: 10px;
+  gap: 12px;
+  padding-block: 14px;
   scrollbar-color: var(--signal-line) transparent;
 }
 
-.signal-sidebar .signal-nav a,
-.signal-sidebar .signal-nav summary {
+.signal-nav-group + .signal-nav-group {
+  padding-top: 13px;
+  border-top: 1px solid color-mix(in srgb, var(--signal-line) 72%, transparent);
+}
+
+.signal-nav-group { flex-shrink: 0; }
+
+.signal-nav-group-label {
+  padding: 0 10px 7px;
+  color: color-mix(in srgb, var(--signal-muted) 75%, transparent);
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.signal-nav-links {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.signal-sidebar .signal-nav a {
   position: relative;
-  min-height: 44px;
+  min-height: 38px;
   color: var(--signal-muted);
   font-weight: 500;
 }
 
-.signal-sidebar .signal-nav a:hover,
-.signal-sidebar .signal-nav summary:hover {
+.signal-sidebar .signal-nav a:hover {
   background: color-mix(in srgb, var(--signal-cyan) 8%, transparent);
   color: var(--signal-text);
 }
 
 .signal-sidebar .signal-nav a[aria-current="page"] {
-  background: linear-gradient(90deg, color-mix(in srgb, var(--signal-cyan) 15%, var(--signal-panel)), color-mix(in srgb, var(--signal-violet) 9%, var(--signal-panel)));
+  background: var(--signal-panel);
   color: var(--signal-text);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--signal-cyan) 13%, transparent);
+  box-shadow: inset 0 0 0 1px var(--signal-line);
 }
 
 .signal-sidebar .signal-nav a[aria-current="page"]::before {
   position: absolute;
-  top: 8px;
-  bottom: 8px;
+  top: 9px;
+  bottom: 9px;
   left: 0;
-  width: 3px;
-  border-radius: 4px;
-  background: var(--signal-orange);
-  box-shadow: 0 0 12px color-mix(in srgb, var(--signal-orange) 70%, transparent);
+  width: 2px;
+  border-radius: 2px;
+  background: var(--signal-cyan);
   content: "";
 }
 
@@ -214,14 +209,6 @@
 
 .signal-sidebar > div:last-child :is(a, button) svg {
   color: inherit;
-}
-
-.signal-sidebar .sidebar-mascot {
-  opacity: .78;
-}
-
-.signal-sidebar .sidebar-mascot img {
-  filter: drop-shadow(0 0 22px color-mix(in srgb, var(--signal-violet) 30%, transparent));
 }
 
 .signal-sidebar .mx-3.mb-3 {
