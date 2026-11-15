@@ -1,17 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useSearchParams } from "next/navigation";
-import { CalendarDays, House, Plus, Settings, Video } from "lucide-react";
+import { usePathname } from "next/navigation";
+import { AudioLines, House, NotebookPen, Plus, Video } from "lucide-react";
 import { useShell } from "./shell-context";
 import { cn } from "@/lib/utils";
 
 export function MobileNavigation() {
   const pathname = usePathname();
-  const params = useSearchParams();
-  const calendar = params.get("view") === "calendar";
   const { openNotetaker } = useShell();
-  // Search parameters are read by the Meetings page; both links remain real navigation.
+  // Voice first on phones: Talk to Wilco and the khata are one tap away;
+  // Calendar is a view on Meetings and Settings lives in the menu.
   const items = [
     {
       href: "/dashboard",
@@ -23,19 +22,19 @@ export function MobileNavigation() {
       href: "/meetings",
       label: "Meetings",
       icon: Video,
-      active: pathname.startsWith("/meetings") && !calendar,
+      active: pathname.startsWith("/meetings"),
     },
     {
-      href: "/meetings?view=calendar",
-      label: "Calendar",
-      icon: CalendarDays,
-      active: pathname === "/meetings" && calendar,
+      href: "/live",
+      label: "Talk",
+      icon: AudioLines,
+      active: pathname === "/live",
     },
     {
-      href: "/settings",
-      label: "Settings",
-      icon: Settings,
-      active: pathname === "/settings",
+      href: "/khata",
+      label: "Khata",
+      icon: NotebookPen,
+      active: pathname === "/khata",
     },
   ];
   return (
