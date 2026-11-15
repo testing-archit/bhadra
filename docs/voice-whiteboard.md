@@ -2,6 +2,8 @@
 
 Status: deployed at `25fec90`; presentation enabled for acceptance testing on production. Real Meet remote reception remains unverified. Reviewed 15 November 2026. See the [release verification](meeting-action-agent.md#production-release-15-november-2026).
 
+Current default: the bot now requests [native FigJam](voice-figjam-reliability.md), with a paired plugin and shared file. This document retains the earlier internal-board/canvas prototype. Private FigJam presentation uses a participant's normal tab share; it is not automatically captured by the bot.
+
 ## What the bot can do at this checkpoint
 
 | Capability | Implementation and validation |

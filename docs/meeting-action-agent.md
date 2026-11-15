@@ -2,6 +2,8 @@
 
 Status: deployed to production at `25fec90`; real-call acceptance pending. Date: 15 November 2026.
 
+Current voice workflow: [native FigJam and reliability release](voice-figjam-reliability.md), deployed at `eaa87de`. New bot commands select FigJam and request pairing when needed; the internal destination remains compatible for older API callers. Interactive requests now use supported Gemini thinking levels and the configured fast model.
+
 ## Behavior
 
 The bot accepts addressed commands while recording and while previous work is running. Common commands go directly to a typed tool. Compound requests use one bounded planner call, then execute at most four steps.

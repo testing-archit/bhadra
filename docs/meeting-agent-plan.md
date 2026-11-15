@@ -2,6 +2,7 @@
 
 Date: 15 November 2026  
 Status: Command runtime, voice whiteboards, and durable action agent deployed at `25fec90`; real-call acceptance pending.
+Update: the voice reliability and native FigJam release is deployed at `eaa87de`; see [measured results and setup](voice-figjam-reliability.md).
 Scope: Voice commands, collaborative whiteboards, reliable actions, personalized preparation, latency, and throughput.
 
 ## 1. Product outcome

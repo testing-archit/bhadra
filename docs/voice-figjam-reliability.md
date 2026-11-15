@@ -1,6 +1,6 @@
 # Voice reliability and shared FigJam
 
-15 November 2026. Implementation ready for release; production verification pending.
+15 November 2026. Deployed at `eaa87deeae0e52857b4b19b915d9ec7cc27cb642`; production canaries passed. Actual paired FigJam and human Meet acceptance remain pending.
 
 The real-call test exposed the difference between a successful model/API canary and a usable voice command. Production metadata showed one `open_board` job and no drawing job. Gnani usage was real: Timbre v2.5/Nalini/hi-en, with eight speech events and five Live replies using the slower Gemini 3.8 model. A synthetic production speech request returned a valid mono 24 kHz MP3 in 1,357 ms. No real meeting transcript or recording was printed during diagnosis.
 
@@ -64,5 +64,15 @@ python tools/package-figjam-plugin.py --origin https://your-wilco-origin
 ```
 
 Deployment verification also exercises a synthetic Gnani speech → Prisma → fast reply → Timbre pipeline and records separate stage timings. It does not use human audio or join a real call. A connected Figma account/file and another Meet attendee are still needed for final native-edit and remote-presentation acceptance.
+
+## Production release receipt
+
+[Workflow 43670622648](https://github.com/testing-archit/bhadra/actions/runs/43670622648) passed all applicable tests, builds, rollout and live checks. All 471 backend tests passed in CI. The bot image now includes the isolated audio module and validates actual meeting-session imports both at build time and in the running container. The deployed backend and notetaker image IDs matched their release tags; Google auth state was present.
+
+The live, model-backed board job succeeded with admission 26.19 ms and completion 1,668.18 ms. Its receipt, persistence, delivery acknowledgment and synthetic cleanup passed. The synthetic voice probe used real Gnani and Gemini APIs: STT 1,404.05 ms; fast reply 995.50 ms; Timbre v2.5/Shlok output 1,872.96 ms; total 4,272.51 ms. The input test clip came from the speech cache (1.23 ms) and is excluded from that pipeline total. These are single server-side observations and exclude human utterance duration, VAD/caption settling, client network and actual Meet playout; they are not percentiles, a before/after experiment, or a throughput claim.
+
+Public health was 200 and invalid FigJam API bearer credentials returned 401. An absent authorization header returns FastAPI's existing required-header validation response (422). The downloadable ZIP returned 200 and matched the tested archive SHA-256 `40ba50af12c26ff20ceea8d6872e19e284129ba151d7b7be1dbe18680ea4bc37`.
+
+The last live pipeline also verified the provider parameter correction. An earlier canary exposed the bot image's omitted audio module; the corrected image and its runtime import checks now pass. Rollback snapshots remain available. No real meeting was joined, no native Figma account was connected, and no Jira/email mutation was performed during release validation.
 
 Primary references: [Figma remote client access](https://developers.figma.com/docs/figma-mcp-server/remote-server-installation/), [FigJam native objects](https://developers.figma.com/docs/plugins/working-in-figjam/), [Gnani speech interfaces](https://github.com/Gnani-AI-Mintlify/gnani-vachana), [English voice catalog](https://www.gnani.ai/text-to-speech/english). The official remote MCP supports FigJam writes, but currently restricts custom clients; the native plugin avoids claiming that Wilco already has approved MCP access.
