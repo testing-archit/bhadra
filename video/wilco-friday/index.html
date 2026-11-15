@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.15.0/dist/gsap.min.js"></script>
+    <style>
+      :root { --ground:#efede8; --ink:#0b0b0b; --muted:#6b6573; --orange:#ffd60a; --teal:#5a5650; --pink:#f7b6dd; --violet:#c9b4f5; --blue:#a7cdf8; --dark:#0b0b0b; --font-display:"Inter"; }
+      * { margin:0; padding:0; box-sizing:border-box; }
+      html, body { margin:0; width:1920px; height:1080px; overflow:hidden; background:var(--ground); }
+      #root { width:100%; height:100%; position:relative; font-family:var(--font-display); color:var(--ink); overflow:hidden; }
+      .scene { position:absolute; inset:0; overflow:hidden; }
+      .fill { position:absolute; inset:0; }
+      .center { display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; }
+      .grad { background: #ffd60a; }
+      .friday { font-size:260px; font-weight:900; letter-spacing:-0.05em; line-height:1; color:var(--ink); }
+      .q { position:absolute; font-size:46px; font-weight:700; background:#fff; border:3px solid var(--ink); border-radius:999px; padding:14px 34px; box-shadow:6px 6px 0 var(--ink); white-space:nowrap; }
+      .mid { font-size:72px; font-weight:800; letter-spacing:-0.03em; line-height:1.08; }
+      .sub { font-size:48px; font-weight:600; line-height:1.3; }
+      .who { font-size:28px; font-weight:700; color:var(--teal); text-transform:uppercase; letter-spacing:0.1em; margin-bottom:10px; }
+      .mark { background:var(--orange); color:var(--ink); border-radius:12px; padding:0 10px; }
+      .window { position:absolute; border-radius:22px; overflow:hidden; border:3px solid var(--ink); box-shadow:14px 14px 0 var(--ink); background:#fff; }
+      .window img { display:block; width:100%; }
+      .tag { position:absolute; background:var(--dark); color:#fff; border-radius:999px; padding:14px 28px; font-size:30px; font-weight:600; white-space:nowrap; }
+      .tag b { color:var(--orange); }
+      .note { position:absolute; font-size:24px; font-weight:600; color:var(--muted); }
+      .chip { position:absolute; background:var(--orange); border:3px solid var(--ink); border-radius:999px; padding:12px 30px; font-size:40px; font-weight:800; box-shadow:6px 6px 0 var(--ink); white-space:nowrap; }
+      .ic { background:#fff; border:3px solid var(--ink); border-radius:20px; box-shadow:6px 6px 0 var(--ink); padding:26px 10px; font-size:34px; font-weight:800; letter-spacing:-0.02em; text-align:center; }
+      .ic.dk { background:var(--ink); color:var(--orange); }
+      .panel { width:520px; height:300px; background:#fff; border:3px solid var(--ink); border-radius:28px; box-shadow:10px 10px 0 var(--ink); padding:34px; text-align:left; display:flex; flex-direction:column; justify-content:space-between; }
+      .panel .k { font-size:24px; font-weight:700; color:var(--teal); text-transform:uppercase; letter-spacing:0.08em; }
+      .panel p { font-size:36px; font-weight:700; line-height:1.25; }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="60" data-width="1920" data-height="1080">
+
+      <!-- A 0-4 hook -->
+      <div id="sa" class="scene clip center" data-start="0" data-duration="4" data-track-index="0" data-track-kind="graphics" data-layout-allow-overlap>
+        <div class="fill grad"></div>
+        <div class="friday" id="fa" style="position:relative">FRIDAY</div>
+        <div class="q" id="qa1" style="left:180px; top:170px">Who owns it?</div>
+        <div class="q" id="qa2" style="left:1320px; top:250px">What changed?</div>
+        <div class="q" id="qa3" style="left:800px; top:820px">Why?</div>
+      </div>
+
+      <!-- B 4-8 intro -->
+      <div id="sb" class="scene clip" data-start="4" data-duration="4" data-track-index="0" data-track-kind="graphics">
+        <div class="friday" id="fb" style="position:absolute; left:120px; top:120px; font-size:160px; color:var(--ink); background:var(--orange); padding:0 24px; border-radius:24px">FRIDAY</div>
+        <img id="mb" src="assets/wilco-mascot-v1.png" style="position:absolute; left:1180px; top:180px; width:560px" />
+        <div class="mid" id="tb" style="position:absolute; left:120px; top:420px; max-width:1000px">Let’s run that meeting<br />with Wilco</div>
+        <div class="note" id="nb" style="left:124px; top:960px">Scripted demo · fictional team “Orbit” · synthetic voices</div>
+      </div>
+
+      <!-- C 8-18 the sentence -->
+      <div id="sc" class="scene clip" data-start="8" data-duration="10" data-track-index="0" data-track-kind="graphics">
+        <div class="window" id="wc" style="left:100px; top:170px; width:820px"><img src="assets/home.png" /></div>
+        <div class="tag" id="tagc" style="left:100px; top:70px">“Bring Wilco to a meeting”</div>
+        <div style="position:absolute; left:1000px; top:200px; width:820px">
+          <div id="c1"><div class="who">Priya · Orbit PM</div><div class="sub">“<span class="mark" id="h1">Arjun</span>, onboarding flow update karna, <span class="mark" id="h2">Friday</span> tak. Pehle <span class="mark" id="h3">OTP → KYC</span>, drop-off kam karna hai.”</div></div>
+          <div id="c2" style="margin-top:60px"><div class="who">Arjun</div><div class="sub">“Done, main le leta hoon.”</div></div>
+        </div>
+        <div class="note" style="left:1004px; top:960px">Onboarding review · staged meeting</div>
+      </div>
+
+      <!-- D 18-27 after processing -->
+      <div id="sd" class="scene clip" data-start="18" data-duration="9" data-track-index="0" data-track-kind="graphics" data-layout-allow-overlap>
+        <div class="tag" id="tagd" style="left:120px; top:70px">After processing</div>
+        <div class="window" id="wd" style="left:120px; top:180px; width:1080px"><img src="assets/meeting.png" /></div>
+        <div class="note" style="left:124px; top:960px">Real meeting debrief from the live demo workspace</div>
+        <div class="chip" id="d1" style="left:1300px; top:260px">Owner · Arjun</div>
+        <div class="chip" id="d2" style="left:1300px; top:420px">Deadline · FRIDAY</div>
+        <div class="chip" id="d3" style="left:1300px; top:580px">Decision · OTP → KYC</div>
+        <div class="sub" id="dt" style="position:absolute; left:1300px; top:760px; width:560px; font-size:40px">Saved from the conversation</div>
+      </div>
+
+      <!-- E 27-34 ask by voice -->
+      <div id="se" class="scene clip" data-start="27" data-duration="7" data-track-index="0" data-track-kind="graphics">
+        <div class="window" id="we" style="left:120px; top:150px; width:1080px"><img src="assets/memory.png" /></div>
+        <div class="tag" id="tage" style="left:1280px; top:200px; z-index:6">Speech input · <b>Gnani Prisma</b></div>
+        <div style="position:absolute; left:1260px; top:330px; width:600px; z-index:5; background:var(--ground); padding:20px; border-radius:20px">
+          <div class="who">You, to Wilco Memory</div>
+          <div class="sub" id="qe">“Onboarding ka owner aur deadline kya tha?”</div>
+        </div>
+      </div>
+
+      <!-- F 34-44 answer -->
+      <div id="sf" class="scene clip" data-start="34" data-duration="10" data-track-index="0" data-track-kind="graphics">
+        <div class="fill" style="background:var(--dark)"></div>
+        <div class="tag" id="tagf" style="left:120px; top:90px; background:#fff; color:var(--ink)">Voice output · <b style="color:var(--teal)">Gnani Timbre</b> in the app</div>
+        <div style="position:absolute; left:120px; top:280px; width:1680px; color:#fff">
+          <div class="who" style="color:var(--orange)">Wilco</div>
+          <div class="mid" id="af" style="color:#fff; font-size:84px">“Arjun ko onboarding flow <span style="color:var(--orange)">Friday</span> tak update karna hai. OTP pehle, KYC baad mein.”</div>
+        </div>
+        <div class="note" style="left:124px; top:960px; color:#a59fb0">Answer read in this cut by a Gemini stand-in voice</div>
+      </div>
+
+      <!-- G 44-51 source -->
+      <div id="sg" class="scene clip" data-start="44" data-duration="7" data-track-index="0" data-track-kind="graphics">
+        <div class="mid" id="tg" style="position:absolute; left:120px; top:60px; z-index:5; background:var(--ground); padding:6px 20px; border-radius:18px">And here’s the meeting it came from</div>
+        <div class="window" id="wg" style="left:300px; top:220px; width:1320px"><img src="assets/meeting.png" /></div>
+      </div>
+
+      <!-- H 51-56 recap -->
+      <div id="sh" class="scene clip center" data-start="51" data-duration="5" data-track-index="0" data-track-kind="graphics">
+        <div class="fill grad"></div>
+        <div class="mid" id="ih" style="position:relative; font-size:64px; margin-bottom:36px">Already works with your stack</div>
+        <div id="ig" style="position:relative; display:grid; grid-template-columns:repeat(5,300px); gap:18px">
+          <div class="ic">Google Meet</div><div class="ic">Microsoft Teams</div><div class="ic">Google Calendar</div><div class="ic dk">Jira Cloud</div><div class="ic">FigJam</div>
+          <div class="ic">Gmail</div><div class="ic">WhatsApp</div><div class="ic">Google Sheets</div><div class="ic">Claude</div><div class="ic dk">Gnani AI</div>
+        </div>
+        <div class="sub" id="cr" style="position:relative; margin-top:44px; font-size:34px">Speech: <b>Gnani Prisma</b> · Reasoning: Gemini · Voice: <b>Gnani Timbre</b></div>
+      </div>
+
+      <!-- I 56-60 end -->
+      <div id="si" class="scene clip" data-start="56" data-duration="4" data-track-index="0" data-track-kind="graphics">
+        <div class="fill" style="background:var(--dark)"></div>
+        <img id="mi" src="assets/wilco-mascot-v1.png" style="position:absolute; left:360px; top:230px; width:480px" />
+        <div style="position:absolute; left:900px; top:330px; color:#fff">
+          <div class="mid" id="ti1" style="font-size:150px; color:#fff">Wilco</div>
+          <div class="mid" id="ti2" style="font-size:60px; color:var(--orange)">Your meeting. Still useful.</div>
+          <div class="note" id="ti3" style="position:relative; margin-top:30px; color:#cfc9d8; font-size:30px">34-58-54-115.sslip.io · #GnaniAI #GreatIndianAIInternshipChallenge</div>
+        </div>
+      </div>
+      <audio id="vo-a" class="clip" src="assets/vo/a.wav" data-start="0.2" data-duration="3.21" data-track-index="1" data-volume="1"></audio>
+      <audio id="vo-b" class="clip" src="assets/vo/b.wav" data-start="4.3" data-duration="2.49" data-track-index="1" data-volume="1"></audio>
+      <audio id="vo-c1" class="clip" src="assets/vo/c1.wav" data-start="8.6" data-duration="6.81" data-track-index="1" data-volume="1"></audio>
+      <audio id="vo-c2" class="clip" src="assets/vo/c2.wav" data-start="15.6" data-duration="1.85" data-track-index="1" data-volume="1"></audio>
+      <audio id="vo-d" class="clip" src="assets/vo/d.wav" data-start="19.2" data-duration="5.25" data-track-index="1" data-volume="1"></audio>
+      <audio id="vo-e" class="clip" src="assets/vo/e.wav" data-start="28.8" data-duration="2.65" data-track-index="1" data-volume="1"></audio>
+      <audio id="vo-f" class="clip" src="assets/vo/f.wav" data-start="34.6" data-duration="5.77" data-track-index="1" data-volume="1"></audio>
+      <audio id="vo-g" class="clip" src="assets/vo/g.wav" data-start="44.2" data-duration="2.37" data-track-index="1" data-volume="1"></audio>
+      <audio id="vo-h" class="clip" src="assets/vo/h.wav" data-start="51.4" data-duration="3.21" data-track-index="1" data-volume="1"></audio>
+      <audio id="vo-i" class="clip" src="assets/vo/i.wav" data-start="56.4" data-duration="3.09" data-track-index="1" data-volume="1"></audio>
+    </div>
+
+    <script>
+      const tl = gsap.timeline({ paused: true });
+      const pop = { ease: "back.out(1.7)", duration: 0.45 };
+      // A
+      tl.fromTo("#fa", { scale: 2.4, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.5, ease: "power4.out" }, 0.1);
+      tl.fromTo("#qa1", { scale: 0, opacity: 0 }, { scale: 1, opacity: 1, ...pop }, 0.8);
+      tl.fromTo("#qa2", { scale: 0, opacity: 0 }, { scale: 1, opacity: 1, ...pop }, 1.5);
+      tl.fromTo("#qa3", { scale: 0, opacity: 0 }, { scale: 1, opacity: 1, ...pop }, 2.2);
+      tl.to(["#qa1", "#qa2"], { opacity: 0.35, duration: 0.3 }, 2.2);
+      tl.to("#fa", { scale: 0.62, x: -560, y: -340, duration: 0.45, ease: "power3.inOut" }, 3.5);
+      tl.to(["#qa1", "#qa2", "#qa3"], { opacity: 0, duration: 0.25 }, 3.5);
+      // B
+      tl.fromTo("#mb", { x: 900 }, { x: 0, duration: 0.6, ease: "back.out(1.3)" }, 4.2);
+      tl.fromTo("#tb", { y: 40, opacity: 0 }, { y: 0, opacity: 1, duration: 0.45, ease: "power3.out" }, 4.6);
+      tl.fromTo("#nb", { opacity: 0 }, { opacity: 1, duration: 0.4 }, 5.2);
+      tl.to(["#mb", "#tb", "#fb", "#nb"], { y: -1100, duration: 0.45, ease: "power3.in" }, 7.5);
+      // C
+      tl.fromTo("#wc", { x: -1000 }, { x: 0, duration: 0.6, ease: "power3.out" }, 8.05);
+      tl.fromTo("#tagc", { scale: 0, opacity: 0 }, { scale: 1, opacity: 1, ...pop }, 8.4);
+      tl.fromTo("#c1", { opacity: 0, x: 60 }, { opacity: 1, x: 0, duration: 0.45 }, 8.6);
+      ["#h1", "#h2", "#h3"].forEach((h, i) => tl.fromTo(h, { backgroundColor: "rgba(255,214,10,0)" }, { backgroundColor: "rgba(255,214,10,1)", duration: 0.3 }, 9.0 + i * 1.8));
+      tl.fromTo("#c2", { opacity: 0, x: 60 }, { opacity: 1, x: 0, duration: 0.45 }, 15.4);
+      tl.to("#wc", { scale: 1.08, transformOrigin: "50% 50%", duration: 8, ease: "none" }, 9.0);
+      tl.to("#sc > *", { opacity: 0, duration: 0.3 }, 17.65);
+      // D
+      tl.fromTo("#tagd", { scale: 0, opacity: 0 }, { scale: 1, opacity: 1, ...pop }, 18.05);
+      tl.fromTo("#wd", { y: 900 }, { y: 0, duration: 0.6, ease: "power3.out" }, 18.2);
+      tl.fromTo("#d1", { x: 500, opacity: 0 }, { x: 0, opacity: 1, duration: 0.4, ease: "back.out(1.6)" }, 19.4);
+      tl.fromTo("#d2", { scale: 3, x: -500, y: -200, opacity: 0 }, { scale: 1, x: 0, y: 0, opacity: 1, duration: 0.5, ease: "power3.out" }, 20.0);
+      tl.fromTo("#d3", { x: 500, opacity: 0 }, { x: 0, opacity: 1, duration: 0.4, ease: "back.out(1.6)" }, 20.6);
+      tl.fromTo("#dt", { opacity: 0 }, { opacity: 1, duration: 0.4 }, 21.6);
+      tl.to("#sd > *", { x: -2200, duration: 0.45, ease: "power3.in" }, 26.5);
+      // E
+      tl.fromTo("#we", { y: 900 }, { y: 0, duration: 0.6, ease: "power3.out" }, 27.05);
+      tl.to("#we", { scale: 1.9, x: -223, y: -467, transformOrigin: "50% 50%", duration: 0.6, ease: "power3.inOut" }, 28.0);
+      tl.fromTo("#tage", { scale: 0, opacity: 0 }, { scale: 1, opacity: 1, ...pop }, 28.3);
+      tl.fromTo("#qe", { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.4 }, 29.0);
+      tl.to("#se > *", { opacity: 0, duration: 0.3 }, 33.65);
+      // F
+      tl.fromTo("#tagf", { scale: 0, opacity: 0 }, { scale: 1, opacity: 1, ...pop }, 34.2);
+      tl.fromTo("#af", { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: 0.6, ease: "power3.out" }, 34.6);
+      tl.to("#af", { scale: 1.04, transformOrigin: "0% 50%", duration: 8, ease: "none" }, 35.2);
+      // G
+      tl.fromTo("#tg", { opacity: 0, y: -30 }, { opacity: 1, y: 0, duration: 0.45 }, 44.1);
+      tl.fromTo("#wg", { y: 900 }, { y: 0, duration: 0.6, ease: "power3.out" }, 44.2);
+      tl.to("#wg", { scale: 1.8, x: -31, y: -598, transformOrigin: "50% 50%", duration: 0.7, ease: "power3.inOut" }, 45.6);
+      tl.to("#sg > *", { opacity: 0, duration: 0.3 }, 50.65);
+      // H
+      tl.fromTo("#ih", { y: 30, opacity: 0 }, { y: 0, opacity: 1, duration: 0.4, ease: "power3.out" }, 51.05);
+      tl.fromTo("#ig .ic", { scale: 0.6, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.35, ease: "back.out(1.8)", stagger: 0.12 }, 51.4);
+      tl.fromTo("#cr", { opacity: 0 }, { opacity: 1, duration: 0.4 }, 53.0);
+      tl.to("#sh > *", { opacity: 0, duration: 0.3 }, 55.65);
+      // I
+      tl.fromTo("#mi", { y: -900 }, { y: 0, duration: 0.7, ease: "bounce.out" }, 56.05);
+      tl.fromTo("#ti1", { clipPath: "inset(0 100% 0 0)" }, { clipPath: "inset(0 0% 0 0)", duration: 0.5, ease: "power3.out" }, 56.5);
+      tl.fromTo("#ti2", { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.4 }, 56.9);
+      tl.fromTo("#ti3", { opacity: 0 }, { opacity: 1, duration: 0.4 }, 57.2);
+      window.__timelines["main"] = tl;
+      tl.seek(0);
+    </script>
+  </body>
+</html>
