@@ -9,7 +9,7 @@ import json
 import pytest
 from sqlalchemy import select
 from app.database.db import async_session
-from app.database.models import FigJamConnection, FigJamDelivery, MeetingAgentJob, MeetingBoard
+from app.database.models import CaptureRequest, FigJamConnection, FigJamDelivery, MeetingAgentJob, MeetingBoard
 from app.services import meeting_agent as agent
 from app.services.board_commands import BoardCommandPlan, BoardOperation
 from tests.conftest import auth_headers
@@ -89,6 +89,17 @@ async def test_bridge_cors_is_limited_to_bridge_endpoints(client):
     headers = {'Origin':'null','Access-Control-Request-Method':'POST','Access-Control-Request-Headers':'authorization,content-type'}
     assert (await client.options('/api/figjam/bridge/poll', headers=headers)).headers.get('access-control-allow-origin') == 'null'
     assert (await client.options('/api/meetings', headers=headers)).headers.get('access-control-allow-origin') is None
+
+
+async def test_shared_figjam_link_stays_with_finished_meeting(client, paired_figjam, member_user, make_meeting):
+    meeting = await make_meeting(member_user, 'Native diagram review', None)
+    async with async_session() as db:
+        capture = await db.get(CaptureRequest, paired_figjam['capture_id'])
+        capture.meeting_id, capture.status = meeting.id, 'stopped'
+        await db.commit()
+    result = await client.get(f'/api/boards/meetings/{meeting.id}', headers=auth_headers(member_user))
+    assert result.status_code == 200
+    assert result.json()['external_url'] == 'https://www.figma.com/board/ABCdef012345'
 
 
 def test_downloaded_plugin_matches_sources_and_has_scoped_network_access():

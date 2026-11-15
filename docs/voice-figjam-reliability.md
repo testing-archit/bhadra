@@ -43,9 +43,11 @@ Tool output is mirrored internally for planning and saved as a durable delivery.
 
 The built-in live draft is now optional and does not mount or run its polling while collapsed. Existing notes/revisions remain available. Pairing starts a fresh FigJam mirror and preserves the prior internal draft in revision history.
 
+The finished meeting retains the shared FigJam link. Its Board view opens that native file and stops polling the internal canvas, so the editable artifact remains convenient to share after the call.
+
 ## Verification
 
-- 469 backend tests passed on isolated Postgres, including paired/unpaired routing, token scope/replay, native acknowledgment, cancellation, cross-origin scope, command recognition, mixed instructions, priority admission, audio cancellation, and real SDK request serialization.
+- 470 backend tests passed on isolated Postgres, including paired/unpaired routing, token scope/replay, native acknowledgment, cancellation, cross-origin scope, finished-meeting links, command recognition, mixed instructions, priority admission, audio cancellation, and real SDK request serialization.
 - Five Node tests exercised the native shape/connector implementation, replay, human-edit conflicts, locks/deletions during planning, and preservation of unrelated objects.
 - Frontend typecheck and production build passed.
 - Real Chromium/WebRTC audio proof: 24 kHz synthetic speech decoded at 48 kHz, remote RMS 0.19454 with dominant frequency 433.59 Hz for a 440 Hz source, unrelated speaker RMS below 0.005, stopped RMS zero, malformed audio rejected. This is synthetic transport validation, not a real Meet voice test.

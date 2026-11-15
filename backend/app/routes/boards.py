@@ -9,7 +9,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database.db import get_db
-from app.database.models import CaptureRequest, LiveCaption, Meeting, MeetingBoard, MeetingBoardRevision, User
+from app.database.models import CaptureRequest, FigJamConnection, LiveCaption, Meeting, MeetingBoard, MeetingBoardRevision, User
 from app.dependencies import get_current_user, user_can_read_meeting
 from app.services import board_service, capture_service
 
@@ -96,8 +96,10 @@ async def meeting_board(
     if meeting is None or meeting.deleted_at is not None or not await user_can_read_meeting(db, user, meeting_id):
         raise HTTPException(status_code=404, detail="Meeting not found")
     board = await board_service.ensure_for_meeting(db, meeting)
+    file_url = await db.scalar(select(FigJamConnection.file_url).join(CaptureRequest,
+        CaptureRequest.id == FigJamConnection.capture_request_id).where(CaptureRequest.meeting_id == meeting_id).limit(1))
     await db.commit()
-    return board_service.serialize(board)
+    return {**board_service.serialize(board), 'external_url': file_url}
 
 
 @router.get("/captures/{capture_id}")
