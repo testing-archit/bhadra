@@ -98,6 +98,6 @@ def reply(history: list[dict], user_text: str, digest: str, name: str | None, de
     )
     text, _usage = gemini_service.generate_text(
         SYSTEM_PROMPT, prompt, max_output_tokens=220, temperature=0.4, thinking_budget=0, feature="live_conversation",
-        model=settings.gemini_fast_model, timeout_seconds=8,
+        model=settings.gemini_fast_model, timeout_seconds=12,
     )
     return " ".join(text.replace("*", "").replace("#", "").split()).strip()

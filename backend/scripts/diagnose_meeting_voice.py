@@ -23,12 +23,13 @@ async def main():
         'host': urlparse(settings.gnani_tts_url).hostname,
         'model': settings.gnani_tts_model, 'voice': settings.gnani_tts_voice,
         'language': settings.gnani_tts_language, 'interactive_model': settings.gemini_fast_model,
+        'agent_provider_seconds': settings.meeting_agent_provider_seconds,
     }}))
     try:
         plan, _ = gemini_service.generate_structured(SYSTEM_PROMPT,
             'Add one idea named Release check. Board: {"nodes":[],"edges":[]}', BoardCommandPlan,
             model=settings.gemini_fast_model, feature='agent_release_fast_probe', thinking_budget=0,
-            timeout_seconds=8, attempts=1)
+            timeout_seconds=settings.meeting_agent_provider_seconds, attempts=1)
         print(json.dumps({'fast_model_probe': 'ok', 'operations':len(plan.operations)}))
     except APIError as error:
         print(json.dumps({'fast_model_probe': 'provider_error', 'code':error.code,
