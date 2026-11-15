@@ -1,6 +1,6 @@
 # Noisy telephone audio: implementation and evaluation
 
-Implemented on `codex/noisy-telephony-20261115`. This is a tested topic-branch change, not a production deployment. Benchmark audio is synthetic, not an award result or a real-call acceptance test.
+Introduced in [PR #18](https://github.com/testing-archit/bhadra/pull/18). Benchmark audio is synthetic, not an award result or a real-call acceptance test. Release checks are recorded in `docs/coordination.md`.
 
 ## What the audit found
 
@@ -40,7 +40,7 @@ ELEVEN_LABS_API_KEY=
 STT_RNNOISE_MODEL_PATH=/models/std.rnnn
 ```
 
-For an individual authenticated `POST /api/meetings/ingest` upload, set `transcription_profile=robust`. Set `STT_PROFILE=robust` on a configured backend to select it for central transcription callers, including the notetaker. The Gnani lab remains pinned to Gnani. Live still needs the Gnani key for its speech output. Production configuration is unchanged by this branch.
+For an individual authenticated `POST /api/meetings/ingest` upload, set `transcription_profile=robust`. Set `STT_PROFILE=robust` on a configured backend to select it for central transcription callers, including the notetaker. The Gnani lab remains pinned to Gnani. Live still needs the Gnani key for its speech output. The default remains `standard`; deploying this code does not automatically enable the paid robust profile.
 
 Scribe's checked [pay-as-you-go price](https://elevenlabs.io/pricing/api) is $0.20/hour before taxes. The ledger uses that rate; override a contracted rate with `AI_PRICING_JSON={"elevenlabs":0.0033333333333333335}` (USD/minute). Keyterm surcharges are avoided. Actual account billing is authoritative. Separate channels submit the duration of each channel.
 
