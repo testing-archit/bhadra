@@ -148,3 +148,9 @@ PR #3 merged; application commit `25fec901b995ded0a540f3bd922758a92b01432f` depl
 ## Meeting voice reliability and FigJam scope, 15 November 2026
 
 Following the user's real-call feedback, Codex owns command recognition/drawing failures, voice latency, audio feedback diagnostics/fixes, and a shared FigJam integration in `/private/tmp/bhadra-meeting-agent`. The user selected FigJam/Figma. Keep bot camera assets/generator with the mascot owner. Existing unfinished shared changes remain untouched. Production diagnostic reads must redact credentials and avoid logging real transcript/audio content. Prior release authorization persists for verified fixes; do not claim live FigJam access until an account/file is connected.
+
+## Meet camera mascot correction
+
+The user reported the old Charcha camera card still visible in Google Meet. Codex owns only the bot camera asset generator, generated idle/speaking cards and their source mascot. Replace the legacy artwork with the approved mascot and Wilco label, retaining camera capture and speech switching. Deploy through the existing idle-aware bot release; do not interrupt an active recording.
+
+Meet camera replacement uses the exact approved mascot source PNG and browser-rendered 16:9 cards. The existing 640×360 canvas stream was verified in Chromium, including live video tracks and alternating speaking indicators. Generator uses the existing Playwright dependency; runtime continues loading checked-in PNG frames. Recording/session logic is unchanged.
