@@ -1,6 +1,6 @@
 # Voice workflows
 
-Implemented from main `d184828` on `codex/voice-workflows-20261115`. No database migration or new package is needed. The user authorized production release on 15 November 2026; deployment is being verified.
+Implemented from main `d184828` on `codex/voice-workflows-20261115`. No database migration or new package is needed. Deployed to production on 15 November 2026 as application commit `694f15285010a41b99566b280d921db911c9601d` through PR #15.
 
 ## Try the features
 
@@ -38,4 +38,13 @@ These checks do not validate real Jira assignments, Prisma/Timbre speech quality
 
 A focused local-sequential Bug Hunter review covered voice task dispatch, task intent, running translations and the Live route (four source files, two confirmed issues, none dismissed). Both issues were reproduced before fixing: merely mentioning Jira inside an internal task could trigger an external issue, and one failing translation language could starve later subscribers. Jira dispatch now requires an explicit Jira ticket/issue/task creation destination; each translation language handles its own ordinary provider/delivery failure while cancellation still propagates. “Issue” creation requests are recognized alongside tickets.
 
-After correction: 560 backend tests passed, including two new reproductions; frontend production build/typecheck, extension checks and five native FigJam checks passed. The release probe now checks signed-in stand-up and decision-source routes, invalid credentials, synthetic cleanup and (in model-canary mode) the real translation endpoint. Its authenticated local HTTP run passed without provider calls. Production verification remains pending below.
+After correction: 560 backend tests passed, including two new reproductions; frontend production build/typecheck, extension checks and five native FigJam checks passed. The release probe now checks signed-in stand-up and decision-source routes, invalid credentials, synthetic cleanup and (in model-canary mode) the real translation endpoint. Its authenticated local HTTP run passed without provider calls. Production verification passed as recorded below.
+
+
+## Production release verified
+
+[PR #15](https://github.com/testing-archit/bhadra/pull/15) merged, and [workflow 43709991315](https://github.com/testing-archit/bhadra/actions/runs/43709991315) passed tests, image builds, idle-aware rollout and live verification. Rollback images were preserved before replacing backend, frontend and notetaker. The new backend/notetaker image identities matched their release tags; runtime imports, Google auth state and isolated microphone checks passed.
+
+The live probe passed authenticated stand-up/decision-source reads, invalid-credential rejection, real synthetic Tamil translation, durable agent/board execution, acknowledgment and synthetic-record cleanup. Its synthetic voice path passed Prisma transcription → fast Gemini reply → Timbre/Shlok speech (4,091.31 ms server-side for the one observed probe, excluding its cached input TTS, client/WAN/Meet playback and acoustic latency). No real Jira issue, email or meeting was created by verification.
+
+Final independent public requests returned 200 for `/health`, `/`, `/delivery` and `/live`, and 401 for invalid credentials on `/api/tts/standup`. Real human call delivery, spoken names/assignments and translation quality still require in-call acceptance; the existing signed-in Jira and live-caption boundaries above are unchanged.
