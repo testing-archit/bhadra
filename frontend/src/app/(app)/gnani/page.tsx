@@ -87,7 +87,7 @@ function playBase64(audio: string) {
 }
 
 function ModelChip({ children }: { children: React.ReactNode }) {
-  return <Badge variant="secondary" className="font-mono text-[11px]">{children}</Badge>;
+  return <Badge variant="secondary" className="text-[11px] font-medium">{children}</Badge>;
 }
 
 function PrismaCard({ model }: { model?: GnaniModels["prisma"] }) {
@@ -113,12 +113,12 @@ function PrismaCard({ model }: { model?: GnaniModels["prisma"] }) {
   }
 
   return (
-    <Card>
+    <Card className="h-full">
       <CardHeader>
         <CardTitle className="flex items-center gap-2"><Mic className="size-4 text-primary" aria-hidden="true" />Prisma · speech to text</CardTitle>
         <CardDescription>Speak in any Indian language, or mix Hindi and English mid-sentence. Prisma detects the language on its own.</CardDescription>
       </CardHeader>
-      <CardContent className="flex flex-col gap-3">
+      <CardContent className="flex flex-1 flex-col gap-3">
         <div className="flex flex-wrap items-center gap-2">
           <Button onClick={() => void toggle()} disabled={busy} variant={recorder.recording ? "destructive" : "default"}>
             {busy ? <Loader2 className="animate-spin" aria-hidden="true" /> : recorder.recording ? <Square aria-hidden="true" /> : <Mic aria-hidden="true" />}
@@ -126,8 +126,13 @@ function PrismaCard({ model }: { model?: GnaniModels["prisma"] }) {
           </Button>
           {model && <ModelChip>{model.model} · {model.mode}</ModelChip>}
         </div>
+        {!result && (
+          <div className="flex flex-1 items-center justify-center rounded-lg border border-dashed px-4 py-6 text-center text-sm text-muted-foreground">
+            {recorder.recording ? "Listening… tap Stop when you're done." : busy ? "Prisma is transcribing…" : "Your words and the language Prisma detects appear here."}
+          </div>
+        )}
         {result && (
-          <div className="flex flex-col gap-2 rounded-lg bg-muted px-3 py-3">
+          <div className="flex flex-1 flex-col gap-2 rounded-lg bg-muted px-3 py-3">
             <p className="text-base leading-relaxed">{result.text || "I didn't catch any speech. Try again a little closer to the mic."}</p>
             <div className="flex flex-wrap gap-1.5">
               {result.language && <ModelChip>{LANGUAGE_NAMES[result.language] ?? result.language} detected</ModelChip>}
@@ -165,12 +170,12 @@ function TimbreCard() {
   }
 
   return (
-    <Card>
+    <Card className="h-full">
       <CardHeader>
         <CardTitle className="flex items-center gap-2"><Volume2 className="size-4 text-primary" aria-hidden="true" />Timbre · text to speech</CardTitle>
         <CardDescription>The voice Wilco speaks with in calls and in Live. Pick a language and hear the same update.</CardDescription>
       </CardHeader>
-      <CardContent className="flex flex-col gap-3">
+      <CardContent className="flex flex-1 flex-col gap-3">
         <Select value={language} onValueChange={(next) => {
           if (!next) return;
           setLanguage(next);
@@ -228,14 +233,17 @@ function VoiceCloneCard({ status, demo, onChange }: { status?: GnaniModels["voic
   }
 
   return (
-    <Card>
+    <Card className="h-full">
       <CardHeader>
         <CardTitle className="flex items-center gap-2"><Fingerprint className="size-4 text-primary" aria-hidden="true" />Timbre voice cloning · your voice</CardTitle>
         <CardDescription>Missing a stand-up? Leave a typed update and Wilco says it in the call in your voice, announced as an AI copy.</CardDescription>
       </CardHeader>
-      <CardContent className="flex flex-col gap-4">
+      <CardContent className="flex flex-1 flex-col gap-4">
         {demo ? (
-          <p className="text-sm text-muted-foreground">Voice cloning needs a free account: your voice is only ever yours. Everything else on this page works in the demo.</p>
+          <div className="flex flex-1 flex-col justify-center gap-1 rounded-lg border border-dashed px-4 py-6 text-center text-sm text-muted-foreground">
+            <p className="font-medium text-foreground">Needs a free account</p>
+            <p>Your voice is only ever yours, so cloning isn&apos;t available in the shared demo. Everything else on this page works.</p>
+          </div>
         ) : !enrolled ? (
           <div className="flex flex-col gap-3">
             <p className="text-sm text-muted-foreground">Read anything aloud for 10 to 20 seconds in a quiet place. Only the voice embedding is kept, never the recording.</p>
@@ -309,12 +317,12 @@ function EvonCard({ status }: { status?: GnaniModels["evon"] }) {
   const [reply, setReply] = useState<{ reply: string; latency_ms: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
   return (
-    <Card>
+    <Card className="h-full">
       <CardHeader>
         <CardTitle className="flex items-center gap-2"><Brain className="size-4 text-primary" aria-hidden="true" />Evon v3.3 · Indic LLM</CardTitle>
         <CardDescription>Gnani's open-weights model for 11 Indian languages. When the team hosts it, Wilco Live answers with Evon, and Gemini takes over if it's unreachable.</CardDescription>
       </CardHeader>
-      <CardContent className="flex flex-col gap-3">
+      <CardContent className="flex flex-1 flex-col gap-3">
         {status?.configured ? (
           <>
             <Textarea value={prompt} onChange={(event) => setPrompt(event.target.value)} rows={2} aria-label="Ask Evon" />
@@ -329,7 +337,10 @@ function EvonCard({ status }: { status?: GnaniModels["evon"] }) {
             {reply && <p className="rounded-lg bg-muted px-3 py-2 text-sm leading-relaxed">{reply.reply}</p>}
           </>
         ) : (
-          <p className="text-sm text-muted-foreground">Not connected on this server. Point <code className="font-mono">EVON_URL</code> at any OpenAI-compatible server (vLLM or llama.cpp) running <code className="font-mono">gnani-evon-v3.3-30B-A3B</code>.</p>
+          <div className="flex flex-1 flex-col justify-center gap-1 rounded-lg border border-dashed px-4 py-6 text-center text-sm text-muted-foreground">
+            <p className="font-medium text-foreground">Not connected on this server</p>
+            <p>Point <code className="rounded bg-muted px-1 text-xs">EVON_URL</code> at any OpenAI-compatible server (vLLM or llama.cpp) running <code className="rounded bg-muted px-1 text-xs">gnani-evon-v3.3-30B-A3B</code>.</p>
+          </div>
         )}
         {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
       </CardContent>
@@ -351,7 +362,7 @@ export default function GnaniLabPage() {
 
       <section aria-label="Where each model runs in Wilco" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {IN_WILCO.map(({ model, icon: Icon, uses }) => (
-          <div key={model} className="flex flex-col gap-2 rounded-xl border bg-card p-4">
+          <div key={model} className="flex h-full flex-col gap-2 rounded-xl border bg-card p-4">
             <p className="flex items-center gap-2 text-sm font-semibold"><Icon className="size-4 text-primary" aria-hidden="true" />{model}</p>
             <ul className="flex flex-col gap-1.5">
               {uses.map((use) => <li key={use} className="flex gap-1.5 text-xs leading-snug text-muted-foreground"><CircleCheck className="mt-px size-3.5 shrink-0 text-primary" aria-hidden="true" />{use}</li>)}
