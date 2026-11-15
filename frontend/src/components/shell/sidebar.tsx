@@ -1,10 +1,13 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
   Bot,
+  CalendarDays,
+  MoreHorizontal,
+  Search,
   ChevronsUpDown,
   FileAudio,
   FileText,
@@ -28,6 +31,7 @@ import { cn } from "@/lib/utils";
 import {
   Menu,
   MenuContent,
+  MenuGroup,
   MenuItem,
   MenuLabel,
   MenuSeparator,
@@ -62,7 +66,14 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   const router = useRouter();
   const { user, logout } = useAuth();
   const { preference, setPreference } = useTheme();
-  const { openNotetaker } = useShell();
+  const { openNotetaker, setCommandOpen } = useShell();
+  const [taskCount,setTaskCount] = useState<number | null>(null);
+  useEffect(() => {
+    let active=true;
+    const refresh=()=>void api.listTasks().then(rows=>{if(active)setTaskCount(rows.filter(row=>row.status!=="done").length);}).catch(()=>{});
+    refresh(); window.addEventListener("wilco:tasks-changed",refresh);
+    return ()=>{active=false;window.removeEventListener("wilco:tasks-changed",refresh);};
+  },[]);
   const activeLinkRef = useRef<HTMLAnchorElement>(null);
   const navRef = useRef<HTMLElement>(null);
 
@@ -102,78 +113,25 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
         </Link>
       </div>
 
-      <div className="signal-sidebar-actions flex shrink-0 flex-col px-3 pb-3">
-        <Menu>
-          <MenuTrigger className="signal-new-meeting flex h-10 w-full items-center justify-center gap-2 rounded-xl bg-sidebar-primary text-sm font-semibold text-sidebar-primary-foreground outline-none transition-[background-color,transform] duration-150 hover:bg-sidebar-primary/90 active:scale-[0.98] focus-visible:ring-3 focus-visible:ring-sidebar-ring">
-            <Plus className="size-4" /> New meeting
-          </MenuTrigger>
-          <MenuContent className="w-64">
-            <MenuItem
-              onClick={() => {
-                onNavigate?.();
-                openNotetaker();
-              }}
-            >
-              <Bot /> Send notetaker to a Meet
-            </MenuItem>
-            <MenuItem onClick={() => go("/meetings/new?source=upload")}>
-              <Upload /> Upload a recording
-            </MenuItem>
-            <MenuItem onClick={() => go("/meetings/new?source=paste")}>
-              <FileText /> Paste a transcript
-            </MenuItem>
-            <MenuItem onClick={() => go("/record")}>
-              <Mic /> Record in person
-            </MenuItem>
-            <MenuItem onClick={() => go("/recap")}>
-              <FileAudio /> Recap a call or voice note
-            </MenuItem>
-            <MenuSeparator />
-            <MenuItem onClick={() => go("/meetings/prep")}>
-              <NotebookPen /> Prepare for a meeting
-            </MenuItem>
-            <MenuItem onClick={() => go("/tasks?new=1")}>
-              <ListPlus /> Add a task
-            </MenuItem>
-          </MenuContent>
-        </Menu>
+      <div className="signal-sidebar-actions">
+        <button className="signal-new-meeting" onClick={()=>{onNavigate?.();openNotetaker();}}><Plus className="size-4" aria-hidden="true"/>Bring Wilco to a meeting</button>
+        <button className="frame-search" onClick={()=>{onNavigate?.();setCommandOpen(true);}}><Search className="size-4" aria-hidden="true"/>Search<kbd>⌘K</kbd></button>
       </div>
-
-      <nav
-        ref={navRef}
-        className="signal-nav flex min-h-0 flex-1 flex-col overflow-y-auto px-3 py-2"
-        aria-label="Primary"
-      >
-        {NAV_GROUPS.map((group) => {
-          const items = group.items.filter((item) => !item.adminOnly || user?.is_admin);
-          if (!items.length) return null;
-          return (
-            <div className="signal-nav-group" key={group.label ?? "main"}>
-              {group.label && <p className="signal-nav-group-label">{group.label}</p>}
-              <div className="signal-nav-links">
-                {items.map((item) => {
-                  const active = isNavActive(item, pathname);
-                  return (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      ref={active ? activeLinkRef : undefined}
-                      onClick={onNavigate}
-                      aria-current={active ? "page" : undefined}
-                      className={cn(
-                        "flex min-h-10 items-center gap-3 rounded-lg px-3 text-sm text-sidebar-foreground/80 outline-none transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground focus-visible:ring-2 focus-visible:ring-sidebar-ring",
-                        active && "bg-sidebar-accent font-medium text-sidebar-accent-foreground",
-                      )}
-                    >
-                      <item.icon className="size-4 shrink-0" aria-hidden="true" />
-                      {item.label}
-                    </Link>
-                  );
-                })}
-              </div>
-            </div>
-          );
-        })}
+      <nav ref={navRef} className="signal-nav" aria-label="Primary">
+        <div className="signal-nav-links">
+          {NAV_GROUPS.flatMap(group=>group.items).filter(item=>["/dashboard","/meetings","/tasks","/memory","/live"].includes(item.href)).map(item=>{
+            const active=isNavActive(item,pathname);
+            return <Link key={item.href} href={item.href} ref={active?activeLinkRef:undefined} onClick={onNavigate} aria-current={active?"page":undefined}><item.icon className="size-4" aria-hidden="true"/><span>{item.label}</span>{item.href==="/tasks"&&taskCount!==null&&<span className="nav-count">{taskCount}</span>}</Link>;
+          })}
+          <Link href="/meetings?view=calendar" onClick={onNavigate}><CalendarDays className="size-4" aria-hidden="true"/>Calendar</Link>
+          <Menu><MenuTrigger className="frame-more"><MoreHorizontal className="size-4" aria-hidden="true"/>More</MenuTrigger><MenuContent><MenuGroup>
+            {NAV_GROUPS.flatMap(group=>group.items).filter(item=>!["/dashboard","/meetings","/tasks","/memory","/live"].includes(item.href)&&(!item.adminOnly||user?.is_admin)).map(item=><MenuItem key={item.href} onClick={()=>go(item.href)}><item.icon/>{item.label}</MenuItem>)}
+            <MenuSeparator/>
+            <MenuItem onClick={()=>go("/record")}><Mic/>Record in person</MenuItem>
+            <MenuItem onClick={()=>go("/meetings/new?source=upload")}><Upload/>Upload recording</MenuItem>
+            <MenuItem onClick={()=>go("/voice-setup")}><Mic/>Voice setup</MenuItem>
+          </MenuGroup></MenuContent></Menu>
+        </div>
       </nav>
 
       <LiveNotetakers />

@@ -52,7 +52,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         >
           Skip to content
         </a>
-        <aside className="signal-desktop-rail hidden h-dvh w-56 shrink-0 lg:block">
+        <aside className="signal-desktop-rail hidden h-dvh w-56 shrink-0 md:block">
           <Sidebar />
         </aside>
 
@@ -81,15 +81,15 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             id="main"
             className={
               fullBleed
-                ? "flex min-h-0 w-full flex-1 pb-20 lg:pb-0"
-                : "min-h-0 flex-1 overflow-y-auto pb-24 lg:pb-0"
+                ? "flex min-h-0 w-full flex-1 pb-20 md:pb-0"
+                : "min-h-0 flex-1 overflow-y-auto pb-24 md:pb-0"
             }
           >
             {fullBleed ? (
               children
             ) : (
               <div
-                className={`mx-auto w-full max-w-6xl px-4 sm:px-8 ${pathname === "/dashboard" ? "py-4 sm:py-7" : "py-6 sm:py-8"}`}
+                className={`mx-auto w-full max-w-[1500px] px-4 sm:px-6 ${pathname === "/dashboard" ? "py-5 sm:py-6" : "py-5 sm:py-6"}`}
               >
                 {children}
               </div>

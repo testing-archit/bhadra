@@ -29,29 +29,8 @@ export function Topbar({ onOpenMenu }: { onOpenMenu: () => void }) {
     .toUpperCase();
   return (
     <header className="workspace-topbar signal-topbar">
-      <button
-        type="button"
-        className={
-          home
-            ? "profile-avatar"
-            : `${iconButton} lg:hidden`
-        }
-        onClick={onOpenMenu}
-        aria-label="Open navigation"
-      >
-        {home ? initials : <MenuIcon className="size-5" />}
-      </button>
-      {home ? (
-        <div className="header-greeting">
-          <span className="signal-topbar-kicker"><span aria-hidden="true">//</span> Signal room</span>
-          <strong>{greeting}, {name}</strong>
-        </div>
-      ) : (
-        <div className="signal-page-heading">
-          <span className="signal-topbar-kicker"><span aria-hidden="true">//</span> Workspace</span>
-          <p className="text-sm font-semibold">{calendar ? "Calendar" : pageTitleFor(pathname)}</p>
-        </div>
-      )}
+      <button type="button" className={`${iconButton} md:hidden`} onClick={onOpenMenu} aria-label="Open navigation"><MenuIcon className="size-5"/></button>
+      <p className="tray-breadcrumb">{calendar ? "Calendar" : pageTitleFor(pathname)}</p>
       <div className="ml-auto flex items-center gap-1.5">
         <button
           type="button"
@@ -60,8 +39,8 @@ export function Topbar({ onOpenMenu }: { onOpenMenu: () => void }) {
           aria-label="Search"
         >
           <Search className="size-5" />
-          <span aria-hidden="true">Search meetings, decisions, actions</span>
-          <kbd aria-hidden="true">⌘K</kbd>
+
+
         </button>
         <button
           type="button"
@@ -78,6 +57,7 @@ export function Topbar({ onOpenMenu }: { onOpenMenu: () => void }) {
           )}
         </button>
         <NotificationBell />
+        <button type="button" className="profile-avatar md:hidden" onClick={onOpenMenu} aria-label="Open profile and navigation">{initials}</button>
       </div>
     </header>
   );
