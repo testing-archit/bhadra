@@ -50,10 +50,18 @@ async def live_turn(
         async with asyncio.timeout(12):
             return await transcriber.transcribe_audio_detailed(
                 audio_bytes, audio.content_type or 'audio/webm', 'hinglish', timeout_seconds=8, interactive=True)
+    # Read the digest while Prisma listens, but never leave it running on this
+    # request's session after transcription fails (gather doesn't cancel it).
+    digest_task = asyncio.create_task(live_conversation.meeting_digest(db, user))
     try:
-        heard, digest = await asyncio.gather(hear(), live_conversation.meeting_digest(db, user))
-    except TimeoutError as error:
-        raise HTTPException(status_code=503, detail='Speech is busy. Please try again in a moment.') from error
+        heard = await hear()
+    except BaseException as error:
+        digest_task.cancel()
+        await asyncio.gather(digest_task, return_exceptions=True)
+        if isinstance(error, TimeoutError):
+            raise HTTPException(status_code=503, detail='Speech is busy. Please try again in a moment.') from error
+        raise
+    digest = await digest_task
     speech_input_ms = round((time.monotonic()-started)*1000, 2)
     text = " ".join(turn["text"] for turn in heard["turns"]).strip()
     if not text:
