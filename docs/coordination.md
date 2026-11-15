@@ -83,3 +83,42 @@ The mascot-led first pass changes shared frontend tokens, the approved PNG brand
 The user requested a behavioural-design pass to reduce empty space and improve reasons to return. Codex is revising Home in `/private/tmp/bhadra-reference-ui`: visible follow-ups and actual progress, latest-meeting review, compact schedule/connection states, quick memory questions, and compact recent notes. Claims about retention are hypotheses; preserve honest counts, user control, real data and existing consent. No tracking vendor, automatic AI generation, extra backend work or production deployment is included. The mascot-led theme and Tasks Flow remain intact.
 
 The Home implementation is verified with a production build and 20 browser checks using demo meeting snapshots and synthetic tasks; writes and memory answers are intercepted. Screenshots and the behavioural rationale are in `docs/home-follow-through.md`. Shared copies were synchronized only after checking the baseline; existing stylesheet and backend changes were preserved. The next checkpoint integrates fetched main into this isolated branch, with no production release.
+
+## Meeting agent planning, 15 November 2026
+
+- Added `docs/meeting-agent-plan.md` at the user's request: voice commands, whiteboard operations, Jira/email execution, personalized preparation, latency measurements, scaling, and phased acceptance criteria.
+- Documentation only; no application changes, implementation runs, commits, or deployment in this planning task. Existing shared changes and `docs/claude-meetings.md` remain intact.
+- Checked the plan's local references, section coverage, and fenced blocks. Performance targets are proposals; code-derived delay estimates are not production measurements.
+- Next work starts with baseline reconciliation and instrumentation. Reuse the newer worktree's existing boards rather than rebuilding them from the older shared checkout.
+
+## Meeting pipeline implementation scope, 15 November 2026
+
+Codex is implementing command scheduling and metadata-only stage timings in `/private/tmp/bhadra-meeting-agent`, branch `codex/meeting-agent-pipeline`, based on fetched `origin/main` at `25559c0`. Scope is bot runtime, focused regression tests, and planning handoff. Existing board/UI behavior and shared unfinished application changes are preserved. No production deployment is included in this checkpoint.
+
+### Command runtime checkpoint
+
+Implemented on `codex/meeting-agent-pipeline` from `25559c0`: bot command runtime, caption wakeups, bounded execution/playback, metadata-only timings, optional MLflow dependencies/export, shutdown playback cleanup, focused tests, and tracing validator. Validation: 17 focused tests passed; four synthetic traces stored/retrieved; compile and whitespace checks passed. Full suite, production confirmation, and real-call acceptance remain pending. No deployment. See `docs/meeting-agent-plan.md` implementation log and the bot README for scope and commands.
+
+## Voice whiteboard checkpoint, 15 November 2026
+
+Continued on `codex/meeting-agent-pipeline`: structured board operations and bot-only endpoints, replay-safe revisions/undo, optimistic concurrency without provider calls under row locks, Wilco/legacy command routing, and opt-in canvas presentation assets. Presentation defaults off and is Meet-only. Full backend suite: 434 passed against disposable local Postgres. Local Chromium/WebRTC proof and synthetic screenshot passed; real Meet remote reception, live model/audio accuracy, and capacity remain unverified. See `docs/voice-whiteboard.md`. No deployment.
+
+## Meeting action agent scope, 15 November 2026
+
+Codex continues in `/private/tmp/bhadra-meeting-agent` on `codex/meeting-agent-pipeline`: durable command jobs, bounded workers and context, task/tool execution with commit fencing, job status/cancellation, and bot interruption/progress handling. Existing board/presenter features are retained. This scope does not deploy production or enable personal-account Jira/email writes from unauthenticated speaker names.
+
+## Durable meeting action agent checkpoint
+
+Implemented in `/private/tmp/bhadra-meeting-agent` on `codex/meeting-agent-pipeline`: durable Postgres jobs and typed tools, bounded multi-step planning, atomic tool receipts, replay handling, leases/recovery, deadlines/cancellation fencing, cancellation-before-submit records, persistent async bot transport, status delivery, and priority interruption/cancel controls. Model context, thinking, attempts, timeouts, and provider thread count are bounded. Current tools are current-call board operations, internal action items, grounded answers/drafts, and clarification; account-specific connector writes remain outside this shared-call executor.
+
+Validation: full backend suite 456 passed, plus focused checks after action-routing hardening. Native MLflow: two stored/retrievable run/plan/tool traces. Local ASGI/Postgres load check: 20 requests / five sessions / two workers with 100 ms simulated inference; acknowledgment p95 776 ms, completion p95 2,110 ms. No actual model/audio/Meet latency claim. See `docs/meeting-action-agent.md` and `docs/agent-queue-benchmark.json`. Backend/schema must be updated before the bot. Presentation remains off by default; no deployment. Shared application changes remain untouched.
+
+Final verification: 456 backend tests passed in 13.02 seconds; compile/whitespace checks passed. The final local 20-request/five-session simulated-inference check measured acknowledgment p95 398 ms and completion p95 1,863 ms with peak parallel inference 2. Earlier measurements remain in the benchmark artifact; these are not production or acoustic latency guarantees.
+
+## Agent deployment authorization, 15 November 2026
+
+The user explicitly requested pushing, merging and deploying the action-agent branch, and will perform real-call acceptance afterward. Codex is releasing only `codex/meeting-agent-pipeline`; the mascot/frontend preview is not included. Release preparation adds PR-only checks, rollback image/environment snapshots, and authenticated live agent/notetaker smoke checks. Presentation will be enabled once on the server for this authorized test; subsequent deploys preserve the server's setting. Deployment remains pending until CI and live verification pass.
+
+## UI integration checkpoint, 15 November 2026
+
+Home follow-through commit `4a89183` integrates main at `ee8a3ed` in the isolated UI branch. The only merge conflict was concurrent appended handoffs in this document; both were retained. Incoming backend/action-agent and deployment files have no frontend source overlap. This checkpoint retains the reviewed mascot theme, Tasks Flow and Home changes and does not push to production main.

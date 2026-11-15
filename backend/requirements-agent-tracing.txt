@@ -1,0 +1,2 @@
+# Optional observability dependencies. Default backend image does not install them.
+mlflow-skinny==3.18.0

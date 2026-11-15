@@ -53,3 +53,11 @@ def test_json_wrapped_in_prose_is_used_and_a_cut_off_retry_gets_more_room():
     assert parsed.title == "Budget"
     budgets = [call.kwargs["config"].max_output_tokens for call in client.models.generate_content.call_args_list]
     assert budgets == [250, 500]
+
+
+def test_interactive_generation_limits_retry_and_thinking():
+    client=_client(_response('{"title":"Ready"}'))
+    with patch.object(gemini_service,'_client',return_value=client) as factory, patch.object(gemini_service.usage_ledger,'record_tokens'):
+        gemini_service.generate_structured('system','prompt',_Notes,timeout_seconds=15,attempts=1,thinking_budget=0)
+    factory.assert_called_once_with(15)
+    assert client.models.generate_content.call_args.kwargs['config'].thinking_config.thinking_budget==0

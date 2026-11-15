@@ -15,14 +15,15 @@ logger = logging.getLogger(__name__)
 STRUCTURED_ATTEMPTS = 2
 
 
-def _client() -> genai.Client:
+def _client(timeout_seconds: float | None = None) -> genai.Client:
     # google-genai owns an underlying httpx client. Caching it globally caused
     # intermittent "client has been closed" failures after request/thread
     # teardown. A fresh lightweight SDK wrapper per generation keeps the
     # transport lifecycle local to the call and is safe across worker threads.
     if not settings.gemini_api_key:
         raise RuntimeError("GEMINI_API_KEY is not configured")
-    return genai.Client(api_key=settings.gemini_api_key)
+    options = {"timeout": int(timeout_seconds * 1000), "retry_options": {"attempts": 1}} if timeout_seconds else None
+    return genai.Client(api_key=settings.gemini_api_key, **({"http_options": options} if options else {}))
 
 
 def usage_dict(response) -> dict:
@@ -45,13 +46,14 @@ def generate_text(
     thinking_budget: int | None = None,
     feature: str = "other",
     model: str | None = None,
+    timeout_seconds: float | None = None,
 ) -> tuple[str, dict]:
     thinking_config = (
         types.ThinkingConfig(thinking_budget=thinking_budget)
         if thinking_budget is not None
         else None
     )
-    client = _client()
+    client = _client(timeout_seconds) if timeout_seconds else _client()
     try:
         response = client.models.generate_content(
             model=model or settings.gemini_model,
@@ -85,10 +87,15 @@ def generate_structured(
     max_output_tokens: int = 2000,
     feature: str = "other",
     model: str | None = None,
+    timeout_seconds: float | None = None,
+    attempts: int = STRUCTURED_ATTEMPTS,
+    thinking_budget: int | None = None,
 ) -> tuple[BaseModel, dict]:
+    if attempts < 1:
+        raise ValueError("At least one generation attempt is required")
     budget = max_output_tokens
-    for attempt in range(1, STRUCTURED_ATTEMPTS + 1):
-        client = _client()
+    for attempt in range(1, attempts + 1):
+        client = _client(timeout_seconds) if timeout_seconds else _client()
         try:
             response = client.models.generate_content(
                 model=model or settings.gemini_model,
@@ -99,6 +106,7 @@ def generate_structured(
                     response_schema=schema,
                     max_output_tokens=budget,
                     temperature=0.1,
+                    thinking_config=types.ThinkingConfig(thinking_budget=thinking_budget) if thinking_budget is not None else None,
                 ),
             )
         finally:
@@ -113,7 +121,7 @@ def generate_structured(
             return parsed, usage
         except ValidationError:
             finish = getattr((response.candidates or [None])[0], "finish_reason", None)
-            if attempt == STRUCTURED_ATTEMPTS:
+            if attempt == attempts:
                 raise
             # Thinking counts against the output budget, so a cut-off answer
             # is retried with room to finish rather than cut off again.

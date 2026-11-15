@@ -1148,3 +1148,33 @@ class JiraUserLink(Base):
     updated_at: Mapped[datetime] = mapped_column(
         TIMESTAMP(timezone=True), server_default=func.now(), onupdate=func.now()
     )
+
+
+class MeetingAgentJob(Base):
+    """Durable current-meeting commands. Tool receipts commit with their effects."""
+    __tablename__ = "meeting_agent_jobs"
+    __table_args__ = (
+        UniqueConstraint("capture_request_id", "command_id", name="uq_agent_capture_command"),
+        Index("ix_agent_queue", "state", "created_at"),
+        Index("uq_agent_running_capture", "capture_request_id", unique=True,
+              postgresql_where=text("state = 'running'")),
+    )
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    capture_request_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("capture_requests.id", ondelete="CASCADE"), nullable=False)
+    command_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
+    request_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    payload: Mapped[dict] = mapped_column(JSONB, nullable=False)
+    state: Mapped[str] = mapped_column(String, nullable=False, default="accepted")
+    phase: Mapped[str] = mapped_column(String, nullable=False, default="queued")
+    plan: Mapped[list | None] = mapped_column(JSONB)
+    receipts: Mapped[list] = mapped_column(JSONB, nullable=False, default=list)
+    result: Mapped[dict | None] = mapped_column(JSONB)
+    lease_token: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True))
+    lease_until: Mapped[datetime | None] = mapped_column(TIMESTAMP(timezone=True))
+    attempts: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    created_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), server_default=func.now())
+    started_at: Mapped[datetime | None] = mapped_column(TIMESTAMP(timezone=True))
+    finished_at: Mapped[datetime | None] = mapped_column(TIMESTAMP(timezone=True))
+    deadline_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), nullable=False)
+    delivered_at: Mapped[datetime | None] = mapped_column(TIMESTAMP(timezone=True))
