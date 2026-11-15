@@ -111,7 +111,7 @@ export default function RecapPage() {
             event.target.value = "";
           }}
         />
-        <span className="grid size-14 place-items-center rounded-2xl bg-marigold text-marigold-foreground">
+        <span className="grid size-14 place-items-center rounded-2xl bg-signal text-signal-foreground">
           {busy ? <Loader2 className="size-6 animate-spin" /> : <Upload className="size-6" />}
         </span>
         <span className="text-base font-semibold">

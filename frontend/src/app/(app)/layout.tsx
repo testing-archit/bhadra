@@ -48,7 +48,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <div className="hackathon-shell flex h-dvh shrink-0 overflow-hidden bg-sidebar">
         <a
           href="#main"
-          className="sr-only z-50 rounded-lg bg-marigold px-3 py-2 text-sm font-semibold text-marigold-foreground focus:not-sr-only focus:absolute focus:top-3 focus:left-3"
+          className="sr-only z-50 rounded-lg bg-signal px-3 py-2 text-sm font-semibold text-signal-foreground focus:not-sr-only focus:absolute focus:top-3 focus:left-3"
         >
           Skip to content
         </a>
