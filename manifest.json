@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Wilco",
   "description": "Send the Wilco notetaker into Google Meet, track your follow-ups, and ask your company's meeting memory.",
-  "version": "2.2.0",
+  "version": "2.2.1",
   "version_name": "2.1.0",
   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA5jAUeCvykOL+ZFxZMVDr78vr5p/HJGX8f2/jRils3Z4t8Q5aozWUCVD/h7u1SGoCzxomIISkIgjA00r6l5ax3mBcDHimaat1Xp2hcn7JHK8t4Wgk6gO+9YB9FeM33/yT0vBZ3eYlhvw4AIkkSrbw/OrFlqzWCfwGeMCzpHbB+JNKHvlfkvjyAvsJMAWL676jIixA40MY+q1vQAauqdMVufobNOTPx/g8BqRjBNIL93O9hNRomMvevYcUSB/orqPkzhjrFFSkEsXO5kuC5++zfbnvTlxBhC/dKovBtWv96a2uHcsUp9tdj+AC/AbfQE8OLIIHSpUZtbVtguQroULgqwIDAQAB",
   "permissions": [
@@ -72,5 +72,15 @@
       },
       "description": "Open Wilco"
     }
-  }
+  },
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "icons/icon48.png"
+      ],
+      "matches": [
+        "https://meet.google.com/*"
+      ]
+    }
+  ]
 }

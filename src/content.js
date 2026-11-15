@@ -8,7 +8,7 @@ const POLL_MS = 8_000;
 const AUTO_INVITE_RETRY_MS = 30_000;
 
 const ICON = {
-  logo: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M5 17.5V8.8L12 4l7 4.8v8.7L12 21l-7-3.5Z"/><path d="M8.5 15V10.8L12 8.5l3.5 2.3V15L12 17l-3.5-2Z"/></svg>',
+  logo: `<img src="${chrome.runtime.getURL("icons/icon48.png")}" alt="" width="18" height="18">`,
   close: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>',
   chevron: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m9 6 6 6-6 6"/></svg>',
 };
@@ -17,19 +17,19 @@ const STYLE = `
 :host { all: initial; }
 * { box-sizing: border-box; font-family: "Google Sans", Roboto, ui-sans-serif, system-ui, sans-serif; }
 .root { position: fixed; left: 16px; bottom: 92px; z-index: 2147483000; color: #faf7f1; }
-.card { width: 288px; border-radius: 16px; background: rgba(18, 16, 40, .96); border: 1px solid rgba(255,255,255,.1);
+.card { width: 288px; border-radius: 16px; background: rgba(23, 28, 34, .96); border: 1px solid rgba(255,255,255,.1);
   box-shadow: 0 18px 50px -18px rgba(0,0,0,.6); padding: 12px; backdrop-filter: blur(10px);
   animation: in .18s ease-out; }
 @keyframes in { from { opacity: 0; transform: translateY(6px); } }
 @media (prefers-reduced-motion: reduce) { .card, .dot.live::after { animation: none !important; } }
 .head { display: flex; align-items: center; gap: 8px; }
-.mark { width: 26px; height: 26px; border-radius: 8px; background: #5b4cf0; color: #fff; display: grid; place-items: center; flex: none; }
-.mark svg { width: 16px; height: 16px; }
+.mark { width: 26px; height: 26px; border-radius: 8px; background: #f3f0ff; display: grid; place-items: center; flex: none; }
+.mark img { width: 20px; height: 20px; object-fit: contain; }
 .title { flex: 1; min-width: 0; font-size: 13px; font-weight: 600; letter-spacing: .1px; }
-.icon-btn { width: 26px; height: 26px; border-radius: 8px; border: 0; background: transparent; color: #bdb9e0; display: grid; place-items: center; cursor: pointer; flex: none; }
+.icon-btn { width: 26px; height: 26px; border-radius: 8px; border: 0; background: transparent; color: #b6b6c2; display: grid; place-items: center; cursor: pointer; flex: none; }
 .icon-btn:hover { background: rgba(255,255,255,.08); color: #fff; }
 .icon-btn svg { width: 14px; height: 14px; }
-.body { margin: 10px 2px 0; font-size: 12.5px; line-height: 1.45; color: #c8c4eb; }
+.body { margin: 10px 2px 0; font-size: 12.5px; line-height: 1.45; color: #b6b6c2; }
 .status { display: flex; align-items: center; gap: 8px; color: #faf7f1; font-weight: 500; font-size: 13px; }
 .dot { position: relative; width: 8px; height: 8px; border-radius: 50%; background: #f0a020; flex: none; }
 .dot.live { background: #ef4444; }
@@ -38,18 +38,18 @@ const STYLE = `
 @keyframes ping { to { transform: scale(1.6); opacity: 0; } }
 .actions { display: flex; gap: 6px; margin-top: 12px; }
 .btn { flex: 1; height: 34px; border-radius: 10px; border: 0; font-size: 13px; font-weight: 600; cursor: pointer; padding: 0 12px; }
-.btn.primary { background: #f0a020; color: #3a2606; }
-.btn.primary:hover { background: #f5b13f; }
+.btn.primary { background: #91d4d7; color: #173137; }
+.btn.primary:hover { background: #a8dfe1; }
 .btn.ghost { background: rgba(255,255,255,.08); color: #faf7f1; }
 .btn.ghost:hover { background: rgba(255,255,255,.14); }
 .btn.danger { background: rgba(239,68,68,.16); color: #fca5a5; }
 .btn.danger:hover { background: rgba(239,68,68,.26); }
 .btn:disabled { opacity: .55; cursor: default; }
-.btn:focus-visible, .icon-btn:focus-visible, .pill:focus-visible { outline: 2px solid #f5b13f; outline-offset: 2px; }
-.note { margin-top: 8px; font-size: 11.5px; color: #9e9ac4; }
+.btn:focus-visible, .icon-btn:focus-visible, .pill:focus-visible { outline: 2px solid #91d4d7; outline-offset: 2px; }
+.note { margin-top: 8px; font-size: 11.5px; color: #b6b6c2; }
 .error { margin-top: 8px; font-size: 12px; color: #fca5a5; }
 .pill { display: flex; align-items: center; gap: 8px; height: 36px; padding: 0 12px 0 6px; border-radius: 999px; border: 1px solid rgba(255,255,255,.12);
-  background: rgba(18, 16, 40, .94); color: #faf7f1; font-size: 12.5px; font-weight: 600; cursor: pointer; box-shadow: 0 10px 30px -14px rgba(0,0,0,.6); }
+  background: rgba(23, 28, 34, .94); color: #faf7f1; font-size: 12.5px; font-weight: 600; cursor: pointer; box-shadow: 0 10px 30px -14px rgba(0,0,0,.6); }
 .pill .mark { width: 24px; height: 24px; border-radius: 999px; }
 `;
 

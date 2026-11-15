@@ -20,7 +20,7 @@ const storeUrl = process.env.NEXT_PUBLIC_CHROME_WEB_STORE_URL?.trim();
 // Must match the "version" in the root manifest.json and the zip name in
 // frontend/public/downloads/ — nothing enforces this automatically, so a
 // bump here is a required step of every extension release, not optional.
-const extensionVersion = "2.2.0";
+const extensionVersion = "2.2.1";
 
 const features = [
   { icon: Bot, title: "Invite the notetaker from the call", copy: "A small Wilco control sits in every Google Meet. One click sends the notetaker; it shows when it's waiting to be admitted, recording, or done." },
@@ -98,7 +98,7 @@ export default function ExtensionPage() {
                 ))}
                 <div className="absolute bottom-5 left-5 w-64 rounded-2xl border border-white/10 bg-[#1D1A3B]/95 p-3 text-[#FAF7F1] shadow-xl">
                   <div className="flex items-center gap-2">
-                    <span className="grid size-6 place-items-center rounded-lg bg-[#2E2A8C]"><img src="/wilco-mark.png" alt="" className="size-4 rounded" /></span>
+                    <span className="grid size-6 place-items-center rounded-lg bg-secondary"><img src="/wilco-mark.png" alt="" className="size-4 rounded" /></span>
                     <span className="text-[13px] font-semibold">Wilco</span>
                   </div>
                   <p className="mt-2.5 flex items-center gap-2 text-[13px] font-medium">

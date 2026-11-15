@@ -1,33 +1,37 @@
 :root {
-  color-scheme: dark light;
-  /* Wilco "night glow": neel-violet on a night sky, genda marigold accent. */
-  --bg: #0e0c1f;
-  --surface: #191731;
-  --ink: #f1eefb;
-  --muted: #a7a3c8;
-  --line: #2c2950;
-  --primary: #8b7cff;
-  --primary-ink: #0e0c1f;
-  --primary-soft: #26224d;
-  --accent: #f0a020;
-  --accent-ink: #3a2606;
-  --live: #ef5b47;
-  --warn: #e0a43a;
-  --done: #5fae74;
-  --danger-soft: #3a1e26;
+  color-scheme: light dark;
+  /* Wilco: the web app's tokens (frontend/src/app/globals.css), light by default. */
+  --bg: #fcfaf8;
+  --surface: #ffffff;
+  --ink: #24262c;
+  --muted: #65616c;
+  --line: #dedbe1;
+  --primary: #126b75;
+  --primary-ink: #ffffff;
+  --primary-soft: #e1f1f0;
+  --accent: #ff9b17;
+  --accent-ink: #24262c;
+  --live: #d9483b;
+  --warn: #b7791f;
+  --done: #2f8a5b;
+  --danger-soft: #fbe9e5;
   --radius: 14px;
 }
-@media (prefers-color-scheme: light) {
+@media (prefers-color-scheme: dark) {
   :root {
-    --bg: #f7f5ff;
-    --surface: #ffffff;
-    --ink: #1d1a3b;
-    --muted: #6b6889;
-    --line: #e6e2f5;
-    --primary: #5b4cf0;
-    --primary-ink: #ffffff;
-    --primary-soft: #ecebfa;
-    --danger-soft: #fbe9e5;
+    --bg: #171c22;
+    --surface: #20272e;
+    --ink: #f5f1ed;
+    --muted: #b6b6c2;
+    --line: #3c444f;
+    --primary: #91d4d7;
+    --primary-ink: #173137;
+    --primary-soft: #2b4145;
+    --accent: #ffad3d;
+    --live: #ef5b47;
+    --warn: #e0a43a;
+    --done: #5fae74;
+    --danger-soft: #3a1e26;
   }
 }
 
@@ -50,10 +54,9 @@ svg { display: block; }
 .divider::before, .divider::after { content: ""; flex: 1; height: 1px; background: var(--line); }
 .google { width: 16px; height: 16px; }
 
-.mark { position: relative; width: 26px; height: 26px; border-radius: 8px; background: linear-gradient(135deg, #5b4cf0, #8b7cff); color: #faf7f1; display: grid; place-items: center; }
-.mark svg { width: 17px; height: 17px; stroke: currentColor; stroke-width: 1.8; stroke-linejoin: round; }
-.mark--large { width: 48px; height: 48px; border-radius: 14px; margin: 0 auto; }
-.mark--large svg { width: 30px; height: 30px; }
+.mark { position: relative; width: 26px; height: 26px; display: grid; place-items: center; }
+.mark img { width: 100%; height: 100%; object-fit: contain; }
+.mark--large { width: 56px; height: 56px; margin: 0 auto; }
 
 /* ---------- controls ---------- */
 .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 34px; padding: 0 14px; border-radius: 10px; border: 1px solid transparent; font-weight: 600; cursor: pointer; transition: background .12s; }
@@ -171,6 +174,3 @@ kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font: 6
 
 .toast { position: fixed; left: 14px; right: 14px; bottom: 12px; z-index: 20; padding: 10px 12px; border-radius: 10px; background: var(--ink); color: var(--bg); font-weight: 500; box-shadow: 0 10px 30px -10px rgba(0,0,0,.4); }
 
-/* Marigold bindi on the mark, echoing the Wilco logo. */
-.mark::after { content: ""; position: absolute; right: -2px; top: -2px; width: 9px; height: 9px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 2px var(--bg); }
-.mark--large::after { width: 14px; height: 14px; right: -3px; top: -3px; }
