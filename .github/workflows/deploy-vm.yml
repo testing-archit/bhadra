@@ -46,6 +46,7 @@ jobs:
     env:
       VM: ${{ secrets.CHARCHA_VM_USER }}@${{ secrets.CHARCHA_VM_HOST }}
     steps:
+      - uses: actions/checkout@v4
       - name: Read sanitized live agent diagnostics
         run: |
           set -euo pipefail
@@ -53,12 +54,15 @@ jobs:
           printf '%s\n' "${{ secrets.CHARCHA_VM_SSH_KEY }}" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
           ssh-keyscan -T 10 -H "${{ secrets.CHARCHA_VM_HOST }}" >> ~/.ssh/known_hosts
+          scp -q -i ~/.ssh/id_ed25519 backend/scripts/diagnose_meeting_voice.py "$VM:voice-diagnostic.py"
           ssh -o BatchMode=yes -o ConnectTimeout=15 -i ~/.ssh/id_ed25519 "$VM" bash -s <<'REMOTE'
             bash -euo pipefail -c "$(cat)" </dev/null
             cd ~/charcha
             git log -1 --oneline
             docker compose -f docker-compose.prod.yml ps
             tools/deploy.sh --check
+            trap 'rm -f ~/voice-diagnostic.py' EXIT
+            docker compose -f docker-compose.prod.yml exec -T backend python - < ~/voice-diagnostic.py
             docker compose -f docker-compose.prod.yml logs --tail=200 backend | grep -E 'Agent job failed|Agent queue unavailable|agent_timing' | tail -20 || true
             docker compose -f docker-compose.prod.yml exec -T backend python - <<'PYDIAG'
           from app.config import settings
