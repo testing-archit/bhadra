@@ -29,6 +29,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import "../support-pages.css";
 
 type Phase = "setup" | "recording" | "paused" | "processing" | "error";
 type MeetingType = "physical" | "online";
@@ -366,12 +367,12 @@ export default function RecordMeetingPage() {
   const isLive = phase === "recording" || phase === "paused";
 
   return (
-    <div className="mx-auto flex max-w-4xl flex-col gap-6">
-      <div className="flex flex-wrap items-end justify-between gap-3">
+    <div className="signal-support signal-support-narrow mx-auto flex max-w-4xl flex-col gap-6">
+      <div className="support-hero flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold">Record meeting</h1>
+          <h1 className="text-2xl font-semibold">Record a team conversation</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Capture an in-room or online conversation and turn it into searchable meeting memory.
+            Capture a planning session, incident review, or workshop and turn it into searchable decisions and tasks.
           </p>
         </div>
         {session && isLive && (
@@ -545,7 +546,7 @@ export default function RecordMeetingPage() {
                 <Checkbox checked={consent} onCheckedChange={(value) => setConsent(value === true)} />
                 <span>I have informed everyone present and have permission to record this meeting.</span>
               </label>
-              <Button onClick={startNewRecording} disabled={!consent} className="gap-2">
+              <Button onClick={startNewRecording} disabled={!consent} className="support-primary gap-2">
                 <Mic className="h-4 w-4" /> Start recording
               </Button>
             </CardContent>

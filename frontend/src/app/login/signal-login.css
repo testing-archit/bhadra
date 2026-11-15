@@ -1,0 +1,60 @@
+.signal-login {
+  --login-ink: #090e24;
+  --login-ink-soft: #111b34;
+  --login-cyan: #53ddea;
+  --login-violet: #9365f6;
+  --login-white: #f4f8ff;
+  --login-orange: #ff8a2a;
+  background: var(--login-ink);
+}
+
+.signal-login-story {
+  color: var(--login-white);
+  background:
+    radial-gradient(ellipse at 88% 72%, color-mix(in srgb, var(--login-violet) 29%, transparent), transparent 45%),
+    radial-gradient(ellipse at 69% 17%, color-mix(in srgb, var(--login-cyan) 12%, transparent), transparent 34%),
+    var(--login-ink-soft);
+  isolation: isolate;
+}
+
+.signal-login-story::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  opacity: .2;
+  background-image: linear-gradient(color-mix(in srgb, var(--login-cyan) 34%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in srgb, var(--login-cyan) 34%, transparent) 1px, transparent 1px);
+  background-size: 36px 36px;
+  mask-image: linear-gradient(90deg, transparent 10%, black);
+}
+
+.signal-login-status,
+.signal-login-quote,
+.signal-login-result {
+  border: 1px solid color-mix(in srgb, var(--login-cyan) 20%, transparent);
+  background: color-mix(in srgb, var(--login-ink) 76%, transparent);
+}
+
+.signal-login-status,
+.signal-login-cyan { color: var(--login-cyan); }
+.signal-login-headline { color: var(--login-cyan); }
+.signal-login-lede,
+.signal-login-muted { color: color-mix(in srgb, var(--login-white) 70%, transparent); }
+.signal-login-result { border-color: color-mix(in srgb, var(--login-violet) 42%, transparent); }
+.signal-login-chip { background: color-mix(in srgb, var(--login-violet) 18%, transparent); color: var(--login-white); }
+.signal-login-auth { background: var(--background); }
+.signal-login-auth :focus-visible { outline: 2px solid var(--login-orange); outline-offset: 3px; }
+.signal-login-auth button[type="submit"] { background: var(--login-cyan); color: var(--login-ink); font-weight: 700; }
+.signal-login-auth button[type="submit"]:hover { background: color-mix(in srgb, var(--login-cyan) 82%, white); }
+
+@media (max-width: 1023px) {
+  .signal-login-flow { max-width: 38rem; }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .signal-login-flow { animation: signal-login-enter .55s ease-out both; }
+  @keyframes signal-login-enter {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+}

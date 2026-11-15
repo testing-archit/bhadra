@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Doto, Geist, Geist_Mono, Mukta } from "next/font/google";
 import "./globals.css";
+import "./signal-light.css";
 import { AuthProvider } from "@/lib/auth-context";
 import { ThemeProvider, themeBootScript } from "@/lib/theme";
 
@@ -32,7 +33,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: { default: "Wilco", template: "%s · Wilco" },
-  description: "Wilco joins your meetings, hears English and Hinglish, and turns them into owners, tasks and decisions your team can search. Heard. Will comply.",
+  description: "Wilco joins software-team meetings and turns discussion into owned tasks, decisions, and searchable context.",
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://wilco.example.com"),
   icons: {
     icon: [{ url: "/wilco-favicon.png", type: "image/png", sizes: "96x96" }],

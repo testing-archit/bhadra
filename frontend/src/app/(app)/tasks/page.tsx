@@ -53,6 +53,7 @@ import { DeleteConfirmationDialog } from "@/components/delete-confirmation-dialo
 import { VerificationBadge } from "@/components/verification-badge";
 import { JiraTaskButton, useJiraStatus } from "@/components/jira-task-button";
 import { TaskWorkspace, TaskWaitingStrip, type TaskQuickUpdate } from "@/components/task-workspace";
+import "../../signal-work.css";
 
 const STATUSES = ["pending", "in_progress", "done"] as const;
 type View = "workspace" | "list" | "board";
@@ -446,13 +447,19 @@ export default function TasksPage() {
   const scopeInfo = SCOPES.find((item) => item.value === scope)!;
 
   return (
-    <div className="flex flex-col gap-4">
-      <header className="flex items-center justify-between gap-3">
-        <h1 className="text-[1.75rem] leading-tight font-bold">Tasks</h1>
-        <Button variant="brand" onClick={() => setAddingTask(true)}><Plus data-icon="inline-start" /> Add task</Button>
-      </header>
+    <div className="signal-work flex flex-col gap-4">
+      <div className="signal-work-intro">
+        <span className="signal-work-kicker">From conversation to delivery</span>
+        <header className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h1 className="leading-tight font-bold">Tasks</h1>
+            <p className="mt-2 max-w-xl text-sm">Keep owners, deadlines, and release follow-ups moving in one place.</p>
+          </div>
+          <Button variant="brand" onClick={() => setAddingTask(true)}><Plus data-icon="inline-start" /> Add task</Button>
+        </header>
+      </div>
 
-      <div className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-2 sm:flex sm:flex-wrap">
+      <div className="signal-work-toolbar grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-2 sm:flex sm:flex-wrap">
         <label className="flex min-w-0 items-center gap-2">
           <span className="sr-only">Whose tasks</span>
           <select aria-label="Whose tasks" value={scope} onChange={(event) => changeScope(event.target.value as Scope)} className={cn(selectClass, "max-w-full")}>

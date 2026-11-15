@@ -1,0 +1,198 @@
+/* Engineering work surfaces share the shell palette and existing semantic tokens. */
+.signal-work {
+  --background: var(--signal-void);
+  --foreground: var(--signal-text);
+  --card: var(--signal-navy);
+  --card-foreground: var(--signal-text);
+  --popover: var(--signal-panel);
+  --popover-foreground: var(--signal-text);
+  --primary: var(--signal-cyan);
+  --primary-foreground: var(--signal-void);
+  --secondary: var(--signal-panel);
+  --secondary-foreground: var(--signal-text);
+  --muted: var(--signal-panel);
+  --muted-foreground: var(--signal-muted);
+  --accent: var(--signal-panel);
+  --accent-foreground: var(--signal-text);
+  --border: var(--signal-line);
+  --input: var(--signal-line);
+  --ring: var(--signal-cyan);
+  --tint-lilac: color-mix(in srgb, var(--signal-violet) 25%, var(--signal-panel));
+  --tint-lilac-foreground: var(--signal-text);
+  --tint-sky: color-mix(in srgb, var(--signal-cyan) 15%, var(--signal-panel));
+  --tint-sky-foreground: var(--signal-cyan);
+  color: var(--foreground);
+  min-height: 100%;
+  padding: clamp(1rem, 2.4vw, 2rem);
+  border: 1px solid color-mix(in srgb, var(--signal-line) 72%, transparent);
+  border-radius: 1.25rem;
+  background:
+    radial-gradient(ellipse 70% 25% at 90% 0%, color-mix(in srgb, var(--signal-violet) 12%, transparent), transparent),
+    var(--signal-void);
+}
+
+.signal-work-intro {
+  position: relative;
+  overflow: hidden;
+  padding: clamp(1.25rem, 2.8vw, 2.25rem);
+  border: 1px solid color-mix(in srgb, var(--signal-cyan) 30%, var(--signal-line));
+  border-radius: 1.15rem;
+  background: linear-gradient(115deg, var(--signal-navy), color-mix(in srgb, var(--signal-violet) 12%, var(--signal-navy)));
+}
+
+.signal-work-intro::before {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 48%;
+  opacity: .16;
+  background-image: linear-gradient(90deg, var(--signal-cyan) 1px, transparent 1px), linear-gradient(var(--signal-cyan) 1px, transparent 1px);
+  background-size: 28px 28px;
+  mask-image: linear-gradient(90deg, transparent, black);
+  content: "";
+  pointer-events: none;
+}
+
+.signal-work-intro::after {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--signal-orange), var(--signal-cyan), var(--signal-violet), transparent);
+  background-size: 180% 100%;
+  content: "";
+}
+
+.signal-work-kicker {
+  display: block;
+  margin-bottom: .85rem;
+  color: var(--signal-cyan);
+  font-size: .75rem;
+  font-weight: 650;
+  letter-spacing: .02em;
+}
+
+.signal-work-intro h1 {
+  color: var(--signal-text);
+  font-size: clamp(1.8rem, 3.4vw, 2.75rem);
+  letter-spacing: -.045em;
+}
+
+.signal-work-intro p {
+  color: var(--signal-muted);
+  line-height: 1.55;
+}
+
+.signal-work [data-slot="card"],
+.signal-work .meeting-card-grid > *,
+.signal-work .signal-work-panel {
+  border-color: var(--signal-line);
+  background: var(--signal-navy);
+  color: var(--signal-text);
+  box-shadow: inset 0 1px color-mix(in srgb, var(--signal-cyan) 9%, transparent);
+}
+
+.signal-work :is(input, select, textarea) {
+  border-color: var(--signal-line);
+  background: color-mix(in srgb, var(--signal-navy) 84%, var(--signal-void));
+  color: var(--signal-text);
+}
+
+.signal-work :is(input, textarea)::placeholder { color: var(--signal-muted); }
+.signal-work :is(a, button, input, select, textarea, summary):focus-visible {
+  outline: 2px solid var(--signal-cyan);
+  outline-offset: 3px;
+}
+
+.signal-work [data-slot="badge"] {
+  border-color: var(--signal-line);
+}
+
+.signal-work .signal-work-toolbar {
+  padding: .85rem;
+  border: 1px solid var(--signal-line);
+  border-radius: .9rem;
+  background: color-mix(in srgb, var(--signal-panel) 45%, transparent);
+}
+
+.signal-work .signal-work-list-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  color: var(--signal-text);
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: -.02em;
+}
+
+.signal-work .signal-work-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2rem;
+  padding: .2rem .55rem;
+  border-radius: .45rem;
+  background: color-mix(in srgb, var(--signal-cyan) 12%, var(--signal-panel));
+  color: var(--signal-cyan);
+  font-size: .75rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.signal-work .signal-work-card:hover {
+  border-color: color-mix(in srgb, var(--signal-cyan) 54%, var(--signal-line));
+  background: color-mix(in srgb, var(--signal-cyan) 6%, var(--signal-navy));
+}
+
+.signal-work .signal-work-card:focus-within {
+  border-color: var(--signal-cyan);
+}
+
+.signal-work .signal-work-back {
+  color: var(--signal-cyan);
+}
+
+.signal-work .signal-work-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: .75rem;
+}
+
+.signal-work .signal-work-stat {
+  display: flex;
+  flex-direction: column;
+  gap: .3rem;
+  padding: 1rem;
+  border: 1px solid var(--signal-line);
+  border-radius: .85rem;
+  background: var(--signal-navy);
+}
+
+.signal-work .signal-work-stat strong {
+  color: var(--signal-text);
+  font-size: 1.55rem;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.signal-work .signal-work-stat span {
+  color: var(--signal-muted);
+  font-size: .76rem;
+}
+
+@media (max-width: 700px) {
+  .signal-work { padding: .8rem; border-radius: 0; border-inline: 0; }
+  .signal-work-intro { padding: 1.25rem; }
+  .signal-work .signal-work-stat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .signal-work .signal-work-toolbar { padding: .65rem; }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .signal-work-intro::after { animation: signal-work-flow 7s ease-in-out infinite alternate; }
+}
+
+@keyframes signal-work-flow {
+  to { background-position-x: 100%; }
+}

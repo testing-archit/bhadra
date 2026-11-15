@@ -34,6 +34,10 @@ on:
         description: "Rebuild the synthetic demo meetings for the accounts that already have them (no deploy)"
         type: boolean
         default: false
+      backup_live:
+        description: "Snapshot the currently serving commit and images without deploying"
+        type: boolean
+        default: false
 
 # Tests and image builds of a new push run while the previous push is still
 # deploying; only the deploy job itself is one-at-a-time (see its
@@ -46,6 +50,45 @@ env:
   DEPLOY_REGISTRY_IMAGE: registry:3.1.2@sha256:ddf754342cfc8acc51a56d5d0ab6af06826461864460636d8bd5c546dab2a7b8
 
 jobs:
+  backup-live:
+    if: github.event_name == 'workflow_dispatch' && inputs.backup_live
+    runs-on: ubuntu-latest
+    env:
+      VM: ${{ secrets.CHARCHA_VM_USER }}@${{ secrets.CHARCHA_VM_HOST }}
+    steps:
+      - name: Preserve the live commit and service images
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.CHARCHA_VM_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -T 10 -H "${{ secrets.CHARCHA_VM_HOST }}" >> ~/.ssh/known_hosts
+          ssh -o BatchMode=yes -o ConnectTimeout=15 -i ~/.ssh/id_ed25519 "$VM" bash -s <<'REMOTE'
+            set -euo pipefail
+            cd ~/charcha
+            backup="$HOME/.deploy-backups/pre-signal-room-20261115"
+            mkdir -p "$backup"
+            chmod 700 "$HOME/.deploy-backups" "$backup"
+            if [ ! -f "$backup/commit" ]; then git rev-parse HEAD > "$backup/commit"; fi
+            echo "Saved live commit: $(cat "$backup/commit")"
+            for service in backend frontend notetaker; do
+              image="charcha-$service:latest"
+              saved="charcha-$service:backup-pre-signal-room-20261115"
+              container=$(docker compose -f docker-compose.prod.yml ps -q "$service")
+              test -n "$container" || { echo "$service is not running"; exit 1; }
+              running_id=$(docker inspect -f '{{.Image}}' "$container")
+              latest_id=$(docker image inspect -f '{{.Id}}' "$image")
+              test "$running_id" = "$latest_id" || { echo "$service image differs from its latest tag"; exit 1; }
+              if ! docker image inspect "$saved" >/dev/null 2>&1; then
+                docker tag "$image" "$saved"
+              fi
+              saved_id=$(docker image inspect -f '{{.Id}}' "$saved")
+              test "$saved_id" = "$running_id" || { echo "$service backup differs from the running image"; exit 1; }
+              echo "$service $saved_id" | tee "$backup/$service.image"
+            done
+            chmod 600 "$backup"/*
+          REMOTE
+
   diagnostics:
     if: github.event_name == 'workflow_dispatch' && inputs.diagnostics_only
     runs-on: ubuntu-latest
@@ -96,7 +139,7 @@ jobs:
   # Nothing reaches the VM unless this passes.
   # What this push touched, so each job below does only the work it needs.
   changes:
-    if: github.event_name != 'workflow_dispatch' || (!inputs.diagnostics_only && !inputs.reseed_demo)
+    if: github.event_name != 'workflow_dispatch' || (!inputs.diagnostics_only && !inputs.reseed_demo && !inputs.backup_live)
     runs-on: ubuntu-latest
     outputs:
       backend: ${{ steps.diff.outputs.backend }}
@@ -316,7 +359,7 @@ jobs:
               cp backend/bot/.env "$backup/notetaker.env"
               chmod 600 "$backup/notetaker.env"
             fi
-            for service in backend notetaker; do
+            for service in backend frontend notetaker; do
               if ! docker image inspect "charcha-$service:rollback-$RELEASE_ID" >/dev/null 2>&1; then
                 docker tag "charcha-$service:latest" "charcha-$service:rollback-$RELEASE_ID"
               fi

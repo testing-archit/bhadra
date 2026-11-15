@@ -6,6 +6,7 @@ import { useParams } from "next/navigation";
 import { ArrowLeft, AudioLines, ExternalLink } from "lucide-react";
 import { FigJamBoard } from "@/components/meeting/figjam-board";
 import { api, type CaptureRequestItem, type LiveBoardCaption } from "@/lib/api";
+import "../../../../hackathon-intelligence.css";
 
 export default function LiveMeetingBoardPage() {
   const { captureId } = useParams<{ captureId: string }>();
@@ -30,9 +31,9 @@ export default function LiveMeetingBoardPage() {
     return () => window.clearInterval(timer);
   }, [refresh]);
 
-  return <main className="mx-auto flex w-full max-w-[96rem] flex-col gap-5 px-4 py-6 sm:px-7">
+  return <main className="signal-intelligence-page signal-live-board-page mx-auto flex w-full max-w-[96rem] flex-col gap-5 px-4 py-6 sm:px-7">
     <Link href="/meetings" className="inline-flex w-fit items-center gap-2 text-sm text-muted-foreground hover:text-foreground"><ArrowLeft className="size-4" />Meetings</Link>
-    <header className="flex flex-wrap items-end justify-between gap-3">
+    <header className="signal-intelligence-hero flex flex-wrap items-end justify-between gap-3">
       <div>
         <p className="flex items-center gap-2 text-sm font-medium text-primary"><AudioLines className="size-4" />{capture?.status === "capturing" ? "Live meeting" : capture?.status_label || "Meeting session"}</p>
         <h1 className="mt-1 font-heading text-2xl font-semibold tracking-tight sm:text-3xl">{capture?.title || "Meeting board"}</h1>

@@ -6,6 +6,7 @@ import { CheckCircle2 } from "lucide-react";
 import { api, ApiError } from "@/lib/api";
 import { AuthShell } from "@/components/auth-shell";
 import { Button } from "@/components/ui/button";
+import "../signal-public.css";
 
 /** From an email's "Unsubscribe" link. Opening the page changes nothing —
  * mail scanners follow links — the button does. */
@@ -35,7 +36,7 @@ export default function UnsubscribePage() {
 
   if (done) {
     return (
-      <AuthShell title="You're unsubscribed">
+      <div className="signal-public-auth"><AuthShell title="You're unsubscribed">
         <div className="flex flex-col items-center gap-3 text-center">
           <CheckCircle2 className="size-8 text-primary" />
           <p className="text-sm text-muted-foreground">
@@ -44,15 +45,15 @@ export default function UnsubscribePage() {
           </p>
         </div>
         <Link href="/settings#email" className="text-center text-sm font-medium text-primary hover:underline">Change email preferences</Link>
-      </AuthShell>
+      </AuthShell></div>
     );
   }
 
   return (
-    <AuthShell title="Unsubscribe from these emails?" description="You'll stop getting this kind of email from Wilco. Security emails, like password resets, always come through.">
+    <div className="signal-public-auth"><AuthShell title="Unsubscribe from these emails?" description="You'll stop getting this kind of email from Wilco. Security emails, like password resets, always come through.">
       {error && <p className="text-sm text-destructive">{error}</p>}
       <Button onClick={() => void confirm()} disabled={busy || !token}>{busy ? "Unsubscribing…" : "Unsubscribe"}</Button>
       <Link href="/settings#email" className="text-center text-sm text-muted-foreground hover:text-foreground hover:underline">Choose which emails instead</Link>
-    </AuthShell>
+    </AuthShell></div>
   );
 }

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { ArrowRight, AudioLines, Brain, PhoneCall, CircleCheck, Fingerprint, Loader2, Mic, Radio, Square, Trash2, Volume2 } from "lucide-react";
+import { ArrowRight, AudioLines, Brain, PhoneCall, Fingerprint, ListChecks, Loader2, Mic, Radio, Square, Trash2, Volume2 } from "lucide-react";
 import { api, type GnaniModels, type VoiceUpdate } from "@/lib/api";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import "../support-pages.css";
+import "../voice-lab.css";
 
 const LANGUAGES: Array<{ code: string; label: string; sample: string }> = [
   { code: "hi-en", label: "Hinglish", sample: "Vedant, login bug Friday tak fix kar dena, release usi pe blocked hai." },
@@ -31,14 +33,6 @@ const LANGUAGE_NAMES: Record<string, string> = {
   "hi-IN": "Hindi", "en-IN": "English", "ta-IN": "Tamil", "te-IN": "Telugu", "kn-IN": "Kannada", "ml-IN": "Malayalam",
   "mr-IN": "Marathi", "bn-IN": "Bengali", "gu-IN": "Gujarati", "pa-IN": "Punjabi", "or-IN": "Odia",
 };
-
-/** Where each Gnani model runs inside Wilco. */
-const IN_WILCO = [
-  { model: "Prisma v3", icon: Mic, uses: ["Transcribes every meeting, Hinglish, Tanglish and 10+ Indian languages", "Recaps noisy phone calls and WhatsApp voice notes", "Keeps a shop's udhaar khata by voice", "Hears Wilco Live and spoken questions"] },
-  { model: "Timbre v2.5 + v3", icon: Volume2, uses: ["Wilco's voice in Google Meet calls", "Spoken replies in Wilco Live, in your language", "Listen to meeting notes in 11 languages", "Khata reminders as voice notes"] },
-  { model: "Timbre voice cloning", icon: Fingerprint, uses: ["Your update read in your own voice in a call you'll miss", "Opt-in, your voice only, deletable anytime"] },
-  { model: "Evon v3.3", icon: Brain, uses: ["Answers Wilco Live when the team hosts it", "Falls back to Wilco's default model if Evon is unreachable"] },
-];
 
 function useRecorder(maxSeconds: number) {
   const [recording, setRecording] = useState(false);
@@ -116,7 +110,7 @@ function PrismaCard({ model }: { model?: GnaniModels["prisma"] }) {
     <Card className="h-full">
       <CardHeader>
         <CardTitle className="flex items-center gap-2"><Mic className="size-4 text-primary" aria-hidden="true" />Prisma · speech to text</CardTitle>
-        <CardDescription>Speak in any Indian language, or mix Hindi and English mid-sentence. Prisma detects the language on its own.</CardDescription>
+        <CardDescription>Speak in English, Hindi, or a mix. See the transcript and detected language.</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-1 flex-col gap-3">
         <div className="flex flex-wrap items-center gap-2">
@@ -130,10 +124,8 @@ function PrismaCard({ model }: { model?: GnaniModels["prisma"] }) {
           <div className="flex flex-1 items-center justify-center rounded-lg border border-dashed px-4 py-6 text-center text-sm text-muted-foreground">
             {recorder.recording ? "Listening… tap Stop when you're done." : busy ? "Prisma is transcribing…" : (
               <span className="flex flex-col gap-2">
-                <span>Your words and the language Prisma detects appear here. Try mixing languages:</span>
-                <span className="text-xs">Hinglish: “Vedant, login bug Friday tak fix kar dena”</span>
-                <span className="text-xs">Tanglish: “Naan Tuesday evening confirm panren, okay-va?”</span>
-                <span className="text-xs">Benglish: “Meeting ta tomorrow postpone kore dao, please”</span>
+                <span>Your transcript will appear here.</span>
+                <span className="text-xs">Try: “Vedant, login bug Friday tak fix kar dena.”</span>
               </span>
             )}
           </div>
@@ -180,7 +172,7 @@ function TimbreCard() {
     <Card className="h-full">
       <CardHeader>
         <CardTitle className="flex items-center gap-2"><Volume2 className="size-4 text-primary" aria-hidden="true" />Timbre · text to speech</CardTitle>
-        <CardDescription>The voice Wilco speaks with in calls and in Live. Pick a language and hear the same update.</CardDescription>
+        <CardDescription>Pick a language and hear an engineering update in Wilco&apos;s voice.</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-1 flex-col gap-3">
         <Select value={language} onValueChange={(next) => {
@@ -244,7 +236,7 @@ function VoiceCloneCard({ status, demo, onChange }: { status?: GnaniModels["voic
     <Card className="h-full">
       <CardHeader>
         <CardTitle className="flex items-center gap-2"><Fingerprint className="size-4 text-primary" aria-hidden="true" />Timbre voice cloning · your AI stand-in</CardTitle>
-        <CardDescription>Missing a meeting? Your AI stand-in joins with Wilco, gives your update and answers questions in your voice, always announced as AI. You get every question afterwards.</CardDescription>
+        <CardDescription>With your consent, an AI stand-in can deliver your update in a call you miss. It identifies itself as AI and sends questions back to you.</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-1 flex-col gap-4">
         {demo ? (
@@ -345,7 +337,7 @@ function EvonCard({ status }: { status?: GnaniModels["evon"] }) {
     <Card className="h-full">
       <CardHeader>
         <CardTitle className="flex items-center gap-2"><Brain className="size-4 text-primary" aria-hidden="true" />Evon v3.3 · Indic LLM</CardTitle>
-        <CardDescription>Gnani's open-weights model for 11 Indian languages. When the team hosts it, Wilco Live answers with Evon, and falls back to its default model if Evon is unreachable.</CardDescription>
+        <CardDescription>Optional self-hosted model for multilingual answers in Wilco Live.</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-1 flex-col gap-3">
         {status?.configured ? (
@@ -364,7 +356,7 @@ function EvonCard({ status }: { status?: GnaniModels["evon"] }) {
         ) : (
           <div className="flex flex-1 flex-col justify-center gap-1 rounded-lg border border-dashed px-4 py-6 text-center text-sm text-muted-foreground">
             <p className="font-medium text-foreground">Not connected on this server</p>
-            <p>Point <code className="rounded bg-muted px-1 text-xs">EVON_URL</code> at any OpenAI-compatible server (vLLM or llama.cpp) running <code className="rounded bg-muted px-1 text-xs">gnani-evon-v3.3-30B-A3B</code>.</p>
+            <details className="mt-2"><summary className="cursor-pointer text-primary">Setup details</summary><p className="mt-2">Point <code className="rounded bg-muted px-1 text-xs">EVON_URL</code> at an OpenAI-compatible server running <code className="rounded bg-muted px-1 text-xs">gnani-evon-v3.3-30B-A3B</code>.</p></details>
           </div>
         )}
         {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
@@ -379,45 +371,47 @@ export default function GnaniLabPage() {
   useEffect(() => { refresh(); }, [refresh]);
 
   return (
-    <div className="flex w-full flex-col gap-6">
-      <header className="flex flex-col gap-2">
-        <h1 className="font-heading text-2xl font-semibold tracking-tight md:text-3xl">Built on Gnani</h1>
-        <p className="max-w-2xl text-muted-foreground">Every voice in Wilco comes from Gnani's models: Prisma hears, Timbre speaks, and voice cloning lets your update speak for you. Try each one live.</p>
-      </header>
-
-      <section aria-label="Where each model runs in Wilco" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        {IN_WILCO.map(({ model, icon: Icon, uses }) => (
-          <div key={model} className="flex h-full flex-col gap-2 rounded-xl border bg-card p-4">
-            <p className="flex items-center gap-2 text-sm font-semibold"><Icon className="size-4 text-primary" aria-hidden="true" />{model}</p>
-            <ul className="flex flex-col gap-1.5">
-              {uses.map((use) => <li key={use} className="flex gap-1.5 text-xs leading-snug text-muted-foreground"><CircleCheck className="mt-px size-3.5 shrink-0 text-primary" aria-hidden="true" />{use}</li>)}
-            </ul>
+    <div className="signal-support voice-lab flex w-full flex-col gap-6">
+      <section className="voice-lab-hero" aria-labelledby="voice-lab-title">
+        <div className="voice-lab-intro">
+          <span className="voice-lab-eyebrow"><AudioLines className="size-4" aria-hidden="true" /> Powered by Gnani AI</span>
+          <h1 id="voice-lab-title">Make every voice count.</h1>
+          <p>Multilingual speech becomes a transcript, clear follow-ups, and a voice your team can hear back.</p>
+          <div className="voice-lab-actions">
+            <a href="#voice-demos" className="voice-lab-primary">Try the voice tools <ArrowRight className="size-4" aria-hidden="true" /></a>
+            <Link href="/live" className="voice-lab-secondary">Talk to Wilco</Link>
           </div>
-        ))}
+        </div>
+        <div className="voice-lab-path" aria-label="Wilco voice workflow: meeting speech, Prisma transcription, meeting actions, Timbre playback">
+          <div className="voice-lab-pulse" aria-hidden="true"><i /><i /><i /><i /><i /><i /><i /><i /><i /><i /><i /></div>
+          <div className="voice-lab-node"><span><AudioLines aria-hidden="true" /></span><strong>Team speech</strong><small>Mixed languages</small></div>
+          <div className="voice-lab-connector" aria-hidden="true" />
+          <div className="voice-lab-node"><span><Mic aria-hidden="true" /></span><strong>Prisma</strong><small>Transcript</small></div>
+          <div className="voice-lab-connector" aria-hidden="true" />
+          <div className="voice-lab-node"><span><ListChecks aria-hidden="true" /></span><strong>Wilco</strong><small>Decisions and owners</small></div>
+          <div className="voice-lab-connector" aria-hidden="true" />
+          <div className="voice-lab-node"><span><Volume2 aria-hidden="true" /></span><strong>Timbre</strong><small>Spoken recap</small></div>
+        </div>
       </section>
 
-      <Link href="/recap" className="flex items-center justify-between gap-4 rounded-xl border bg-card px-4 py-3 transition-colors hover:bg-muted">
-        <span className="flex items-center gap-3">
-          <PhoneCall className="size-5 shrink-0 text-primary" aria-hidden="true" />
-          <span>
-            <span className="block text-sm font-semibold">Got a noisy phone call or a WhatsApp voice note?</span>
-            <span className="block text-xs text-muted-foreground">Upload it: Prisma transcribes 8 kHz telephony audio in any Indian language, Wilco writes the recap and Timbre reads it back.</span>
-          </span>
-        </span>
-        <ArrowRight className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-      </Link>
-
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div id="voice-demos" className="voice-lab-demo-heading"><div><h2>Try the models</h2><p>Speak or edit the sample line. Results come from the connected services.</p></div><span>{models?.demo ? "Demo workspace" : "Voice tools"}</span></div>
+      <div className="voice-lab-demo-grid grid gap-6 lg:grid-cols-2">
         <PrismaCard model={models?.prisma} />
         <TimbreCard />
-        <VoiceCloneCard status={models?.voice_clone} demo={models?.demo} onChange={refresh} />
-        <EvonCard status={models?.evon} />
       </div>
 
-      <p className="flex items-center gap-2 text-xs text-muted-foreground">
-        <AudioLines className="size-3.5" aria-hidden="true" />
-        Warp, Gnani's speech-to-speech model, has no public API yet. Wilco Live runs the same loop as Prisma, then an LLM, then Timbre.
-      </p>
+      <details className="voice-lab-advanced">
+        <summary><span><strong>Advanced models</strong><small>AI stand-in and optional self-hosted answers</small></span><ArrowRight className="size-5" aria-hidden="true" /></summary>
+        <div className="grid gap-6 p-4 lg:grid-cols-2">
+          <VoiceCloneCard status={models?.voice_clone} demo={models?.demo} onChange={refresh} />
+          <EvonCard status={models?.evon} />
+        </div>
+      </details>
+
+      <Link href="/recap" className="voice-lab-recap flex items-center justify-between gap-4 rounded-xl border bg-card px-4 py-3 transition-colors hover:bg-muted">
+        <span className="flex items-center gap-3"><PhoneCall className="size-5 shrink-0 text-primary" aria-hidden="true" /><span><span className="block text-sm font-semibold">Have a call recording?</span><span className="block text-xs text-muted-foreground">Upload it for a recap and follow-ups.</span></span></span>
+        <ArrowRight className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+      </Link>
     </div>
   );
 }

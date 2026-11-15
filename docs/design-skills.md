@@ -1,6 +1,6 @@
 # Design skills for Wilco
 
-Seven upstream skills are bundled in `.agents/skills/` for project use. Both Codex accounts share this project directory. Claude Code uses links in `.claude/skills/`; existing animation and impeccable skills remain in place.
+Fifteen upstream skills are bundled in `.agents/skills/` for project use. Both Codex accounts share this project directory. Claude Code uses links in `.claude/skills/`; existing animation and impeccable skills remain in place.
 
 | Skill | Use in Wilco | Source |
 | --- | --- | --- |
@@ -11,8 +11,18 @@ Seven upstream skills are bundled in `.agents/skills/` for project use. Both Cod
 | fixing-accessibility | Names, keyboard access, focus, dialogs, and form errors | [ibelick](https://github.com/ibelick/ui-skills/tree/main/skills/fixing-accessibility) |
 | fixing-motion-performance | Audit transitions and avoid expensive animation work | [ibelick](https://github.com/ibelick/ui-skills/tree/main/skills/fixing-motion-performance) |
 | ux-writing | Shorten labels, onboarding, empty states, and error copy | [content-designer](https://github.com/content-designer/ux-writing-skill) |
+| better-interface | Coordinate an evidence-based review of a complete screen or flow | [jakubkrehel/skills](https://github.com/jakubkrehel/skills/tree/main/skills/better-interface) |
+| better-accessibility | Audit keyboard, forms, semantics, zoom, and hit areas | [jakubkrehel/skills](https://github.com/jakubkrehel/skills/tree/main/skills/better-accessibility) |
+| better-layout | Audit hierarchy, alignment, density, and responsive behavior | [jakubkrehel/skills](https://github.com/jakubkrehel/skills/tree/main/skills/better-layout) |
+| better-typography | Audit reading scale, wrapping, and type details | [jakubkrehel/skills](https://github.com/jakubkrehel/skills/tree/main/skills/better-typography) |
+| better-colors | Audit semantic color, contrast, and token roles | [jakubkrehel/skills](https://github.com/jakubkrehel/skills/tree/main/skills/better-colors) |
+| better-writing | Audit labels, empty states, errors, and instructions | [jakubkrehel/skills](https://github.com/jakubkrehel/skills/tree/main/skills/better-writing) |
+| better-ui | Audit surfaces, icons, motion, and polish | [jakubkrehel/skills](https://github.com/jakubkrehel/skills/tree/main/skills/better-ui) |
+| react-best-practices | Check React and Next.js performance while implementing a redesign | [Vercel Engineering](https://github.com/vercel-labs/agent-skills/tree/main/skills/react-best-practices) |
 
-The first skill includes its Apache 2.0 license; the other bundles retain their upstream MIT licenses. `design-skills-lock.json` records exact upstream revisions and file checksums. All bundled source files were compared with those revisions. UX Writing includes its references, templates, and examples; repository demo videos and release archives are excluded. Existing `skills-lock.json` belongs to the earlier skill setup and is preserved.
+The first skill includes its Apache 2.0 license; the other bundles retain their upstream MIT licenses. The new interface review pack's MIT license is copied to `docs/licenses/jakubkrehel-skills-MIT.txt`. Vercel's React skill declares MIT in its `SKILL.md`. `design-skills-lock.json` records exact upstream revisions and file checksums. UX Writing includes its references, templates, and examples; repository demo videos and release archives are excluded. Existing `skills-lock.json` belongs to the earlier skill setup and is preserved.
+
+The new skills complement the existing pack: `better-interface` provides a common review verdict, its six domain skills explain specific defects, and Vercel's skill helps prevent performance regressions during implementation. They do not supply a visual direction by themselves. [UI refresh brief](ui-refresh-brief.md) records the current design baseline and the user's rejection of it.
 
 ## Activate and verify
 
@@ -37,7 +47,7 @@ From `frontend/`, run `npx --no-install shadcn info --json` to inspect the actua
 
 ## Working agreement
 
-Read [coordination.md](coordination.md) before editing. The latest user instruction assigns the reference-image UI and UX rework to Codex in an isolated worktree.
+Read [coordination.md](coordination.md) before editing. The latest user instruction rejects the present UI and asks for online UI skill research in an isolated branch. The older violet reference in `docs/ui-reference.md` is historical; `DESIGN.md` and the newer follow-through screenshots describe the current implementation. Do not treat either as a newly approved redesign.
 
 Use one skill for the immediate job. Keep `DESIGN.md`, the established theme tokens, and our Lucide icon family as the project defaults. Skill searches supply suggestions; check the top result against the requested outcome before using it. Do not import a suggested icon library, replace our palette, or generate a second design system merely because a skill recommends one.
 

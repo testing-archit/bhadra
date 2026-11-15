@@ -1,0 +1,227 @@
+/* Engineering meeting surfaces. These local tokens preserve the shared
+   component contract while giving the Signal Room its working canvas. */
+body:has(.signal-intelligence-page),
+.signal-intelligence-page {
+  --signal-void: #071126;
+  --signal-panel: #0e1c36;
+  --signal-raised: #152644;
+  --signal-line: #294769;
+  --signal-cyan: #53ddea;
+  --signal-violet: #a893ff;
+  --signal-orange: #ff8a2a;
+  --signal-white: #f4f8ff;
+  --background: var(--signal-void);
+  --foreground: var(--signal-white);
+  --card: var(--signal-panel);
+  --card-foreground: var(--signal-white);
+  --popover: var(--signal-raised);
+  --popover-foreground: var(--signal-white);
+  --primary: var(--signal-cyan);
+  --primary-foreground: var(--signal-void);
+  --secondary: var(--signal-raised);
+  --secondary-foreground: var(--signal-white);
+  --muted: var(--signal-raised);
+  --muted-foreground: #a9b9d3;
+  --accent: #183350;
+  --accent-foreground: var(--signal-white);
+  --border: var(--signal-line);
+  --input: #365579;
+  --ring: var(--signal-cyan);
+  --tint-lilac: #302b56;
+  --tint-lilac-foreground: #e2d9ff;
+  --tint-mint: #173d49;
+  --tint-mint-foreground: #9df3e9;
+  --tint-sky: #173b55;
+  --tint-sky-foreground: #9be8f7;
+  color-scheme: dark;
+}
+
+.signal-intelligence-page {
+  color: var(--foreground);
+  background:
+    radial-gradient(ellipse 75% 36% at 100% 0%, color-mix(in srgb, var(--signal-violet) 14%, transparent), transparent 75%),
+    var(--background);
+  border: 1px solid color-mix(in srgb, var(--signal-line) 76%, transparent);
+  border-radius: 20px;
+  min-height: 100%;
+  padding: clamp(16px, 2.2vw, 30px);
+}
+
+.signal-intelligence-page :is(a, button, input, textarea, select, summary):focus-visible {
+  outline: 2px solid var(--signal-cyan);
+  outline-offset: 3px;
+}
+
+.signal-intelligence-page [data-slot="card"] {
+  border-color: var(--signal-line);
+  background: var(--signal-panel);
+  box-shadow: inset 0 1px color-mix(in srgb, var(--signal-white) 5%, transparent);
+}
+
+.signal-intelligence-page [data-slot="tabs-list"] {
+  border: 1px solid var(--signal-line);
+  background: var(--signal-raised);
+}
+
+.signal-intelligence-page [data-slot="tabs-trigger"][data-active="true"] {
+  background: var(--signal-cyan);
+  color: var(--signal-void);
+}
+
+.signal-intelligence-hero,
+.signal-new-meeting-page > div:first-child {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--signal-violet) 38%, var(--signal-line));
+  border-radius: 18px;
+  background:
+    radial-gradient(ellipse 57% 160% at 100% 25%, color-mix(in srgb, var(--signal-violet) 23%, transparent), transparent 76%),
+    linear-gradient(125deg, var(--signal-panel), var(--signal-raised));
+  padding: clamp(20px, 3vw, 34px);
+}
+
+.signal-intelligence-hero::after,
+.signal-new-meeting-page > div:first-child::after {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--signal-orange), var(--signal-cyan), var(--signal-violet), transparent);
+  content: "";
+  pointer-events: none;
+}
+
+.signal-intelligence-hero::before,
+.signal-new-meeting-page > div:first-child::before {
+  position: absolute;
+  top: -34px;
+  right: -14px;
+  width: min(40%, 320px);
+  aspect-ratio: 1;
+  border: 1px solid color-mix(in srgb, var(--signal-cyan) 14%, transparent);
+  border-radius: 50%;
+  box-shadow: 0 0 0 34px color-mix(in srgb, var(--signal-cyan) 3%, transparent), 0 0 0 70px color-mix(in srgb, var(--signal-violet) 3%, transparent);
+  content: "";
+  pointer-events: none;
+}
+
+.signal-intelligence-hero h1,
+.signal-new-meeting-page > div:first-child h1 {
+  max-width: 19ch;
+  font-size: clamp(30px, 3vw, 46px);
+  line-height: 1.04;
+  letter-spacing: -.055em;
+}
+
+.signal-intelligence-page [data-slot="button"]:not([data-variant]) {
+  font-weight: 650;
+}
+
+.signal-new-meeting-page,
+.signal-prep-page { max-width: 66rem; }
+
+.signal-new-meeting-page > div:nth-child(3) > :is(button, a) {
+  border-color: var(--signal-line);
+  background: var(--signal-panel);
+}
+
+.signal-new-meeting-page > div:nth-child(3) > :is(button, a):hover {
+  border-color: var(--signal-cyan);
+  background: var(--signal-raised);
+}
+
+.signal-detail-page .meeting-details > summary {
+  border-color: var(--signal-line);
+  background: var(--signal-raised);
+}
+
+.signal-detail-page .meeting-details > summary:hover {
+  border-color: var(--signal-cyan);
+}
+
+.signal-live-board-page { max-width: none; }
+.signal-live-board-page > section { border-color: var(--signal-line); background: var(--signal-panel); }
+.signal-live-board-page #live-captions > div + p { color: var(--muted-foreground); }
+
+.signal-memory-page {
+  border: 0;
+  border-radius: 0;
+  padding: clamp(18px, 2.5vw, 36px);
+}
+
+.signal-memory-page .memory-start { max-width: 840px; }
+.signal-memory-page .memory-intro { align-items: flex-end; }
+.signal-memory-page .memory-intro::before {
+  position: absolute;
+  top: -16px;
+  right: 8%;
+  width: 38%;
+  height: 160px;
+  background:
+    radial-gradient(circle at 15% 72%, var(--signal-cyan) 0 2px, transparent 3px),
+    radial-gradient(circle at 44% 19%, var(--signal-violet) 0 3px, transparent 4px),
+    radial-gradient(circle at 68% 59%, var(--signal-cyan) 0 2px, transparent 3px),
+    radial-gradient(circle at 92% 25%, var(--signal-violet) 0 2px, transparent 3px),
+    linear-gradient(154deg, transparent 28%, color-mix(in srgb, var(--signal-cyan) 18%, transparent) 29%, transparent 30%);
+  content: "";
+  opacity: .7;
+  pointer-events: none;
+}
+.signal-memory-page .memory-intro { position: relative; isolation: isolate; }
+.signal-memory-page .memory-intro > * { position: relative; z-index: 1; }
+.signal-memory-page .memory-intro p { color: var(--signal-cyan); font-size: 14px; }
+.signal-memory-page .memory-intro h1 { max-width: 18ch; font-size: clamp(38px, 5vw, 64px); line-height: 1.01; letter-spacing: -.06em; }
+.signal-memory-page .memory-mascot { width: 108px; filter: drop-shadow(0 0 22px color-mix(in srgb, var(--signal-violet) 42%, transparent)); }
+.signal-memory-page .memory-composer { border-color: color-mix(in srgb, var(--signal-cyan) 40%, var(--signal-line)); box-shadow: 0 0 0 4px color-mix(in srgb, var(--signal-cyan) 5%, transparent); }
+.signal-memory-page .memory-prompts button { border: 1px solid color-mix(in srgb, var(--signal-violet) 28%, transparent); }
+.signal-memory-page .memory-recent { border-top: 1px solid var(--signal-line); padding-top: 20px; }
+.signal-memory-page .memory-meeting-icon { border: 1px solid var(--signal-line); }
+.signal-memory-page .memory-toolbar { border-bottom: 1px solid var(--signal-line); padding-bottom: 15px; }
+.signal-memory-page .memory-toolbar-label { color: var(--signal-cyan); font-weight: 650; }
+
+.signal-live-page {
+  display: flex;
+  flex: 1;
+  width: 100%;
+  overflow-y: auto;
+  border: 0;
+  border-radius: 0;
+}
+.signal-live-page .live-studio { max-width: 900px; }
+.signal-live-page .live-heading h1 { font-size: clamp(32px, 4vw, 52px); }
+.signal-live-page .live-stage { width: min(320px, 80vw); }
+.signal-live-page .live-mascot-halo { background: radial-gradient(ellipse, color-mix(in srgb, var(--signal-violet) 23%, transparent), transparent 70%); }
+.signal-live-page .live-stage[data-phase="listening"] .live-mascot-halo,
+.signal-live-page .live-stage[data-phase="hearing"] .live-mascot-halo { background: radial-gradient(ellipse, color-mix(in srgb, var(--signal-cyan) 28%, transparent), transparent 70%); }
+.signal-live-page .live-transcript { border-color: var(--signal-line); box-shadow: inset 0 1px color-mix(in srgb, var(--signal-white) 6%, transparent); }
+.signal-live-page .live-starters { border-color: var(--signal-line); }
+
+@media (max-width: 640px) {
+  .signal-intelligence-page { border-radius: 14px; padding: 15px; }
+  .signal-intelligence-hero,
+  .signal-new-meeting-page > div:first-child { padding: 21px; }
+  .signal-memory-page,
+  .signal-live-page { border-radius: 0; }
+  .signal-memory-page .memory-intro h1 { font-size: clamp(36px, 9vw, 48px); }
+  .signal-memory-page .memory-mascot { width: 70px; }
+  .signal-live-page .live-studio { padding: 18px 0 32px; }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .signal-intelligence-hero::after,
+  .signal-new-meeting-page > div:first-child::after { animation: signal-line-arrive .8s ease-out both; transform-origin: left; }
+  .signal-memory-page .memory-intro::before { animation: signal-memory-arrive 1s ease-out both; }
+  .signal-live-page .live-stage[data-phase="listening"] .live-mascot-halo,
+  .signal-live-page .live-stage[data-phase="hearing"] .live-mascot-halo { animation: signal-listening 2s ease-in-out infinite; }
+}
+
+@keyframes signal-line-arrive { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@keyframes signal-memory-arrive { from { opacity: 0; transform: translateY(8px); } to { opacity: .7; transform: translateY(0); } }
+@keyframes signal-listening { 50% { opacity: .55; transform: scale(1.05); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .signal-intelligence-page *,
+  .signal-intelligence-page *::before,
+  .signal-intelligence-page *::after { scroll-behavior: auto; }
+}

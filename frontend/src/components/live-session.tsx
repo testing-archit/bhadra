@@ -468,11 +468,7 @@ export function LiveSession() {
           {pipeline && (
             <ul className="live-pipeline" aria-label="Models that handled this turn">
               <li>Heard by {pipeline.heard}{last[0]?.language && LANGUAGE_LABELS[last[0].language] ? ` · ${LANGUAGE_LABELS[last[0].language]}` : ""}{seconds(pipeline.heardMs)}</li>
-              {pipeline.khata ? (
-                <li><Link href="/khata">Written to your Voice khata ({pipeline.khata})</Link></li>
-              ) : (
-                <li>Answered by {pipeline.answered}{seconds(pipeline.answeredMs)}</li>
-              )}
+              <li>{pipeline.khata ? "Processed by Wilco" : `Answered by ${pipeline.answered}${seconds(pipeline.answeredMs)}`}</li>
               <li>Spoken by {pipeline.spoke}{pipeline.voice ? ` (${pipeline.voice})` : ""}{seconds(pipeline.spokeMs)}</li>
             </ul>
           )}
@@ -481,8 +477,8 @@ export function LiveSession() {
         <div className="live-starters">
           <span>Try asking</span>
           <p>“What did we decide in our last meeting?”</p>
-          <p>“Gupta ji ka kitna udhaar baaki hai?”</p>
-          <p>“Ramesh bhaiya ne 250 ka doodh udhaar liya” <span className="text-xs text-muted-foreground">(writes it in your khata)</span></p>
+          <p>“Why did we roll back the auth release?”</p>
+          <p>“Which launch blockers still need an owner?”</p>
           <Link href="/memory">Prefer to type? Open Memory</Link>
         </div>
       )}

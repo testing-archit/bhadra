@@ -2,15 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { AudioLines, House, NotebookPen, Plus, Video } from "lucide-react";
+import { AudioLines, House, ListChecks, Plus, Video } from "lucide-react";
 import { useShell } from "./shell-context";
 import { cn } from "@/lib/utils";
 
 export function MobileNavigation() {
   const pathname = usePathname();
   const { openNotetaker } = useShell();
-  // Voice first on phones: Talk to Wilco and the khata are one tap away;
-  // Calendar is a view on Meetings and Settings lives in the menu.
+  // Keep core meeting and follow-up work one tap away on phones.
   const items = [
     {
       href: "/dashboard",
@@ -31,10 +30,10 @@ export function MobileNavigation() {
       active: pathname === "/live",
     },
     {
-      href: "/khata",
-      label: "Khata",
-      icon: NotebookPen,
-      active: pathname === "/khata",
+      href: "/tasks",
+      label: "Tasks",
+      icon: ListChecks,
+      active: pathname.startsWith("/tasks"),
     },
   ];
   return (

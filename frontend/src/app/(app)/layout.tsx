@@ -10,6 +10,7 @@ import { Topbar } from "@/components/shell/topbar";
 import { CommandPalette } from "@/components/shell/command-palette";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { SendNotetakerDialog } from "@/components/shell/send-notetaker-dialog";
+import "../hackathon-shell.css";
 
 /** Chat pages own the full height below the top bar; everything else is a
  * centred, scrolling document. */
@@ -44,14 +45,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     <ShellProvider>
       {/* The ink frame: the sidebar sits on it and every page is a sheet laid
           inside it. The sheet scrolls, not the window. */}
-      <div className="flex h-dvh flex-1 overflow-hidden bg-sidebar">
+      <div className="hackathon-shell flex h-dvh shrink-0 overflow-hidden bg-sidebar">
         <a
           href="#main"
           className="sr-only z-50 rounded-lg bg-marigold px-3 py-2 text-sm font-semibold text-marigold-foreground focus:not-sr-only focus:absolute focus:top-3 focus:left-3"
         >
           Skip to content
         </a>
-        <aside className="hidden h-dvh w-56 shrink-0 lg:block">
+        <aside className="signal-desktop-rail hidden h-dvh w-56 shrink-0 lg:block">
           <Sidebar />
         </aside>
 
@@ -65,7 +66,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           </DialogContent>
         </Dialog>
 
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-background">
+        <div className="signal-content flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-background">
           {user.email.toLowerCase().endsWith("@demo.wilco.invalid") && (
             <p className="shrink-0 bg-secondary px-4 py-2 text-center text-xs text-secondary-foreground sm:text-sm">
               You&apos;re exploring a demo workspace with sample meetings.{" "}

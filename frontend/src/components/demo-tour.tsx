@@ -2,14 +2,14 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { AudioLines, Cpu, Languages, NotebookPen, X } from "lucide-react";
+import { AudioLines, Cpu, GitBranch, ListChecks, X } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 
 const STEPS = [
-  { href: "/live", icon: AudioLines, title: "Talk to Wilco", body: "Ask out loud, in Hindi, English or Tamil: “Gupta ji ka kitna udhaar baaki hai?”" },
-  { href: "/khata", icon: NotebookPen, title: "Keep a khata by voice", body: "Say “Meena didi ne 300 jama kiye”, then send a reminder in Tamil or Marathi." },
-  { href: "/meetings", icon: Languages, title: "Hear notes in your language", body: "Open the Sharma Kirana call, pick தமிழ் or मराठी, tap Listen, then send it on WhatsApp." },
-  { href: "/gnani", icon: Cpu, title: "See the Gnani models", body: "Speak to Prisma and hear Timbre in 11 Indian languages, live." },
+  { href: "/meetings", icon: GitBranch, title: "Trace a release decision", body: "Open the API incident review to see what changed, why, and who owns the fix." },
+  { href: "/tasks", icon: ListChecks, title: "Find the next action", body: "Review launch blockers and follow-ups pulled from the engineering team's calls." },
+  { href: "/live", icon: AudioLines, title: "Ask Wilco out loud", body: "Try “Auth rollback kyun hua?” in Hindi, English, or both." },
+  { href: "/gnani", icon: Cpu, title: "Hear the voice stack", body: "Speak to Prisma and hear Timbre answer in your team's language." },
 ];
 const KEY = "wilco.demo-tour-dismissed";
 
@@ -35,7 +35,7 @@ export function DemoTour() {
         <X className="size-4" aria-hidden="true" />
       </button>
       <h2 className="text-base font-semibold">Start here: Wilco in a minute</h2>
-      <p className="mt-0.5 text-sm text-muted-foreground">Everything here is sample data. Every voice is a Gnani model.</p>
+      <p className="mt-0.5 text-sm text-muted-foreground">Explore sample engineering meetings. Voice responses use Gnani models.</p>
       <ol className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {STEPS.map(({ href, icon: Icon, title, body }, index) => (
           <li key={href}>

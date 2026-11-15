@@ -1,62 +1,43 @@
 # Wilco design system
 
-The approved v1 browser mascot now governs Wilco’s identity: soft pink, lilac and sky blue, charcoal linework, teal shorts, and orange cap/shoes. Use these colours with the existing components and live meeting/task flows. The image-model references in `docs/design-references/` guide the visual direction; they are not application data.
+## Product and audience
 
-## Layout
+Wilco is meeting intelligence for software companies. The interface helps a team turn an engineering discussion into decisions, owned tasks, project context, and evidence they can revisit. Use incident reviews, release planning, architecture decisions, customer engineering calls, and multilingual team conversations as examples. Demo counts and activity must come from the application, not a visual mockup.
 
-Home starts with the compact greeting and a pastel latest-meeting band containing the approved mascot, Review notes and Invite Wilco. A connected panel shows four urgent owned follow-ups with completion and Undo, plus honest progress across the owned tasks returned by the API. A compact schedule and a user-initiated memory question sit alongside it; recent notes use short rows below. Record in person, upload and optional voice setup remain reachable as utility links. Do not invent activity, completion goals or urgency to fill space.
+The current design direction is the [Signal Room](docs/hackathon-ui-direction.md). The [concept image](docs/design-references/hackathon-signal-room-concept.png) sets the mood; its names and numbers are illustrative and must not appear as real account data.
 
-Desktop has a white sidebar and two content columns. Mobile has a bottom bar for Home, Meetings, Calendar, and Settings, plus a central invite button. The profile button opens full navigation so secondary tools remain reachable. Calendar has Ongoing, Upcoming, and History tabs, week controls, tappable dates, real meeting links, and the existing auto-invite switches.
+## Visual language
 
-## Palette and type
+- **Frame:** midnight navy shell with precise cyan, violet, and orange signals. Keep page content on the same canvas so a light gutter never surrounds a dark route.
+- **Typography:** Geist for interface and headlines, Mukta for Devanagari fallback, Geist Mono for compact source or timing data, Doto only for meaningful numeric emphasis.
+- **Surfaces:** use spacing, type size, and one prominent graphic to create hierarchy. A card should hold a real task, decision, meeting, or control; empty cards must direct the next action.
+- **Color:** define palette values in route or shared CSS custom properties, then use semantic tokens in components. The app shell lives in `frontend/src/app/hackathon-shell.css`; Home, work pages, meeting intelligence, support tools, public pages, Delivery Radar, and Voice lab each have scoped styles under `frontend/src/app/`.
+- **Icons:** Lucide communicates actions and status. The Wilco mascot belongs in brand and voice contexts; it should not decorate every navigation item or work card.
 
-Define colours only in `frontend/src/app/globals.css`; components use theme tokens.
+## Navigation
 
-| Role | Light token value |
-| --- | --- |
-| Canvas | `--background: #fcfaf8` |
-| Surface | `--card: #ffffff` |
-| Copy | `--foreground: #24262c` |
-| Secondary copy | `--muted-foreground: #65616c` |
-| Primary / selection | `--primary: #126b75` |
-| Selected surface | `--accent: #e1f1f0` |
-| Key action | `--marigold: #ff9b17`, with charcoal text |
-| Pastel band | `--feature-top: #f4c9e4`, `--feature-middle: #dfd2f2`, `--feature-bottom: #bcdcf7` |
+The desktop sidebar is a compact SaaS rail. Every product destination is a normal visible link; there is no **More** disclosure. A distinct **New meeting** action opens the existing capture and import options. The top bar owns command search; the sidebar must not duplicate it. The account menu remains available at the bottom. Admin appears only for admins. On phones, the bottom bar keeps the primary actions close and the menu opens the full destination list.
 
-Light remains the default; saved theme preferences are respected. Dark mode uses warm charcoal surfaces, light teal selections, and orange key actions. Primary text/action token pairs were checked for contrast in both themes. Use gradients only for the welcome band and the task date rail; do not wash every surface in colour.
+Primary workflow: **Home → Meetings → Tasks → Delivery Radar → Decisions/Projects → Memory/Live**. Delivery Radar at `/delivery` uses accessible tasks, decisions, and projects. `/khata` redirects there for old bookmarks; the legacy khata API remains for integrations and is not promoted in the product UI.
 
-Geist carries the interface; Mukta remains the Devanagari fallback. Use compact sentence-case headings and body text. No oversized Home slogan or decorative counters.
+## Page families
 
-## Components
+- **Home:** capture action, actual live status, latest notes needing review, owned follow-ups, upcoming calendar, and a user-submitted Memory question. Keep loading, empty, and error states honest.
+- **Meetings:** source-backed notes and review. Preserve transcript evidence, access controls, recording consent, processing state, and links to the native FigJam meeting board.
+- **Tasks and Delivery Radar:** put the next action and owner first. The Radar derives attention from high-priority or overdue tasks and never invents project health.
+- **Decisions and Projects:** show why a choice was made, the source meeting, and related work. Let real activity counts carry the visual hierarchy.
+- **Memory and Live:** make question entry immediate. Cite accessible meetings; do not imply a voice or model answered when it did not.
+- **Voice lab:** lead with a short visual speech → insight → voice story and working Prisma/Timbre demos. Put advanced model controls in a clear disclosure. Keep Gnani attribution visible and avoid server configuration prose in the main view.
+- **Account and utility pages:** use the same typography, surface contrast, and action language as the workspace.
 
-- `RecordedMeetingCard` remains the Meetings list card. Home uses compact recent-note rows; keep processing and attention states visible.
-- `MeetingPeople` shows initials from the actual attendee names. Do not substitute stock portraits for real identities.
-- `MeetingAgenda` has a compact Home mode with the next two live/upcoming events, and a full Calendar mode where dates filter events and tabs select event state. Show honest connection, empty and error states.
-- `MobileNavigation` reflects both pathname and calendar query state. Its central action opens the existing capture dialog.
-- Existing Base UI primitives handle dialogs, tabs, menus, and focus behaviour. Keep Lucide as the icon family.
+## Motion, accessibility, and trust
 
-## Behaviour and trust
+Use motion to explain a signal or action. The live listening halo, short header traces, and slow Radar sweep are the main visual moments. Prefer transform and opacity, avoid continuously animating large painted surfaces, and provide `prefers-reduced-motion` fallbacks. Maintain visible focus, keyboard access, readable contrast, and responsive layouts.
 
-Joining opens the event's meeting link. Inviting Wilco pre-fills the existing recording-consent form. A calendar's auto-invite switch uses the existing per-event API and reports failure without pretending the setting changed.
+Recording consent, speaker uncertainty, confidential meetings, source evidence, and failed saves must remain explicit. A task from a meeting the viewer cannot open must not gain a source link. Demo content is synthetic and labelled. No new feature should make an external API call just to fill a dashboard with decorative data.
 
-One task, decision, or uncertain speaker is reviewed at a time. Inline edits and source evidence remain available. Uncertain speakers can stay unnamed; using a correction for future voice matching has a separate opt-in. Detailed transcripts and insights remain behind Full meeting.
+## Verification
 
-Home review counts require both meeting details and speaker data; failed reads must not imply confirmation. Task progress includes completed and open owned tasks, excludes delegated work, and does not claim a weekly goal. Home never generates an AI answer on load: a submitted or clicked question uses the existing Memory flow. See `docs/home-follow-through.md` for the behavioural rationale and validation.
+Check `npm run typecheck` and `npm run build` in `frontend/`. Review desktop and phone browser renders for entry, Home, Meetings, Delivery Radar, Voice lab, and at least one detailed meeting route. Verify empty, loading, error, and reduced-motion states. The repository's ESLint command is currently blocked by TypeScript 7 support in typescript-eslint; this is separate from UI compilation.
 
-## Motion and accessibility
-
-Use short interaction feedback, visible focus, labelled controls, and reduced-motion support. Hover changes are small and purposeful. The mascot is static and limited to the welcome/navigation areas; working surfaces retain clear text and restrained borders. Avoid background animation and simulated recording indicators. Keep recording consent, errors, confidentiality, and sharing rules explicit.
-
-See `docs/coordination.md` before editing shared files and `docs/ui-reference.md` for previews and verification.
-
-## Tasks
-
-A connected Flow replaces the rejected deck and disconnected card grid. Keep multiple full task titles visible in one surface. A compact date rail filters actual due dates; All includes undated, overdue and later work too. The selected row receives a teal cue. The shared action dock changes its meeting source and owner without expanding task rows or moving the overview.
-
-Done, Snooze, Reassign, Edit and Undo use existing APIs. Snooze and reassignment use accessible Base UI menus over the working surface. Failed saves preserve selection; Undo remains available after the last task. Restricted meetings never get a link. Search stays visible; advanced filters remain disclosed. List/Board, completed tasks, exports and bulk tools remain available.
-
-Use short transform-only settling after task mutations, no animated backgrounds or looping mascot. Respect reduced motion. The Waiting on strip is derived from accessible delegated tasks and opens the selected owner’s waiting list.
-
-## Memory
-
-Memory uses one central workspace. The initial composer sits beside the approved mascot heading, followed by three short editable question starters and three real recent meetings. Avoid a permanent second sidebar or duplicate explanatory headings. History opens in a labelled dialog; source selection is a draft that applies explicitly, supports up to ten meetings, and preserves the typed question. Cancel leaves the active chat intact; applying unchanged sources preserves the conversation. Answers retain citations, source links and voice controls. The active composer fits above mobile navigation.
+Read [docs/coordination.md](docs/coordination.md) before editing or merging shared work. Historical light/violet screenshots and design notes in `docs/` remain records of previous passes, not the current UI contract.

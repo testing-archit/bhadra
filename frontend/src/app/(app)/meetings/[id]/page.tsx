@@ -71,6 +71,7 @@ import {
 import { SOURCE_LABELS } from "@/lib/labels";
 
 import { STATUS_LABELS } from "@/lib/labels";
+import "../../../hackathon-intelligence.css";
 type TabId = "summary" | "transcript" | "actions" | "board" | "ask" | "insights";
 const TAB_IDS: TabId[] = ["summary", "transcript", "actions", "board", "ask", "insights"];
 type DeleteTarget = {
@@ -575,11 +576,11 @@ export default function MeetingDetailPage() {
     ? "This meeting and its Company Memory search data will move to the Recycle Bin. You can restore it from Settings until it is permanently deleted."
     : `“${deleteTarget?.label ?? ""}” will move to the Recycle Bin and disappear from Company Memory search. The meeting and transcript will remain.`;
 
-  if (error) return <p className="text-sm text-destructive">{error}</p>;
+  if (error) return <div className="signal-intelligence-page signal-detail-page"><p role="alert" className="text-sm text-destructive">{error}</p><Link href="/meetings" className="mt-4 inline-flex items-center gap-2 text-sm text-primary"><ArrowLeft className="size-4" />Back to meetings</Link></div>;
 
   if (!meeting) {
     return (
-      <div className="flex flex-col gap-3">
+      <div className="signal-intelligence-page signal-detail-page flex flex-col gap-3" aria-busy="true">
         <Skeleton className="h-8 w-64" />
         <Skeleton className="h-40 w-full" />
       </div>
@@ -590,8 +591,8 @@ export default function MeetingDetailPage() {
   const templates = assistantStatus?.templates ?? [];
 
   return (
-    <div className="flex flex-col gap-5">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+    <div className="signal-intelligence-page signal-detail-page flex flex-col gap-5">
+      <div className="signal-intelligence-hero flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
           <Link
             href="/meetings"
