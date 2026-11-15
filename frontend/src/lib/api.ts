@@ -1546,6 +1546,9 @@ export const api = {
       "/api/live/turn", { method: "POST", body: form },
     );
   },
+  figjamStatus: (captureId: string) => apiFetch<{configured: boolean; connected: boolean; file_url: string | null; can_connect: boolean}>(`/api/figjam/captures/${captureId}`),
+  pairFigjam: (captureId: string, fileUrl: string) => apiFetch<{code: string; file_url: string; expires_in_seconds: number}>(`/api/figjam/captures/${captureId}/pair`, {method: 'POST', body: JSON.stringify({file_url: fileUrl})}),
+  disconnectFigjam: (captureId: string) => apiFetch(`/api/figjam/captures/${captureId}`, {method: 'DELETE'}),
   /** Recap of a phone call or WhatsApp voice note, in the language it was spoken in. */
   recapAudio: (file: File, kind: "voice_note" | "call") => {
     const form = new FormData();

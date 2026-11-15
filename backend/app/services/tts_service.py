@@ -105,9 +105,17 @@ async def _speak_chunk(client: httpx.AsyncClient, text: str, model: str, voice: 
 def voice_for(language: str) -> tuple[str, str]:
     """(model, voice) for a language: the fast Hinglish/Hindi/English voice,
     or Timbre v3.0, whose voices speak every supported Indian language."""
-    if language in {"hi-en", "hi-IN", "en-IN", "auto"}:
+    if language == 'en-IN':
+        return settings.gnani_tts_model, settings.gnani_tts_english_voice
+    if language in {"hi-en", "hi-IN", "auto"}:
         return settings.gnani_tts_model, settings.gnani_tts_voice
     return settings.gnani_tts_multilingual_model, settings.gnani_tts_multilingual_voice
+
+
+def language_for_text(text: str) -> str:
+    if re.search(r'[\u0900-\u097f]', text) or re.search(r'\b(?:hai|hain|haan|nahi|nahin|aap|kya|karna|karo|ji|bana|theek)\b', text, re.I):
+        return 'hi-en'
+    return 'en-IN'
 
 
 async def synthesize(text: str, language: str | None = None) -> bytes:

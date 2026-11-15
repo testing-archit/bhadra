@@ -34,8 +34,9 @@ from playwright.async_api import BrowserContext, Page, async_playwright
 
 import config
 import board_presenter
+import browser_voice
 from agent_client import AgentClient, AgentBusy
-from board_intent import board_intent, normalize
+from board_intent import board_intent, normalize, opening_only, requires_plan
 from command_runtime import Command, CommandRuntime, stage
 import meet_chat
 import teams_dom
@@ -125,7 +126,7 @@ CAPTION_WATCHER_JS = """
     const batch = [...dirty.entries()].map(([id, v]) => ({ id, ...v }));
     dirty.clear();
     window.onCaptions(batch);
-  }, 1000);
+  }, 250);
 }
 """
 
@@ -152,9 +153,9 @@ PARTICIPANT_COUNT_JS = """
 # speaks), whatever the participant count says.
 SPEECH_IS_COMPANY_SECONDS = 30
 # "Charcha, <question>" said aloud. Captions spell the name a few ways.
-WAKE_RE = re.compile(r"(?:^|[.!?]\s+|\b(?:hey|hi|ok|okay|so|achha|acha)\s+)(?:wil\s?co|wilko|vilco|char\s?cha+|charchaa|carcha|charchya)\b[\s,:.!-]+(.+?)(?=$|\b(?:hey\s+)?(?:wil\s?co|wilko|vilco|char\s?cha+|charchaa|carcha)\b)", re.IGNORECASE)
+WAKE_RE = re.compile(r"\b(?:hey\s+)?(?:will?\s?co|wilko|vilco|char\s?cha+|charchaa|carcha|charchya)\b[\s,:.!-]+(.+?)(?=$|\b(?:hey\s+)?(?:will?\s?co|wilko|vilco|char\s?cha+|charchaa|carcha)\b)", re.IGNORECASE)
 # A spoken question is answered once its speaker has paused this long.
-SPOKEN_QUESTION_PAUSE_SECONDS = 2.5
+SPOKEN_QUESTION_PAUSE_SECONDS = 0.8
 CONTROL_COMMANDS = {"stop", "stop speaking", "be quiet", "quiet", "cancel that", "cancel request",
                     "stop working", "cancel all requests", "status", "what are you doing", "what's running",
                     "stop presenting", "stop sharing", "stop presenting the board", "stop sharing the board"}
@@ -312,6 +313,8 @@ def wants_exit(text: str) -> bool:
 def spoken_summary(text: str, limit: int = 420) -> str:
     """What the notetaker says aloud: the reply's opening, cut at a
     sentence, without the quoted question or list dashes."""
+    # URLs and opaque IDs belong in chat, never in a spoken confirmation.
+    text = re.sub(r'https?://\S+', '', text)
     lines = [line.strip().lstrip("-").strip() for line in text.splitlines() if line.strip()]
     if lines and lines[0].startswith('"') and lines[0].endswith(":"):
         lines = lines[1:]
@@ -704,6 +707,8 @@ class MeetingSession:
             self.job.get("app_url"),
             config.EXIT_PHRASES[0] if config.EXIT_PHRASES else "notetaker please leave",
         )
+        if self.capture_request_id and self.job.get('app_url'):
+            notice += '\nConnect your FigJam file: ' + self.job['app_url'].rstrip('/') + f'/meetings/live/{self.capture_request_id}'
         self.chat.remember_sent(notice)
         if await meet_chat.send(page, notice):
             log.info("Posted the join notice in chat")
@@ -713,6 +718,8 @@ class MeetingSession:
 
     async def speak(self, page: Page, text: str) -> None:
         """Play one reply without blocking command intake; reap audio on exit."""
+        if config.SPEAK_IN_CALL and self.USES_GOOGLE_LOGIN:
+            return await self.speak_browser(page, text)
         if not config.SPEAK_IN_CALL or not getattr(self, "voice_modules", None):
             return
         audio = await asyncio.to_thread(uploader.speech, spoken_summary(text))
@@ -755,6 +762,32 @@ class MeetingSession:
                             await page.keyboard.press("Control+KeyD")
             finally:
                 path.unlink(missing_ok=True)
+
+    async def speak_browser(self, page: Page, text: str) -> None:
+        """Only decoded provider audio reaches Meet's isolated microphone."""
+        with stage(self.session_id, 'speech', 'tts_fetch'):
+            audio = await asyncio.to_thread(uploader.speech, spoken_summary(text, limit=220))
+        if not audio:
+            return
+        try:
+            async with self._browser_lock:
+                if await page.evaluate('Boolean(window.__wilcoMic)') is not True:
+                    raise RuntimeError('Isolated microphone unavailable')
+                # Set a known state; a blind keyboard toggle can unmute the
+                # wrong source after a failed selector or an interrupted reply.
+                muted = page.locator('button[aria-label*="Turn on microphone"]').first
+                if await muted.is_visible():
+                    await muted.click(timeout=1000)
+                elif not await page.locator('button[aria-label*="Turn off microphone"]').first.is_visible():
+                    raise RuntimeError('Microphone state unavailable')
+                await page.evaluate('(audio) => window.__wilcoMic.play(audio)', base64.b64encode(audio).decode())
+            with stage(self.session_id, 'speech', 'audio_playback'):
+                await page.wait_for_function('!window.__wilcoMic?.playing', timeout=46000)
+        finally:
+            async with self._browser_lock:
+                if not page.is_closed():
+                    await page.evaluate('window.__wilcoMic?.stop()')
+                    await _click_if_visible(page, 'button[aria-label*="Turn off microphone"]', timeout_ms=500)
 
     async def post_reply(self, page: Page, reply: str | None, kind: str) -> None:
         if not reply:
@@ -822,11 +855,12 @@ class MeetingSession:
             self._board_active = True
             if intent == "open_present":
                 command.follow_up = 'present_board'
-            detailed = bool(re.search(r"\b(?:with|showing|containing|for)\s+\S+", question, re.I))
-            return await self.submit_agent_command(page, command, 'auto' if detailed else 'open_board')
+            compound = requires_plan(question)
+            tool = 'open_board' if opening_only(question) else ('auto' if compound else 'edit_board')
+            return await self.submit_agent_command(page, command, tool)
         elif self.capture_request_id and intent == "edit":
             self._board_active = True
-            compound = bool(re.search(r"\band\s+(?:add|create)\s+(?:a\s+)?task\b", question, re.I))
+            compound = requires_plan(question)
             return await self.submit_agent_command(page, command, "auto" if compound else "edit_board")
         else:
             task = meet_chat.task_text(question)
@@ -835,7 +869,7 @@ class MeetingSession:
                 command.question = task
                 return await self.submit_agent_command(page, command, "add_task")
             action_request = bool(re.match(r"(?:build|make|create|design|map|draw|send|email|research|find|schedule|mark|complete|assign|reassign|update|delete|remove|move|invite)\b", normalize(question), re.I))
-            compound = bool(re.search(r"\band\s+(?:add|create)\s+(?:a\s+)?task\b", question, re.I))
+            compound = requires_plan(question)
             return await self.submit_agent_command(page, command, "auto" if action_request or compound else "answer")
         if reply:
             with stage(self.session_id, command.id, "chat_delivery"):
@@ -962,6 +996,8 @@ class MeetingSession:
             return "Automatic presentation isn't enabled here. Open the board link and share that tab in Meet."
         try:
             board = await asyncio.to_thread(uploader.board_state, self.capture_request_id)
+            if board and board.get('external_url'):
+                return 'Your board is in FigJam. Open its shared link and present that tab in Meet.'
             async with self._browser_lock:
                 started = await board_presenter.start(page, board) if board else False
             return "Meet shows the board as presenting." if started else "I couldn't start presenting. Open the board link and share that tab in Meet."
@@ -1015,6 +1051,7 @@ class MeetingSession:
             self.session_id, lambda: self.discover_commands(page),
             lambda command: self.execute_command(page, command),
             lambda reply: self.speak(page, reply),
+            poll_seconds=0.2,
             control=lambda command: self.handle_control(page, command),
             busy=lambda command: self.send_agent_message(page, "I'm handling several requests. Please ask again when one finishes."),
         ) as runtime:
@@ -1188,6 +1225,8 @@ class MeetingSession:
                 storage = str(config.AUTH_STATE_PATH) if self.USES_GOOGLE_LOGIN and config.AUTH_STATE_PATH.exists() else None
                 context = await browser.new_context(storage_state=storage, viewport={"width": 1280, "height": 800})
                 await self.grant_media(context)
+                if self.USES_GOOGLE_LOGIN and config.SPEAK_IN_CALL:
+                    await context.add_init_script(browser_voice.SCRIPT)
                 await context.add_init_script(HIDE_VIDEO_JS)
                 if config.PRESENT_BOARD and self.USES_GOOGLE_LOGIN:
                     await context.add_init_script(board_presenter.SCRIPT)

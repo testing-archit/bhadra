@@ -16,7 +16,7 @@ from sqlalchemy.orm import aliased
 from app.config import settings
 from app.database.db import async_session
 from app.database.models import CaptureRequest, MeetingAgentJob as Job
-from app.services import board_service, gemini_service, live_assist, usage_ledger
+from app.services import board_service, figjam_service, gemini_service, live_assist, usage_ledger
 from app.services.agent_telemetry import stage
 
 log = logging.getLogger(__name__)
@@ -71,7 +71,10 @@ def serialize(job):
 
 async def submit(db, capture_id, command_id, payload):
     # Hash stable intent only: retransmission can include newer caption context.
-    fingerprint = hashlib.sha256(json.dumps({k: payload.get(k) for k in ('command', 'tool', 'present_after')}, sort_keys=True).encode()).hexdigest()
+    intent = {k: payload.get(k) for k in ('command', 'tool', 'present_after')}
+    if payload.get('board_provider', 'internal') != 'internal':
+        intent['board_provider'] = payload['board_provider']
+    fingerprint = hashlib.sha256(json.dumps(intent, sort_keys=True).encode()).hexdigest()
     await db.execute(text("SELECT pg_advisory_xact_lock(hashtext('meeting-agent-admission'))"))
     active = select(func.count()).select_from(Job).where(Job.state.in_(['accepted', 'running']))
     global_count = active.correlate(None).scalar_subquery()
@@ -230,7 +233,7 @@ async def make_plan(job):
     result, _ = await provider(gemini_service.generate_structured, PLANNER,
         json.dumps({'request': payload['command'], 'board_active': payload.get('board_active', False), 'recent_captions': compact_captions(payload.get('captions') or [], 6000)}),
         Plan, max_output_tokens=1300, feature='meeting_agent_plan', attempts=1, thinking_budget=0,
-        timeout_seconds=settings.meeting_agent_provider_seconds)
+        timeout_seconds=settings.meeting_agent_provider_seconds, model=settings.gemini_fast_model)
     return [step.model_dump() for step in result.steps]
 
 
@@ -250,13 +253,29 @@ async def execute_step(job, index, step):
             nonlocal recorded
             await checkpoint(db, job.id, token, index, result)
             recorded = True
+        if tool in {'open_board', 'edit_board'} and job.payload.get('board_provider') == 'figjam':
+            if not await figjam_service.connection_for(db, capture.id):
+                url = settings.public_app_url.rstrip('/') + f'/meetings/live/{capture.id}'
+                await receipt(db, {'message': f'Connect your FigJam file once, then I can draw there: {url}', 'needs_input': True})
+                await db.commit()
+                return
         if tool == 'edit_board':
+            if await figjam_service.edit(db, capture, job, index, instruction, provider, guard, receipt):
+                await db.commit()
+                return
             result = await board_service.command_capture_board(db, capture.id,
                 uuid.uuid5(job.id, str(index)), instruction, checkpoint=receipt, run_provider=provider, context=job.payload.get('captions') or [])
             # A clarification/no-op/old replay may not have needed a board commit.
             if not recorded:
                 await checkpoint(db, job.id, token, index, result)
         elif tool == 'open_board':
+            connection = await figjam_service.connection_for(db, capture.id)
+            if connection:
+                await receipt(db, {'message': ('Your shared FigJam board: ' + connection.file_url) if figjam_service.connected(connection)
+                    else 'Open the Wilco plugin in your FigJam file to connect this meeting.',
+                    'needs_input': not figjam_service.connected(connection)})
+                await db.commit()
+                return
             board = await board_service.ensure_for_capture(db, capture)
             url = settings.public_app_url.rstrip('/') + f'/meetings/live/{capture.id}'
             await receipt(db, {'board': board_service.serialize(board), 'message': f'Opened the meeting board: {url}'})
