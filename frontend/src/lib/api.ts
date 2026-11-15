@@ -1501,7 +1501,7 @@ export interface MeetingPrep {
 
 export type TranscriptExportFormat = "txt" | "md" | "json" | "srt" | "vtt";
 
-export type BoardNodeKind = "summary" | "decision" | "task" | "risk" | "question" | "idea" | "note" | "timeline";
+export type BoardNodeKind = "summary" | "decision" | "task" | "risk" | "question" | "idea" | "note" | "timeline" | "diagram";
 
 export interface MeetingBoardNode {
   id: string;

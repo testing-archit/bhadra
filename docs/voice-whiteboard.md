@@ -4,6 +4,17 @@ Status: deployed at `25fec90`; presentation enabled for acceptance testing on pr
 
 Current default: the bot now requests [native FigJam](voice-figjam-reliability.md), with a paired plugin and shared file. This document retains the earlier internal-board/canvas prototype. Private FigJam presentation uses a participant's normal tab share; it is not automatically captured by the bot.
 
+## Mermaid diagrams (15 November 2026)
+
+Architecture, sequence, ER, class, state and flow diagrams are drawn as **Mermaid** on Wilco's own board, so they need no FigJam sign-in.
+
+- **Voice:** "Wilco, architecture diagram bana do", "draw the system architecture", "sequence diagram dikhao for checkout". `board_intent.wants_diagram` sends these (and later edits to the same board) with `board_provider='internal'`. Other board requests still use FigJam.
+- **Planner:** a new `set_diagram` operation (`board_commands.py`) stores a node of kind `diagram` whose `text` is the Mermaid source. It's created once and then updated in place by `node_id`. `card ↔ diagram` swaps are refused.
+- **Safety:** `app/services/mermaid_safety.clean` runs on voice edits and manual saves. It accepts known diagram types only, strips code fences, and refuses `%%{init}` directives, `click`/`href` lines, HTML and `javascript:` (`tests/test_mermaid_diagrams.py`). Every renderer uses `securityLevel: 'strict'`.
+- **In Meet:** `bot/mermaid_render.py` renders the board's latest diagram in a separate headless Chromium (never the Meet tab) with the vendored `bot/assets/mermaid.min.js` (MIT, `mermaid.LICENSE`). It hands the PNG to the existing presenter as `frame_image`. If Mermaid can't render it, the normal card board is shown.
+- **Web app:** the meeting board renders diagram nodes with `mermaid` (loaded only when needed), has an **Add diagram** button, and edits the Mermaid source in the side panel.
+- **Not yet:** Excalidraw editing (step 2), and real-call acceptance of the Mermaid presentation path.
+
 ## What the bot can do at this checkpoint
 
 | Capability | Implementation and validation |

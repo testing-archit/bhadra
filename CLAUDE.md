@@ -39,6 +39,8 @@ Keep these updated, and commit doc changes with the code: the whole team works t
 - **Request:** `POST /api/live/turn` takes one utterance. Prisma transcribes it with Auto-LID, Gemini answers from a cached digest of recent meetings, and Timbre speaks the answer: v2.5 for Hinglish, v3.0 for other Indian languages.
 - **Browser:** voice detection and barge-in run in `components/live-session.tsx`.
 
+**Diagrams:** voice requests for architecture, sequence, ER or flow diagrams draw validated Mermaid on Wilco's own board. They're presented in Meet without FigJam, and the meeting page can add and edit them. See `docs/voice-whiteboard.md` → "Mermaid diagrams".
+
 **Live call features:** say or type "Charcha, …" in Meet. The bot answers from the call's captions and speaks the answer through a virtual microphone (Timbre). "Charcha recap" and "Charcha, add task: …" also work.
 
 **Demo data:** `backend/scripts/seed_demo.py <owner email> <teammate email>` (10 Hinglish meetings). It adds whatever is missing; `--reset` rebuilds everything.

@@ -23,6 +23,9 @@ def board_intent(question: str, active: bool, is_task: bool = False) -> str | No
             r'(?:make|create|map(?: out)?)\s+(?:me\s+)?(?:a|an|the|our|my)\s+(?:[\w,-]+\s+){0,6}?'
             r'(?:flow\s?chart|flow|diagram|mind\s?map)\b', plain):
         named = True
+    # Hinglish: "architecture diagram bana do", "login ka flow chart banao".
+    if DIAGRAM.search(plain) and HINGLISH_MAKE.search(plain):
+        return 'edit'
     if plain in {'stop presenting', 'stop sharing', 'stop presenting the board', 'stop sharing the board'}:
         return 'stop'
     implicit_board = active and bool(re.fullmatch(r'(?:present|share|show)(?: (?:it|this|that|this one|the current one))?', plain))
@@ -34,6 +37,15 @@ def board_intent(question: str, active: bool, is_task: bool = False) -> str | No
         if named or not is_task:
             return 'edit'
     return None
+
+
+DIAGRAM = re.compile(r'\b(?:diagrams?|flow\s?charts?|architecture|system design|sequence|er diagram|data model|state machine|mermaid)\b')
+HINGLISH_MAKE = re.compile(r'\b(?:bana(?:o|do|de|dijiye|na)?|banao|dikhao|draw karo|kheench(?:o| do)?)\b')
+
+
+def wants_diagram(question: str) -> bool:
+    """Diagram requests use Wilco's own board (Mermaid), which needs no FigJam sign-in."""
+    return bool(DIAGRAM.search(normalize(question)))
 
 
 def opening_only(question: str) -> bool:

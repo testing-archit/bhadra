@@ -38,7 +38,8 @@ import browser_voice
 from call_translation import RunningTranslations
 from agent_client import AgentClient, AgentBusy
 from figjam_browser import FigJamBrowser, run_actions
-from board_intent import board_intent, normalize, opening_only, requires_plan
+from board_intent import board_intent, normalize, opening_only, requires_plan, wants_diagram
+from mermaid_render import MermaidRenderer
 from command_runtime import Command, CommandRuntime, stage
 import meet_chat
 import teams_dom
@@ -559,6 +560,8 @@ class MeetingSession:
         self._pause_reminded = False
         self._agent = None
         self._figjam_browser = None
+        self._mermaid = None
+        self._diagram_board = False
         self._pending_commands = {}
         self._progress_shown = set()
         self._agent_runtime = None
@@ -955,6 +958,9 @@ class MeetingSession:
             reply = await self.present_board(page)
         elif self.capture_request_id and intent in {"open", "open_present"}:
             self._board_active = True
+            if wants_diagram(question):
+                command.board_provider = 'internal'
+                self._diagram_board = True
             command.follow_up = 'present_board'
             compound = requires_plan(question)
             tool = 'open_board' if opening_only(question) else ('auto' if compound else 'edit_board')
@@ -962,6 +968,10 @@ class MeetingSession:
         elif self.capture_request_id and intent == "edit":
             command.follow_up = 'present_board'
             self._board_active = True
+            if wants_diagram(question) or getattr(self, '_diagram_board', False):
+                # Diagrams render from Mermaid on Wilco's own board; no FigJam sign-in needed.
+                command.board_provider = 'internal'
+                self._diagram_board = True
             compound = requires_plan(question)
             return await self.submit_agent_command(page, command, "auto" if compound else "edit_board")
         else:
@@ -1241,7 +1251,7 @@ class MeetingSession:
         if not config.PRESENT_BOARD or not self.USES_GOOGLE_LOGIN:
             return "Automatic presentation isn't enabled here. Open the board link and share that tab in Meet."
         try:
-            native = bool(self._figjam_browser and self._figjam_browser.file_url)
+            native = bool(self._figjam_browser and self._figjam_browser.file_url) and not getattr(self, '_diagram_board', False)
             if native:
                 board = await self._figjam_browser.frame()
                 if not board:
@@ -1254,6 +1264,8 @@ class MeetingSession:
                     return 'Open the FigJam link and share that tab; its signed-in canvas is unavailable to me.'
             if not board:
                 return "There isn't a whiteboard to show yet. Ask me to open one first."
+            if not native and self._mermaid:
+                board = await self._mermaid.present(board)
             async with self._browser_lock:
                 state = await page.evaluate('() => window.__wilcoBoard.state()')
                 # Keep an existing camera fallback stable on subsequent edits.
@@ -1362,7 +1374,7 @@ class MeetingSession:
                 if config.PRESENT_BOARD and self.USES_GOOGLE_LOGIN and self.capture_request_id:
                     state = await page.evaluate('() => window.__wilcoBoard?.state()')
                     if state and (state.get('active') or state.get('cameraVisible')):
-                        if self._figjam_browser and self._figjam_browser.file_url:
+                        if self._figjam_browser and self._figjam_browser.file_url and not getattr(self, '_diagram_board', False):
                             frame = await self._figjam_browser.frame()
                             if frame:
                                 await page.evaluate('(board) => window.__wilcoBoard.draw(board)', frame)
@@ -1373,6 +1385,8 @@ class MeetingSession:
                             continue
                         board = await asyncio.to_thread(uploader.board_state, self.capture_request_id)
                         if board and board['version'] != state['version']:
+                            if self._mermaid:
+                                board = await self._mermaid.present(board)
                             await page.evaluate('(board) => window.__wilcoBoard.draw(board)', board)
                         elif board is None:
                             async with self._browser_lock:
@@ -1506,6 +1520,7 @@ class MeetingSession:
         try:
             async with async_playwright() as p:
                 self._figjam_browser = FigJamBrowser(p)
+                self._mermaid = MermaidRenderer(p)
                 browser = await p.chromium.launch(
                     headless=False,  # on Xvfb — headless Chromium renders no WebRTC audio
                     env={**os.environ, "PULSE_SINK": self.sink, "PULSE_SOURCE": self.voice_mic, "PULSE_LATENCY_MSEC": str(PULSE_LATENCY_MS)},
@@ -1548,6 +1563,8 @@ class MeetingSession:
                 finally:
                     self.stop_recording()
                     await self._figjam_browser.close()
+                    if self._mermaid:
+                        await self._mermaid.close()
                     if storage:
                         await self.save_auth(context)
                     await browser.close()

@@ -17,6 +17,7 @@ class Command:
     received_at: float = field(default_factory=time.monotonic)
     id: str = field(default_factory=lambda: uuid.uuid4().hex)
     follow_up: str | None = None
+    board_provider: str = 'figjam'
 
 
 @contextmanager

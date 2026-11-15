@@ -67,3 +67,36 @@ async def test_updates_keep_camera_fallback_without_retrying_share_dialog(tmp_pa
     monkeypatch.setattr(meeting_session.board_presenter, 'start', start)
     assert 'camera tile' in await session.present_board(page)
     start.assert_not_awaited()
+
+
+async def test_latest_diagram_is_presented_as_a_rendered_image(tmp_path, monkeypatch):
+    monkeypatch.setattr(meeting_session.config, 'SESSIONS_DIR', tmp_path)
+    monkeypatch.setattr(meeting_session.config, 'PRESENT_BOARD', True)
+    session = meeting_session.MeetingSession({'capture_request_id': 'cap'})
+    session._diagram_board = True
+    session._figjam_browser = type('F', (), {'file_url': 'https://www.figma.com/board/x'})()
+    page = AsyncMock()
+    page.evaluate.return_value = {'cameraVisible': False}
+    board = {'version': 3, 'title': 'Arch', 'nodes': [
+        {'id': 'old', 'kind': 'diagram', 'text': 'flowchart LR\n A-->B'},
+        {'id': 'card', 'kind': 'idea', 'text': 'note'},
+        {'id': 'new', 'kind': 'diagram', 'text': 'sequenceDiagram\n A->>B: hi'},
+    ]}
+    monkeypatch.setattr(meeting_session.uploader, 'board_state', lambda cid: board)
+    renderer = meeting_session.MermaidRenderer(None)
+    renderer.image = AsyncMock(return_value='data:image/png;base64,AAAA')
+    session._mermaid = renderer
+    start = AsyncMock(return_value=True)
+    monkeypatch.setattr(meeting_session.board_presenter, 'start', start)
+    await session.present_board(page)
+    renderer.image.assert_awaited_once_with('sequenceDiagram\n A->>B: hi')
+    shown = start.await_args.args[1]
+    assert shown['frame_image'] == 'data:image/png;base64,AAAA' and shown['version'] == 3
+
+
+async def test_unrenderable_diagram_falls_back_to_the_card_board():
+    sys_board = {'version': 1, 'nodes': [{'id': 'd', 'kind': 'diagram', 'text': 'flowchart LR\n A-->'}]}
+    renderer = meeting_session.MermaidRenderer(None)
+    renderer.image = AsyncMock(return_value=None)
+    assert await renderer.present(sys_board) == sys_board
+    assert await renderer.present({'version': 1, 'nodes': [{'id': 'c', 'kind': 'idea'}]}) == {'version': 1, 'nodes': [{'id': 'c', 'kind': 'idea'}]}

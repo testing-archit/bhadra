@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.database.db import get_db
 from app.database.models import CaptureRequest, FigJamConnection, LiveCaption, Meeting, MeetingBoard, MeetingBoardRevision, User
 from app.dependencies import get_current_user, user_can_read_meeting
-from app.services import board_service, capture_service
+from app.services import board_service, capture_service, mermaid_safety
 
 
 router = APIRouter(prefix="/api/boards", tags=["boards"])
@@ -35,7 +35,7 @@ async def _readable_capture(db: AsyncSession, user: User, capture_id: uuid.UUID)
 
 class BoardNode(BaseModel):
     id: str = Field(min_length=1, max_length=120)
-    kind: Literal["summary", "decision", "task", "risk", "question", "idea", "note", "timeline"]
+    kind: Literal["summary", "decision", "task", "risk", "question", "idea", "note", "timeline", "diagram"]
     title: str = Field(min_length=1, max_length=160)
     text: str = Field(default="", max_length=4000)
     x: float = Field(ge=-20000, le=20000)
@@ -68,6 +68,9 @@ class BoardUpdate(BaseModel):
             raise ValueError("Board edge ids must be unique")
         if any(edge.source not in ids or edge.target not in ids for edge in self.edges):
             raise ValueError("Board edges must connect existing nodes")
+        for node in self.nodes:
+            if node.kind == "diagram":
+                node.text = mermaid_safety.clean(node.text)
         return self
 
 

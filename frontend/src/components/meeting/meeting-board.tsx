@@ -1,20 +1,20 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   ReactFlow, Background, Controls, Handle, Position, addEdge,
   applyEdgeChanges, applyNodeChanges, type Connection, type Edge,
   type EdgeChange, type Node, type NodeChange, type NodeProps,
 } from "@xyflow/react";
-import { ArrowUpRight, Check, Pause, Play, Plus, Save, Trash2 } from "lucide-react";
+import { ArrowUpRight, Check, Pause, Play, Plus, Save, Trash2, Workflow } from "lucide-react";
 import { api, ApiError, type BoardNodeKind, type MeetingBoardNode, type MeetingBoardRecord } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 
 type CardData = { kind: BoardNodeKind; title: string; text: string; origin: string } & Record<string, unknown>;
-type FlowNode = Node<CardData, "boardCard">;
+type FlowNode = Node<CardData, "boardCard" | "diagram">;
 
 const KINDS: Record<BoardNodeKind, { label: string; accent: string }> = {
   summary: { label: "Overview", accent: "border-primary/50" },
@@ -25,7 +25,38 @@ const KINDS: Record<BoardNodeKind, { label: string; accent: string }> = {
   idea: { label: "Idea", accent: "border-primary/60" },
   note: { label: "Note", accent: "border-border" },
   timeline: { label: "Timeline", accent: "border-success/70" },
+  diagram: { label: "Diagram", accent: "border-primary" },
 };
+
+const STARTER_DIAGRAM = "flowchart LR\n  idea[\"Idea\"] --> build[\"Build\"] --> ship[\"Ship\"]";
+
+let mermaidLoader: Promise<typeof import("mermaid").default> | null = null;
+function loadMermaid() {
+  // Loaded only when a board has a diagram. securityLevel "strict" disables
+  // click handlers and HTML labels; the server also validates the source.
+  mermaidLoader ??= import("mermaid").then(({ default: mermaid }) => {
+    mermaid.initialize({ startOnLoad: false, securityLevel: "strict", theme: "neutral", flowchart: { htmlLabels: false } });
+    return mermaid;
+  });
+  return mermaidLoader;
+}
+
+function MermaidView({ source }: { source: string }) {
+  const id = useId().replace(/[^a-zA-Z0-9]/g, "");
+  const [svg, setSvg] = useState<string | null>(null);
+  const [failed, setFailed] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    loadMermaid()
+      .then((mermaid) => mermaid.render(`diagram${id}${Date.now()}`, source))
+      .then(({ svg: rendered }) => { if (!cancelled) { setSvg(rendered); setFailed(false); } })
+      .catch(() => { if (!cancelled) setFailed(true); });
+    return () => { cancelled = true; };
+  }, [id, source]);
+  if (failed) return <p className="text-xs text-destructive">This diagram has a syntax error. Select it to fix the Mermaid source.</p>;
+  if (!svg) return <p className="text-xs text-muted-foreground">Drawing diagram…</p>;
+  return <div className="[&_svg]:h-auto [&_svg]:max-w-full" dangerouslySetInnerHTML={{ __html: svg }} />;
+}
 
 function BoardCard({ data, selected }: NodeProps<FlowNode>) {
   const style = KINDS[data.kind];
@@ -38,11 +69,21 @@ function BoardCard({ data, selected }: NodeProps<FlowNode>) {
   </div>;
 }
 
-const nodeTypes = { boardCard: BoardCard };
+function DiagramCard({ data, selected }: NodeProps<FlowNode>) {
+  return <div className={`w-[30rem] rounded-2xl border-l-4 border-primary bg-card p-4 shadow-md ring-1 ring-border ${selected ? "ring-2 ring-primary" : ""}`}>
+    <Handle type="target" position={Position.Left} className="!size-2 !bg-primary" />
+    <p className="text-[11px] font-semibold text-muted-foreground">Diagram{data.origin === "ai" ? " · AI draft" : ""}</p>
+    <h3 className="mt-1 mb-3 font-heading text-sm font-semibold text-foreground">{data.title}</h3>
+    <div className="rounded-xl bg-white p-3"><MermaidView source={data.text} /></div>
+    <Handle type="source" position={Position.Right} className="!size-2 !bg-primary" />
+  </div>;
+}
+
+const nodeTypes = { boardCard: BoardCard, diagram: DiagramCard };
 
 function toFlowNodes(board: MeetingBoardRecord): FlowNode[] {
   return board.nodes.map((item) => ({
-    id: item.id, type: "boardCard", position: { x: item.x, y: item.y },
+    id: item.id, type: item.kind === "diagram" ? "diagram" : "boardCard", position: { x: item.x, y: item.y },
     data: { kind: item.kind, title: item.title, text: item.text, origin: item.origin },
   }));
 }
@@ -110,6 +151,18 @@ export function MeetingBoard({ meetingId, captureId }: { meetingId?: string; cap
     setSaved(false);
   }
 
+  function addDiagram() {
+    if (!board) return;
+    const id = crypto.randomUUID();
+    const position = { x: 120 + (board.nodes.length % 3) * 300, y: 120 + Math.floor(board.nodes.length / 3) * 190 };
+    const item: MeetingBoardNode = { id, kind: "diagram", title: "New diagram", text: STARTER_DIAGRAM, x: position.x, y: position.y, origin: "manual", locked: false, source_start_ms: null, source_id: null };
+    setBoard({ ...board, nodes: [...board.nodes, item] });
+    setNodes((current) => [...current, { id, type: "diagram", position, data: { kind: item.kind, title: item.title, text: item.text, origin: "manual" } }]);
+    setSelectedId(id);
+    setDirty(true);
+    setSaved(false);
+  }
+
   function removeSelected() {
     if (!board || !selectedId) return;
     setBoard({ ...board, nodes: board.nodes.filter((node) => node.id !== selectedId) });
@@ -159,6 +212,7 @@ export function MeetingBoard({ meetingId, captureId }: { meetingId?: string; cap
         <p className="text-xs text-muted-foreground">Move ideas, connect related points, and edit the AI draft together.</p>
       </div>
       <Button size="sm" variant="outline" onClick={addIdea}><Plus className="size-4" />Add idea</Button>
+      <Button size="sm" variant="outline" onClick={addDiagram}><Workflow className="size-4" />Add diagram</Button>
       {captureId && <Button size="sm" variant="outline" onClick={() => void api.pauseMeetingBoard(board.id, !board.paused).then(setBoard).catch(() => setError("Could not change AI board updates."))}>
         {board.paused ? <Play className="size-4" /> : <Pause className="size-4" />}{board.paused ? "Resume AI" : "Pause AI"}
       </Button>}
@@ -177,10 +231,10 @@ export function MeetingBoard({ meetingId, captureId }: { meetingId?: string; cap
       </div>
       <aside className="border-t p-4 lg:border-l lg:border-t-0" aria-label="Selected board item">
         {selected ? <div className="space-y-4">
-          <div className="flex items-center justify-between"><p className="text-sm font-semibold">Edit point</p><Button size="icon-sm" variant="ghost" onClick={removeSelected} aria-label="Remove point"><Trash2 className="size-4" /></Button></div>
-          <div><label htmlFor="board-kind" className="mb-1 block text-xs font-medium">Type</label><select id="board-kind" className="w-full rounded-lg border bg-background px-3 py-2 text-sm" value={selected.kind} onChange={(event) => updateNode({ kind: event.target.value as BoardNodeKind })}>{Object.entries(KINDS).map(([value, detail]) => <option key={value} value={value}>{detail.label}</option>)}</select></div>
+          <div className="flex items-center justify-between"><p className="text-sm font-semibold">{selected.kind === "diagram" ? "Edit diagram" : "Edit point"}</p><Button size="icon-sm" variant="ghost" onClick={removeSelected} aria-label="Remove point"><Trash2 className="size-4" /></Button></div>
+          <div><label htmlFor="board-kind" className="mb-1 block text-xs font-medium">Type</label><select id="board-kind" className="w-full rounded-lg border bg-background px-3 py-2 text-sm" value={selected.kind} onChange={(event) => updateNode({ kind: event.target.value as BoardNodeKind })}>{Object.entries(KINDS).filter(([value]) => (value === "diagram") === (selected.kind === "diagram")).map(([value, detail]) => <option key={value} value={value}>{detail.label}</option>)}</select></div>
           <div><label htmlFor="board-title" className="mb-1 block text-xs font-medium">Title</label><Input id="board-title" value={selected.title} maxLength={160} onChange={(event) => updateNode({ title: event.target.value })} /></div>
-          <div><label htmlFor="board-text" className="mb-1 block text-xs font-medium">Details</label><Textarea id="board-text" value={selected.text} maxLength={4000} rows={5} onChange={(event) => updateNode({ text: event.target.value })} /></div>
+          <div><label htmlFor="board-text" className="mb-1 block text-xs font-medium">{selected.kind === "diagram" ? "Mermaid source" : "Details"}</label><Textarea id="board-text" value={selected.text} maxLength={4000} rows={selected.kind === "diagram" ? 10 : 5} className={selected.kind === "diagram" ? "font-mono text-xs" : undefined} spellCheck={selected.kind !== "diagram"} onChange={(event) => updateNode({ text: event.target.value })} />{selected.kind === "diagram" && <p className="mt-1 text-xs text-muted-foreground">Flowchart, sequence, ER, class or state diagrams. Links and HTML aren’t allowed.</p>}</div>
           {selected.source_start_ms != null && <Link className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline" href={meetingId ? `?tab=transcript&t=${selected.source_start_ms}` : "#live-captions"}><ArrowUpRight className="size-3.5" />Open source moment</Link>}
           <p className="text-xs text-muted-foreground">{selected.origin === "ai" ? "AI draft. Your changes will be kept during future updates." : "Edited by your team."}</p>
         </div> : <p className="text-sm leading-6 text-muted-foreground">Select a point to edit it. Drag from a point’s right handle to connect it to another.</p>}
