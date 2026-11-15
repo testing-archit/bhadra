@@ -14,6 +14,30 @@ interface Turn {
   language?: string | null;
 }
 
+/** Which Gnani models handled the latest turn, for the chips under it. */
+interface Pipeline {
+  heard: string;
+  answered: string;
+  spoke: string;
+  voice?: string;
+  heardMs?: number;
+  answeredMs?: number;
+  spokeMs?: number;
+}
+
+function modelName(id?: string): string {
+  if (!id) return "";
+  if (id.startsWith("prisma")) return `Gnani Prisma ${id.replace("prisma-", "")}`;
+  if (id.startsWith("timbre")) return `Gnani Timbre ${id.replace("timbre-", "")}`;
+  if (id.includes("evon")) return "Gnani Evon v3.3";
+  if (id.startsWith("gemini")) return "Gemini";
+  return id;
+}
+
+function seconds(ms?: number) {
+  return ms === undefined ? "" : ` · ${(ms / 1000).toFixed(1)} s`;
+}
+
 const LANGUAGE_LABELS: Record<string, string> = {
   "hi-IN": "Hindi / Hinglish",
   "en-IN": "English",
@@ -55,6 +79,7 @@ export function LiveSession() {
   const startingRef = useRef(false);
   const [muted, setMuted] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [pipeline, setPipeline] = useState<Pipeline | null>(null);
 
   const phaseRef = useRef<Phase>("idle");
   const mutedRef = useRef(false);
@@ -114,6 +139,15 @@ export function LiveSession() {
         ];
         turnsRef.current = next;
         setTurns(next);
+        setPipeline({
+          heard: modelName(result.heard_model) || "Gnani Prisma",
+          answered: modelName(result.reply_model) || "Gemini",
+          spoke: modelName(result.speech_model) || "Gnani Timbre",
+          voice: result.speech_voice,
+          heardMs: result.timings?.input_and_context_ms,
+          answeredMs: result.timings?.reply_ms,
+          spokeMs: result.timings?.tts_ms,
+        });
         if (!result.audio || phaseRef.current !== "thinking") {
           go("listening");
           return;
@@ -429,8 +463,12 @@ export function LiveSession() {
               <p>{turn.content}</p>
             </div>
           ))}
-          {last[0]?.language && LANGUAGE_LABELS[last[0].language] && (
-            <small>{LANGUAGE_LABELS[last[0].language]}</small>
+          {pipeline && (
+            <ul className="live-pipeline" aria-label="Models that handled this turn">
+              <li>Heard by {pipeline.heard}{last[0]?.language && LANGUAGE_LABELS[last[0].language] ? ` · ${LANGUAGE_LABELS[last[0].language]}` : ""}{seconds(pipeline.heardMs)}</li>
+              <li>Answered by {pipeline.answered}{seconds(pipeline.answeredMs)}</li>
+              <li>Spoken by {pipeline.spoke}{pipeline.voice ? ` (${pipeline.voice})` : ""}{seconds(pipeline.spokeMs)}</li>
+            </ul>
           )}
         </section>
       ) : (

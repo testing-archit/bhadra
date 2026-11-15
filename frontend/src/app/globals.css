@@ -1490,5 +1490,7 @@
 .live-transcript > div + div { border-top: 1px solid var(--border); margin-top: 14px; padding-top: 14px; }
 .live-transcript span, .live-transcript small { font-size: 11px; color: var(--muted-foreground); }
 .live-transcript p { font-size: 14px; line-height: 1.6; margin-top: 4px; overflow-wrap: anywhere; }
+.live-pipeline { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 14px; padding: 0; list-style: none; }
+.live-pipeline li { font-size: 11px; line-height: 1.4; color: var(--secondary-foreground); background: var(--secondary); border-radius: 999px; padding: 3px 9px; }
 @media(max-width:640px) { .live-studio { padding: 10px 0 24px; } .live-stage { width: 230px; margin-top: 12px; } .live-heading h1 { font-size: 26px; } }
 @media(prefers-reduced-motion:reduce) { .talking-mascot *, .live-level span { animation: none !important; transition: none !important; transform: none !important; } }

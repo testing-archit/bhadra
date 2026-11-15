@@ -1560,7 +1560,11 @@ export const api = {
     const form = new FormData();
     form.append("audio", audio, audio.type.includes("mp4") ? "turn.m4a" : "turn.webm");
     form.append("history", JSON.stringify(history));
-    return apiFetch<{ transcript: string; reply: string | null; audio: string | null; language?: string | null }>(
+    return apiFetch<{
+      transcript: string; reply: string | null; audio: string | null; language?: string | null;
+      timings?: { input_and_context_ms: number; reply_ms: number; tts_ms: number; total_ms: number };
+      heard_model?: string; reply_model?: string; speech_model?: string; speech_voice?: string;
+    }>(
       "/api/live/turn", { method: "POST", body: form },
     );
   },
@@ -1602,7 +1606,7 @@ export const api = {
   deleteVoiceUpdate: (id: string) => apiFetch<{ deleted: boolean }>(`/api/gnani/voice-updates/${id}`, { method: "DELETE" }),
   /** Notes translated into an Indian language and read aloud (Gemini + Gnani Timbre). */
   speakTranslated: (text: string, language: string) =>
-    apiFetch<{ language: string; text: string; audio: string | null; speech_error: string | null }>("/api/tts/translated", {
+    apiFetch<{ language: string; text: string; audio: string | null; speech_error: string | null; translated: boolean; model: string; voice: string }>("/api/tts/translated", {
       method: "POST",
       body: JSON.stringify({ text, language }),
     }),

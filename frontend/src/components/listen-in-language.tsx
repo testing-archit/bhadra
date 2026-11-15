@@ -30,9 +30,9 @@ export function ListenInLanguage({ text }: { text: string }) {
   const [language, setLanguage] = useState("en-IN");
   const [state, setState] = useState<State>("idle");
   const [error, setError] = useState<string | null>(null);
-  const [heard, setHeard] = useState<{ language: string; text: string } | null>(null);
+  const [heard, setHeard] = useState<{ language: string; text: string; credit: string } | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const cache = useRef(new Map<string, { text: string; audio: string | null; speech_error: string | null }>());
+  const cache = useRef(new Map<string, Awaited<ReturnType<typeof api.speakTranslated>>>());
 
   useEffect(() => {
     try {
@@ -63,7 +63,11 @@ export function ListenInLanguage({ text }: { text: string }) {
         result = await api.speakTranslated(text, language);
         cache.current.set(language, result);
       }
-      setHeard(language === "en-IN" ? null : { language, text: result.text });
+      const voice = `Gnani ${result.model.replace("timbre-", "Timbre ")} (${result.voice})`;
+      setHeard(language === "en-IN" ? null : {
+        language, text: result.text,
+        credit: result.translated ? `Translated by Gemini · spoken by ${voice}` : `Spoken by ${voice}`,
+      });
       if (!result.audio) {
         cache.current.delete(language); // try the speech again next time
         setState("idle");
@@ -112,6 +116,7 @@ export function ListenInLanguage({ text }: { text: string }) {
       {heard && (
         <p lang={heard.language.slice(0, 2)} className="rounded-lg bg-muted px-3 py-2 text-sm leading-relaxed text-foreground">
           {heard.text}
+          <span className="mt-1.5 block text-xs text-muted-foreground">{heard.credit}</span>
         </p>
       )}
     </div>

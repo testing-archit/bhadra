@@ -92,4 +92,6 @@ async def speak_translated(request: Request, body: TranslatedSpeechRequest, user
         speech_error = None
     except Exception:
         audio, speech_error = None, "Couldn't play the audio right now. Here's the text."
-    return {"language": body.language, "text": text, "audio": audio, "speech_error": speech_error}
+    model, voice = tts_service.voice_for(body.language)
+    return {"language": body.language, "text": text, "audio": audio, "speech_error": speech_error,
+            "translated": text != body.text, "model": model, "voice": voice}
