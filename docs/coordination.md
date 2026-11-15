@@ -132,3 +132,7 @@ Memory implementation is complete: production build/TypeScript and 11 local brow
 ## Deployment verification fix
 
 PR #1 merged at `ee8a3ed`; backend and notetaker images restarted. The first deployment run's final probe failed with a connection error while the API was starting. Public health and new authenticated route checks succeeded afterward. Codex is fixing readiness polling and SSH-script stdin consumption, and preserving initial rollback snapshots on retries. Deployment will only be reported complete after the live model-backed canary and bot runtime checks pass.
+
+## Talking mascot release scope
+
+The user explicitly requested an animated talking mascot for Live and a push/production deployment for testing. Codex owns Live, its SVG mascot and scoped styling, plus necessary session cleanup fixes. Release includes the already reviewed mascot theme, Home, Tasks Flow and Memory on this branch. Preserve collaborator backend changes by integrating latest main in isolation; use the existing checked deployment workflow.
