@@ -13,7 +13,10 @@ Architecture, sequence, ER, class, state and flow diagrams are drawn as **Mermai
 - **Safety:** `app/services/mermaid_safety.clean` runs on voice edits and manual saves. It accepts known diagram types only, strips code fences, and refuses `%%{init}` directives, `click`/`href` lines, HTML and `javascript:` (`tests/test_mermaid_diagrams.py`). Every renderer uses `securityLevel: 'strict'`.
 - **In Meet:** `bot/mermaid_render.py` renders the board's latest diagram in a separate headless Chromium (never the Meet tab) with the vendored `bot/assets/mermaid.min.js` (MIT, `mermaid.LICENSE`). It hands the PNG to the existing presenter as `frame_image`. If Mermaid can't render it, the normal card board is shown.
 - **Web app:** the meeting board renders diagram nodes with `mermaid` (loaded only when needed), has an **Add diagram** button, and edits the Mermaid source in the side panel.
-- **Not yet:** Excalidraw editing (step 2), and real-call acceptance of the Mermaid presentation path.
+- **Excalidraw editing (step 2):** on the meeting board, a diagram's **Edit as drawing** button opens Excalidraw full screen. The Mermaid is converted with `@excalidraw/mermaid-to-excalidraw` (pinned to 2.2.2, the version Excalidraw 0.18.1 bundles); flowchart, sequence and class diagrams convert, and other types stay Mermaid. **Save drawing** stores `{elements}` on the node as `scene` and saves the board at once. The card then shows the drawing, and **Back to Mermaid** clears it.
+- **Drawing safety:** `excalidraw_safety.clean_scene` runs on every save. It allows drawing elements only (no image, embed or iframe elements; the image tool is hidden), strips links and unknown keys, and caps a drawing at 1,500 elements / 400 KB. Only diagram nodes may hold a drawing.
+- **Staleness:** changing a diagram's Mermaid by voice or by editing its source drops its drawing (it described the old diagram). The bot's board feed omits drawings; Meet always presents the Mermaid.
+- **Not yet:** real-call acceptance of the Mermaid presentation path, and live multi-cursor editing of drawings (saves use the board's existing version check).
 
 ## What the bot can do at this checkpoint
 

@@ -1514,7 +1514,11 @@ export interface MeetingBoardNode {
   locked: boolean;
   source_start_ms: number | null;
   source_id: string | null;
+  /** Excalidraw drawing of a diagram, edited after the call. */
+  scene?: DiagramScene | null;
 }
+
+export interface DiagramScene { elements: Record<string, unknown>[] }
 
 export interface MeetingBoardEdge { id: string; source: string; target: string }
 

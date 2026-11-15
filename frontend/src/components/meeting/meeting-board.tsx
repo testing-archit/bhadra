@@ -7,13 +7,14 @@ import {
   applyEdgeChanges, applyNodeChanges, type Connection, type Edge,
   type EdgeChange, type Node, type NodeChange, type NodeProps,
 } from "@xyflow/react";
-import { ArrowUpRight, Check, Pause, Play, Plus, Save, Trash2, Workflow } from "lucide-react";
-import { api, ApiError, type BoardNodeKind, type MeetingBoardNode, type MeetingBoardRecord } from "@/lib/api";
+import { ArrowUpRight, Check, PenLine, Pause, Play, Plus, RotateCcw, Save, Trash2, Workflow } from "lucide-react";
+import { api, ApiError, type BoardNodeKind, type DiagramScene, type MeetingBoardNode, type MeetingBoardRecord } from "@/lib/api";
+import { DiagramEditor, DrawingPreview } from "@/components/meeting/diagram-editor";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 
-type CardData = { kind: BoardNodeKind; title: string; text: string; origin: string } & Record<string, unknown>;
+type CardData = { kind: BoardNodeKind; title: string; text: string; origin: string; scene?: DiagramScene | null } & Record<string, unknown>;
 type FlowNode = Node<CardData, "boardCard" | "diagram">;
 
 const KINDS: Record<BoardNodeKind, { label: string; accent: string }> = {
@@ -74,7 +75,7 @@ function DiagramCard({ data, selected }: NodeProps<FlowNode>) {
     <Handle type="target" position={Position.Left} className="!size-2 !bg-primary" />
     <p className="text-[11px] font-semibold text-muted-foreground">Diagram{data.origin === "ai" ? " · AI draft" : ""}</p>
     <h3 className="mt-1 mb-3 font-heading text-sm font-semibold text-foreground">{data.title}</h3>
-    <div className="rounded-xl bg-white p-3"><MermaidView source={data.text} /></div>
+    <div className="rounded-xl bg-white p-3">{data.scene ? <DrawingPreview scene={data.scene} /> : <MermaidView source={data.text} />}</div>
     <Handle type="source" position={Position.Right} className="!size-2 !bg-primary" />
   </div>;
 }
@@ -84,7 +85,7 @@ const nodeTypes = { boardCard: BoardCard, diagram: DiagramCard };
 function toFlowNodes(board: MeetingBoardRecord): FlowNode[] {
   return board.nodes.map((item) => ({
     id: item.id, type: item.kind === "diagram" ? "diagram" : "boardCard", position: { x: item.x, y: item.y },
-    data: { kind: item.kind, title: item.title, text: item.text, origin: item.origin },
+    data: { kind: item.kind, title: item.title, text: item.text, origin: item.origin, scene: item.scene ?? null },
   }));
 }
 
@@ -97,6 +98,7 @@ export function MeetingBoard({ meetingId, captureId }: { meetingId?: string; cap
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+  const [drawingId, setDrawingId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     const result = meetingId ? await api.getMeetingBoard(meetingId) : await api.getCaptureBoard(captureId!);
@@ -163,6 +165,15 @@ export function MeetingBoard({ meetingId, captureId }: { meetingId?: string; cap
     setSaved(false);
   }
 
+  function saveDrawing(id: string, scene: DiagramScene | null) {
+    if (!board) return;
+    const next = { ...board, nodes: board.nodes.map((item) => item.id === id ? { ...item, scene } : item) };
+    setBoard(next);
+    setNodes((current) => current.map((node) => node.id === id ? { ...node, data: { ...node.data, scene } } : node));
+    setDrawingId(null);
+    void save(next, true);
+  }
+
   function removeSelected() {
     if (!board || !selectedId) return;
     setBoard({ ...board, nodes: board.nodes.filter((node) => node.id !== selectedId) });
@@ -173,15 +184,15 @@ export function MeetingBoard({ meetingId, captureId }: { meetingId?: string; cap
     setSaved(false);
   }
 
-  async function save() {
-    if (!board || !dirty) return;
+  async function save(current: MeetingBoardRecord | null = board, force = false) {
+    if (!current || (!dirty && !force)) return;
     setSaving(true);
     setError(null);
     try {
       const positions = new Map(nodes.map((node) => [node.id, node.position]));
       const updated = await api.saveMeetingBoard({
-        ...board,
-        nodes: board.nodes.map((item) => ({ ...item, x: positions.get(item.id)?.x ?? item.x, y: positions.get(item.id)?.y ?? item.y })),
+        ...current,
+        nodes: current.nodes.map((item) => ({ ...item, x: positions.get(item.id)?.x ?? item.x, y: positions.get(item.id)?.y ?? item.y })),
         edges: edges.map((edge) => ({ id: edge.id, source: edge.source, target: edge.target })),
       });
       setBoard(updated);
@@ -205,7 +216,11 @@ export function MeetingBoard({ meetingId, captureId }: { meetingId?: string; cap
     <Button className="w-fit" nativeButton={false} render={<a href={board.external_url} target="_blank" rel="noopener noreferrer" />}><ArrowUpRight data-icon="inline-start" />Open FigJam</Button>
   </section>;
 
+  const drawing = drawingId ? board.nodes.find((item) => item.id === drawingId) : null;
+
   return <section className="overflow-hidden rounded-2xl border bg-card" aria-label="Meeting whiteboard">
+    {drawing && <DiagramEditor title={drawing.title} source={drawing.text} scene={drawing.scene}
+      onSave={(scene) => saveDrawing(drawing.id, scene)} onClose={() => setDrawingId(null)} />}
     <div className="flex flex-wrap items-center gap-3 border-b px-4 py-3 sm:px-5">
       <div className="min-w-0 flex-1">
         <h2 className="font-heading text-base font-semibold">Meeting board</h2>
@@ -235,6 +250,11 @@ export function MeetingBoard({ meetingId, captureId }: { meetingId?: string; cap
           <div><label htmlFor="board-kind" className="mb-1 block text-xs font-medium">Type</label><select id="board-kind" className="w-full rounded-lg border bg-background px-3 py-2 text-sm" value={selected.kind} onChange={(event) => updateNode({ kind: event.target.value as BoardNodeKind })}>{Object.entries(KINDS).filter(([value]) => (value === "diagram") === (selected.kind === "diagram")).map(([value, detail]) => <option key={value} value={value}>{detail.label}</option>)}</select></div>
           <div><label htmlFor="board-title" className="mb-1 block text-xs font-medium">Title</label><Input id="board-title" value={selected.title} maxLength={160} onChange={(event) => updateNode({ title: event.target.value })} /></div>
           <div><label htmlFor="board-text" className="mb-1 block text-xs font-medium">{selected.kind === "diagram" ? "Mermaid source" : "Details"}</label><Textarea id="board-text" value={selected.text} maxLength={4000} rows={selected.kind === "diagram" ? 10 : 5} className={selected.kind === "diagram" ? "font-mono text-xs" : undefined} spellCheck={selected.kind !== "diagram"} onChange={(event) => updateNode({ text: event.target.value })} />{selected.kind === "diagram" && <p className="mt-1 text-xs text-muted-foreground">Flowchart, sequence, ER, class or state diagrams. Links and HTML aren’t allowed.</p>}</div>
+          {selected.kind === "diagram" && <div className="flex flex-wrap gap-2">
+            <Button size="sm" variant="outline" onClick={() => setDrawingId(selected.id)}><PenLine className="size-4" />Edit as drawing</Button>
+            {selected.scene && <Button size="sm" variant="ghost" onClick={() => saveDrawing(selected.id, null)}><RotateCcw className="size-4" />Back to Mermaid</Button>}
+          </div>}
+          {selected.kind === "diagram" && selected.scene && <p className="text-xs text-muted-foreground">Shown as your Excalidraw drawing. Meet presentations still use the Mermaid source.</p>}
           {selected.source_start_ms != null && <Link className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline" href={meetingId ? `?tab=transcript&t=${selected.source_start_ms}` : "#live-captions"}><ArrowUpRight className="size-3.5" />Open source moment</Link>}
           <p className="text-xs text-muted-foreground">{selected.origin === "ai" ? "AI draft. Your changes will be kept during future updates." : "Edited by your team."}</p>
         </div> : <p className="text-sm leading-6 text-muted-foreground">Select a point to edit it. Drag from a point’s right handle to connect it to another.</p>}

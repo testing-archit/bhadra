@@ -46,6 +46,8 @@ def apply_operations(nodes: list, edges: list, operations: list[BoardOperation],
                     raise ValueError('Unlock that diagram before changing it by voice')
                 if node.get('kind') != 'diagram':
                     raise ValueError('That point is not a diagram')
+                if node.get('text') != source:
+                    node.pop('scene', None)  # A hand-made drawing of the old diagram would be stale.
                 node.update(text=source, **({'title': operation.title} if operation.title else {}))
             else:
                 identifier = f'voice:{uuid.uuid5(command_id, str(index)).hex}'
@@ -114,6 +116,8 @@ def apply_operations(nodes: list, edges: list, operations: list[BoardOperation],
                     raise ValueError('Use set_diagram for diagrams')
                 if node.get('kind') == 'diagram' and 'text' in edits:
                     edits['text'] = mermaid_safety.clean(edits['text'])
+                    if edits['text'] != node.get('text'):
+                        node.pop('scene', None)
                 node.update(edits)
         if len(nodes) > 120 or len(edges) > 200:
             raise ValueError('This board is full; remove points before adding more')

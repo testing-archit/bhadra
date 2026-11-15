@@ -73,3 +73,52 @@ def test_manual_board_saves_validate_diagram_source():
     assert saved.nodes[0].text == FLOW
     with pytest.raises(ValidationError):
         BoardUpdate(expected_version=1, title='Board', nodes=[{**node, 'text': 'flowchart LR\n  click A "x"'}], edges=[])
+
+
+from app.services import excalidraw_safety
+
+RECT = {"id": "r1", "type": "rectangle", "x": 0, "y": 0, "width": 100, "height": 40, "seed": 1, "version": 1, "versionNonce": 1, "isDeleted": False}
+
+
+def test_drawings_keep_only_safe_drawing_data():
+    scene = excalidraw_safety.clean_scene({"elements": [
+        {**RECT, "link": "javascript:alert(1)", "customData": {"x": 1}},
+        {**RECT, "id": "gone", "isDeleted": True},
+        {"id": "t", "type": "text", "x": 1, "y": 1, "text": "Auth API", "originalText": "Auth API", "fontSize": 20},
+    ], "appState": {"theme": "dark"}, "files": {"f": {"dataURL": "data:image/png;base64,AA"}}})
+    assert [element["id"] for element in scene["elements"]] == ["r1", "t"]
+    assert scene["elements"][0]["link"] is None and "customData" not in scene["elements"][0]
+    assert set(scene) == {"elements"}
+
+
+@pytest.mark.parametrize("scene, reason", [
+    ({"elements": [{**RECT, "type": "image", "fileId": "f"}]}, "images"),
+    ({"elements": [{**RECT, "type": "embeddable", "link": "https://x"}]}, "embeds"),
+    ({"elements": [{**RECT, "type": "iframe"}]}, "embeds"),
+    ({"elements": "nope"}, "list"),
+    ({"elements": [{**RECT, "id": str(i)} for i in range(excalidraw_safety.MAX_ELEMENTS + 1)]}, "too large"),
+])
+def test_unsafe_or_oversized_drawings_are_refused(scene, reason):
+    with pytest.raises(ValueError, match=reason):
+        excalidraw_safety.clean_scene(scene)
+
+
+def test_board_saves_validate_drawings_and_only_diagrams_hold_them():
+    node = dict(id='d', kind='diagram', title='Arch', text=FLOW, x=0, y=0, scene={"elements": [{**RECT, "link": "https://x"}]})
+    saved = BoardUpdate(expected_version=1, title='Board', nodes=[node], edges=[])
+    assert saved.nodes[0].scene["elements"][0]["link"] is None
+    with pytest.raises(ValidationError):
+        BoardUpdate(expected_version=1, title='Board', nodes=[{**node, 'kind': 'idea'}], edges=[])
+    with pytest.raises(ValidationError):
+        BoardUpdate(expected_version=1, title='Board', nodes=[{**node, 'scene': {"elements": [{**RECT, "type": "image"}]}}], edges=[])
+
+
+def test_voice_change_to_a_diagram_drops_its_stale_drawing():
+    diagram = dict(id='d', kind='diagram', title='Arch', text=FLOW, x=0, y=0, origin='manual', locked=False,
+                   source_id=None, source_start_ms=None, scene={"elements": [RECT]})
+    same, _ = apply_operations([diagram], [], [BoardOperation(op='set_diagram', node_id='d', title='Renamed', mermaid=FLOW)], uuid.uuid4())
+    assert same[0]['scene'] == {"elements": [RECT]}
+    changed, _ = apply_operations([diagram], [], [BoardOperation(op='set_diagram', node_id='d', mermaid=FLOW + ' --> x["X"]')], uuid.uuid4())
+    assert 'scene' not in changed[0]
+    edited, _ = apply_operations([diagram], [], [BoardOperation(op='update_node', node_id='d', text=FLOW + ' --> y["Y"]')], uuid.uuid4())
+    assert 'scene' not in edited[0]
