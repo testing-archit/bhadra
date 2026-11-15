@@ -78,7 +78,9 @@ def test_strict_board_schema_reaches_api_as_json_schema_and_validates_reply():
         requests.append(body)
         config = body['generationConfig']
         assert 'responseSchema' not in config
-        assert config['thinkingConfig'] == {'thinkingLevel':'MINIMAL'}
+        thinking = config['thinkingConfig']
+        assert thinking.get('thinkingLevel', thinking.get('thinking_level')) == 'MINIMAL'
+        assert 'thinkingBudget' not in thinking and 'thinking_budget' not in thinking
         assert 'temperature' not in config
         assert config['responseJsonSchema']['$defs']['BoardOperation']['additionalProperties'] is False
         # A provider response must still pass our strict local schema.

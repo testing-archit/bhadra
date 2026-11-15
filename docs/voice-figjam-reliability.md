@@ -12,6 +12,7 @@ The real-call test exposed the difference between a successful model/API canary 
 - Meet speech uses a Web Audio microphone containing only decoded provider speech and silence. It never captures meeting playback. Playback cancellation stops its source; microphone state is set explicitly rather than blindly toggled. Teams retains its older Pulse playback path.
 - Live pauses automatic voice activity detection during playback and for 350 ms afterward. Use Interrupt to stop speech. Automatic spoken barge-in is intentionally unavailable until acoustic echo handling is validated. The utterance silence wait is 550 ms, down from 900 ms.
 - Interactive planning, whiteboard generation and Live replies use the configured fast model. Live replies have a twelve-second provider timeout (the provider rejects deadlines below ten seconds). Independent transcription/context work runs together; the meeting digest uses three batched queries instead of up to 25 sequential queries.
+- Gemini 3 requests use supported thinking levels and omit deprecated sampling settings. The live provider rejected the old numeric zero-budget setting on Flash-Lite; corrected text and structured board probes both succeeded. Legacy Gemini 2.5 numeric settings are preserved.
 - Live transcription gets priority before the next batch chunk. It has bounded retries and a 12-second deadline. It cannot preempt an already running provider request. Account concurrency and cross-process 429s still limit throughput; this does not increase a vendor quota.
 - English speech requests use `en-IN` and the configured English voice, default Shlok. Hinglish retains the configured fast voice. Regional voices retain their existing path. Every paid request remains on the existing usage ledger.
 
@@ -44,7 +45,7 @@ The built-in live draft is now optional and does not mount or run its polling wh
 
 ## Verification
 
-- 468 backend tests passed on isolated Postgres, including paired/unpaired routing, token scope/replay, native acknowledgment, cancellation, cross-origin scope, command recognition, mixed instructions, priority admission and audio cancellation.
+- 469 backend tests passed on isolated Postgres, including paired/unpaired routing, token scope/replay, native acknowledgment, cancellation, cross-origin scope, command recognition, mixed instructions, priority admission, audio cancellation, and real SDK request serialization.
 - Five Node tests exercised the native shape/connector implementation, replay, human-edit conflicts, locks/deletions during planning, and preservation of unrelated objects.
 - Frontend typecheck and production build passed.
 - Real Chromium/WebRTC audio proof: 24 kHz synthetic speech decoded at 48 kHz, remote RMS 0.19454 with dominant frequency 433.59 Hz for a 440 Hz source, unrelated speaker RMS below 0.005, stopped RMS zero, malformed audio rejected. This is synthetic transport validation, not a real Meet voice test.

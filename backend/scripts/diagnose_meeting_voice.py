@@ -18,20 +18,6 @@ from google.genai.errors import APIError
 
 
 async def main():
-    # Candidate compatibility probe for servers still on the preceding wrapper.
-    # This changes only this diagnostic process, never the running application.
-    if not hasattr(gemini_service, '_thinking_config'):
-        from types import SimpleNamespace
-        original_config = gemini_service.types.GenerateContentConfig
-        original_thinking = gemini_service.types.ThinkingConfig
-        def compatible_config(**kwargs):
-            thinking = kwargs.get('thinking_config')
-            if thinking is not None and thinking.thinking_budget is not None:
-                kwargs['thinking_config'] = original_thinking(thinking_level='MINIMAL')
-            kwargs.pop('temperature', None)
-            return original_config(**kwargs)
-        gemini_service.types = SimpleNamespace(GenerateContentConfig=compatible_config, ThinkingConfig=original_thinking)
-        print(json.dumps({'candidate_compatibility_probe':True}))
     print(json.dumps({'speech_config': {
         'provider': 'gnani', 'configured': bool(settings.gnani_api_key),
         'host': urlparse(settings.gnani_tts_url).hostname,
@@ -50,22 +36,6 @@ async def main():
             'message':str(error.message).replace(settings.gemini_api_key, '[REDACTED]')[:1500]}))
     except Exception as error:
         print(json.dumps({'fast_model_probe': 'failed', 'error_type':type(error).__name__}))
-    for budget in (None, 0):
-        try:
-            reply, _ = gemini_service.generate_text('Reply with Ready.', 'Say Ready.', max_output_tokens=128,
-                model=settings.gemini_fast_model, thinking_budget=budget, temperature=None,
-                timeout_seconds=15, feature='voice_release_model_compatibility')
-            print(json.dumps({'fast_text_probe': 'ok', 'thinking_budget':budget, 'reply_present':bool(reply)}))
-        except APIError as error:
-            print(json.dumps({'fast_text_probe':'provider_error', 'thinking_budget':budget,'code':error.code,
-                'message':str(error.message).replace(settings.gemini_api_key,'[REDACTED]')[:1000]}))
-    try:
-        provider = gemini_service._client(15)
-        names = [entry.name for entry in provider.models.list() if 'flash' in entry.name and ('lite' in entry.name or '3.' in entry.name)][:20]
-        provider.close()
-        print(json.dumps({'available_flash_models':names}))
-    except Exception as error:
-        print(json.dumps({'model_catalog_error':type(error).__name__}))
     async with async_session() as db:
         jobs = (await db.scalars(select(MeetingAgentJob).order_by(MeetingAgentJob.created_at.desc()).limit(15))).all()
         for job in jobs:
@@ -82,13 +52,13 @@ async def main():
         print(json.dumps({'paid_usage_counts': [list(row) for row in usage]}))
     started = time.monotonic()
     try:
-        audio = await tts_service.synthesize('Namaste. I am ready to help your team.')
+        audio = await tts_service.synthesize('Namaste. I am ready to help your team.', 'en-IN')
         with tempfile.TemporaryDirectory() as folder:
             path = Path(folder) / 'probe.mp3'
             path.write_bytes(audio)
             proc = subprocess.run(['ffprobe', '-v', 'error', '-show_entries', 'stream=codec_name,sample_rate,channels:format=duration', '-of', 'json', str(path)], capture_output=True, text=True, timeout=10)
             metadata = json.loads(proc.stdout) if proc.returncode == 0 else {'decode': 'failed'}
-        print(json.dumps({'synthetic_speech': {'elapsed_ms': round((time.monotonic()-started)*1000), 'bytes': len(audio), **metadata}}))
+        print(json.dumps({'synthetic_speech': {'elapsed_ms': round((time.monotonic()-started)*1000), 'bytes': len(audio), 'language': 'en-IN', 'voice': tts_service.voice_for('en-IN')[1], **metadata}}))
     except Exception as error:
         print(json.dumps({'synthetic_speech': {'error_type': type(error).__name__}}))
     pending = list(usage_ledger._pending)

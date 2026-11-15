@@ -66,34 +66,6 @@ jobs:
             trap 'rm -f ~/voice-diagnostic.py' EXIT
             docker compose -f docker-compose.prod.yml exec -T backend python - < ~/voice-diagnostic.py
             docker compose -f docker-compose.prod.yml logs --tail=200 backend | grep -E 'Agent job failed|Agent queue unavailable|agent_timing' | tail -20 || true
-            docker compose -f docker-compose.prod.yml exec -T backend python - <<'PYDIAG'
-          from app.config import settings
-          from app.services import gemini_service
-          from app.services import usage_ledger
-          from app.services.board_commands import BoardCommandPlan, SYSTEM_PROMPT
-          from google.genai.errors import APIError
-          import asyncio
-          import inspect
-          print({"model": settings.gemini_model, "model_key_configured": bool(settings.gemini_api_key), "public_app_url_configured": bool(settings.public_app_url), "structured_generation_options": list(inspect.signature(gemini_service.generate_structured).parameters)})
-          async def probe():
-              try:
-                  plan, _ = gemini_service.generate_structured(
-                      SYSTEM_PROMPT,
-                      'Board: {"nodes": [], "edges": []}. Request: Add exactly one idea named Release check.',
-                      BoardCommandPlan, feature='agent_release_probe', max_output_tokens=1000,
-                      thinking_budget=0, timeout_seconds=15, attempts=1,
-                  )
-                  print({"synthetic_model_probe": "ok", "operations": len(plan.operations)})
-              except APIError as error:
-                  message = str(error.message).replace(settings.gemini_api_key, '[REDACTED]')
-                  print({"synthetic_model_probe": "provider_error", "code": error.code, "message": message[:1800]})
-              except Exception as error:
-                  print({"synthetic_model_probe": "failed", "error_type": type(error).__name__})
-              pending = list(usage_ledger._pending)
-              if pending:
-                  await asyncio.gather(*pending)
-          asyncio.run(probe())
-          PYDIAG
             docker compose -f docker-compose.prod.yml exec -T notetaker python - <<'PYDIAG'
           import config
           print({"presentation_enabled": config.PRESENT_BOARD, "google_auth_state_present": config.AUTH_STATE_PATH.is_file()})
