@@ -239,8 +239,8 @@ HIDE_VIDEO_JS = """
 """
 
 
-# The notetaker's camera in Meet: the Charcha avatar drawn on a canvas,
-# switching to the speaking face (mouth open, marigold rings) while
+# The notetaker's camera in Meet: the approved Wilco mascot card,
+# switching the voice indicator while
 # window.__charchaSpeaking is set. Audio still comes from the real
 # (virtual) microphone. A canvas at 5 fps costs next to nothing.
 AVATAR_CAMERA_JS = """
@@ -258,7 +258,7 @@ AVATAR_CAMERA_JS = """
   let tick = 0;
   setInterval(() => {
     tick += 1;
-    // Alternate the faces while speaking so the mouth moves.
+    // Alternate the voice bars while speaking; keep the mascot steady.
     const face = window.__charchaSpeaking && tick % 2 === 0 ? speaking : idle;
     if (face.complete && face.naturalWidth) ctx.drawImage(face, 0, 0, canvas.width, canvas.height);
   }, 200);

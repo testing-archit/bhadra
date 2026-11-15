@@ -144,3 +144,9 @@ PR #2 merged at `737d10d`; services are healthy and presentation is enabled for 
 ## Agent production release complete, 15 November 2026
 
 PR #3 merged; application commit `25fec901b995ded0a540f3bd922758a92b01432f` deployed successfully in workflow `43661300614`. All 457 backend tests passed in CI. The real model-backed command/job/board canary succeeded, including delivery acknowledgment and synthetic cleanup (admission 33.69 ms; completion 2,904.18 ms, container-local HTTP, excluding audio/Meet/WAN). Backend and notetaker images match their release tags, runtime imports/auth state checks passed, and server presentation is enabled for the authorized test. Public app/health are 200; protected command API is 401 without credentials. Original rollback snapshots remain available. Real-call voice/remote-presentation acceptance is now with the user. The unrelated mascot/frontend/shared application work was not included. Release evidence and limitations are in `docs/meeting-action-agent.md`.
+
+## Meet camera mascot correction
+
+The user reported the old Charcha camera card still visible in Google Meet. Codex owns only the bot camera asset generator, generated idle/speaking cards and their source mascot. Replace the legacy artwork with the approved mascot and Wilco label, retaining camera capture and speech switching. Deploy through the existing idle-aware bot release; do not interrupt an active recording.
+
+Meet camera replacement uses the exact approved mascot source PNG and browser-rendered 16:9 cards. The existing 640×360 canvas stream was verified in Chromium, including live video tracks and alternating speaking indicators. Generator uses the existing Playwright dependency; runtime continues loading checked-in PNG frames. Recording/session logic is unchanged.

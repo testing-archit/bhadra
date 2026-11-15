@@ -1,73 +1,61 @@
-"""Draws the notetaker's camera avatar: a friendly Charcha speech-bubble face
-on the night-glow background, idle and speaking. Re-run after a design change:
+"""Render the Meet camera cards from the approved Wilco mascot.
 
-    python make_avatar.py      # writes assets/avatar_idle.png, assets/avatar_speaking.png
+Uses the bot's existing Playwright dependency. Run from any directory:
+    python backend/bot/make_avatar.py
+For a local installed Chrome instead of bundled Chromium:
+    python backend/bot/make_avatar.py --channel chrome
+
+The source PNG is preserved; the browser lays out the camera card. The checked-in
+frames ship in the bot image, so generation is not needed at runtime.
 """
+import argparse
+import base64
 from pathlib import Path
 
-from PIL import Image, ImageDraw, ImageFilter, ImageFont
+from playwright.sync_api import sync_playwright
 
-W, H, S = 640, 360, 3  # drawn at 3x, then downscaled for smooth edges
-NIGHT = (14, 12, 31)
-CREAM = (250, 247, 241)
-INK = (29, 26, 59)
-GENDA = (240, 160, 32)
-VIOLET = (139, 124, 255)
-GULABI = (240, 107, 180)
 OUT = Path(__file__).parent / "assets"
+SOURCE = OUT / "wilco-mascot-v1.png"
 
 
-def glow(size, box, color, radius, alpha):
-    """A soft colour pool: an ellipse in `box`, blurred inside a full-size
-    transparent layer so it fades out with no hard edges."""
-    layer = Image.new("RGBA", size, (0, 0, 0, 0))
-    ImageDraw.Draw(layer).ellipse(box, fill=(*color, alpha))
-    return layer.filter(ImageFilter.GaussianBlur(radius))
+def markup(speaking: bool) -> str:
+    mascot = base64.b64encode(SOURCE.read_bytes()).decode("ascii")
+    # Same composition in both frames; the existing camera switches frames at
+    # 5 fps. Only the small voice bars change, keeping the character steady.
+    bars = (9, 20, 27, 17, 10) if speaking else (5, 9, 13, 9, 5)
+    return f"""<!doctype html><html><head><meta charset="utf-8"><style>
+      * {{ box-sizing: border-box; }}
+      body {{ margin: 0; width: 640px; height: 360px; overflow: hidden;
+        background: #fcfaf8; color: #24262c; font-family: Arial, sans-serif; }}
+      .wash {{ position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 42%, #e6d9ef 0%, #eff1f5 35%, #fcfaf8 67%); }}
+      img {{ position: absolute; height: 255px; width: 220px; object-fit: contain; left: 210px; top: 23px; }}
+      .name {{ position: absolute; top: 290px; left: 0; width: 640px; text-align: center; font-size: 20px; font-weight: 600; }}
+      .name span {{ color: #65616c; font-size: 14px; font-weight: 400; }}
+      .voice {{ position: absolute; left: 443px; top: 133px; display: flex; align-items: center; gap: 4px; height: 32px; }}
+      .voice i {{ display: block; width: 4px; border-radius: 3px; background: #126b75; }}
+    </style></head><body><div class="wash"></div>
+      <img src="data:image/png;base64,{mascot}" alt="Wilco mascot">
+      <div class="voice" aria-hidden="true">{''.join(f'<i style="height:{h}px"></i>' for h in bars)}</div>
+      <div class="name">Wilco <span>· Meeting assistant</span></div>
+    </body></html>"""
 
 
-def frame(speaking: bool) -> Image.Image:
-    w, h = W * S, H * S
-    img = Image.new("RGBA", (w, h), (*NIGHT, 255))
-    img.alpha_composite(glow((w, h), (-w // 6, -h // 2, int(w * 0.7), int(h * 0.55)), VIOLET, 220, 120))
-    img.alpha_composite(glow((w, h), (int(w * 0.5), int(h * 0.25), int(w * 1.2), int(h * 1.3)), GULABI, 220, 90))
-    cx, cy = w // 2, int(h * 0.44)
-    d = ImageDraw.Draw(img)
-    if speaking:
-        for r, a in ((330, 60), (280, 110)):
-            ring = Image.new("RGBA", (w, h), (0, 0, 0, 0))
-            ImageDraw.Draw(ring).ellipse((cx - r, cy - r, cx + r, cy + r), outline=(*GENDA, a), width=18)
-            img.alpha_composite(ring.filter(ImageFilter.GaussianBlur(4)))
-    # Bubble face with a tail.
-    bw, bh = 420, 330
-    d.rounded_rectangle((cx - bw // 2, cy - bh // 2, cx + bw // 2, cy + bh // 2), radius=150, fill=CREAM)
-    d.polygon([(cx - 120, cy + bh // 2 - 30), (cx - 30, cy + bh // 2 - 10), (cx - 160, cy + bh // 2 + 90)], fill=CREAM)
-    # Bindi, eyes, mouth.
-    d.ellipse((cx - 22, cy - 120, cx + 22, cy - 76), fill=GENDA)
-    for ex in (cx - 78, cx + 78):
-        d.ellipse((ex - 22, cy - 40, ex + 22, cy + 10), fill=INK)
-        d.ellipse((ex - 8, cy - 30, ex + 4, cy - 18), fill=CREAM)
-    if speaking:
-        d.ellipse((cx - 46, cy + 40, cx + 46, cy + 110), fill=INK)
-        d.ellipse((cx - 26, cy + 78, cx + 26, cy + 104), fill=(232, 96, 110))
-    else:
-        d.arc((cx - 70, cy + 10, cx + 70, cy + 100), start=20, end=160, fill=INK, width=16)
-    # Name tag.
-    try:
-        font = ImageFont.truetype("/System/Library/Fonts/Kohinoor.ttc", 54, index=4)
-    except OSError:
-        font = ImageFont.load_default()
-    label = "Charcha · AI notetaker"
-    tw = d.textlength(label, font=font)
-    tag = Image.new("RGBA", (w, h), (0, 0, 0, 0))
-    ImageDraw.Draw(tag).rounded_rectangle((cx - tw / 2 - 36, h - 150, cx + tw / 2 + 36, h - 60), radius=45, fill=(255, 255, 255, 36))
-    img.alpha_composite(tag)
-    d = ImageDraw.Draw(img)
-    d.text((cx - tw / 2, h - 142), label, font=font, fill=CREAM)
-    return img.resize((W, H), Image.LANCZOS).convert("RGB")
+def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--channel", help="Optional installed browser channel, e.g. chrome")
+    args = parser.parse_args()
+    OUT.mkdir(exist_ok=True)
+    with sync_playwright() as p:
+        browser = p.chromium.launch(**({"channel": args.channel} if args.channel else {}))
+        page = browser.new_page(viewport={"width": 640, "height": 360}, device_scale_factor=2)
+        for speaking in (False, True):
+            page.set_content(markup(speaking))
+            page.evaluate("async () => { await document.fonts.ready; await document.images[0].decode(); }")
+            target = OUT / ("avatar_speaking.png" if speaking else "avatar_idle.png")
+            page.screenshot(path=str(target))
+            print("wrote", target)
+        browser.close()
 
 
 if __name__ == "__main__":
-    OUT.mkdir(exist_ok=True)
-    frame(False).save(OUT / "avatar_idle.png", optimize=True)
-    frame(True).save(OUT / "avatar_speaking.png", optimize=True)
-    print("wrote", OUT / "avatar_idle.png", OUT / "avatar_speaking.png")
+    main()
