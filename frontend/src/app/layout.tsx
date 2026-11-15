@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { Doto, Geist, Geist_Mono, Mukta } from "next/font/google";
+import localFont from "next/font/local";
+import { Geist, Geist_Mono, Mukta } from "next/font/google";
 import "./globals.css";
 import "./signal-light.css";
 import { AuthProvider } from "@/lib/auth-context";
@@ -20,10 +21,11 @@ const devanagari = Mukta({
   weight: ["400", "500", "600", "700"],
 });
 
-const doto = Doto({
+const doto = localFont({
+  src: "./fonts/Doto-Variable.ttf",
   variable: "--font-doto",
-  subsets: ["latin"],
-  weight: ["600", "700", "800"],
+  weight: "100 900",
+  display: "swap",
 });
 
 const geistMono = Geist_Mono({

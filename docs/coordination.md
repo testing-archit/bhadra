@@ -212,3 +212,5 @@ PR #15 merged at `694f15285010a41b99566b280d921db911c9601d`; workflow `437099913
 ## Engagement final release integration, 15 November 2026
 
 The user authorizes final deployment. The temporary engagement worktree was no longer present, so Codex recovered its pushed commits into /Users/vedantmoghe/Downloads/bhadra-engagement-release. Merge main 0412ada deliberately: preserve Home spoken stand-up/ready briefs and Listen playback generation guards alongside compact debrief controls. Shared unfinished files remain untouched. CI and production verification must complete before claiming deployment.
+
+Release build caught a Next/Turbopack Google-font query failure for Doto. Bundle the same upstream Google Fonts Doto variable font with its OFL license through next/font/local, preserving the design and avoiding the failing remote font transformation. No runtime font CDN dependency is introduced.
