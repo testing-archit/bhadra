@@ -243,19 +243,22 @@ jobs:
         run: |
           ssh -o BatchMode=yes -o ConnectTimeout=15 -i ~/.ssh/id_ed25519 "$VM" \
             RELEASE_ID="'${{ github.run_id }}'" bash -s <<'REMOTE'
+            bash -euo pipefail -c "$(cat)" </dev/null
             set -euo pipefail
             cd ~/charcha
             test -z "$(git status --porcelain)" || { echo "VM checkout has local changes; leaving it intact"; exit 1; }
             backup="$HOME/.deploy-backups/agent-$RELEASE_ID"
             mkdir -p "$backup"
             chmod 700 "$HOME/.deploy-backups" "$backup"
-            git rev-parse HEAD > "$backup/commit"
-            if [ -f backend/bot/.env ]; then
+            if [ ! -f "$backup/commit" ]; then git rev-parse HEAD > "$backup/commit"; fi
+            if [ -f backend/bot/.env ] && [ ! -f "$backup/notetaker.env" ]; then
               cp backend/bot/.env "$backup/notetaker.env"
               chmod 600 "$backup/notetaker.env"
             fi
             for service in backend notetaker; do
-              docker tag "charcha-$service:latest" "charcha-$service:rollback-$RELEASE_ID"
+              if ! docker image inspect "charcha-$service:rollback-$RELEASE_ID" >/dev/null 2>&1; then
+                docker tag "charcha-$service:latest" "charcha-$service:rollback-$RELEASE_ID"
+              fi
               docker image inspect -f '{{.Id}}' "charcha-$service:rollback-$RELEASE_ID"
             done
             tools/deploy.sh --check
@@ -318,6 +321,7 @@ jobs:
         run: |
           ssh -o BatchMode=yes -o ConnectTimeout=15 -o ServerAliveInterval=30 -i ~/.ssh/id_ed25519 \
             "$VM" BUILD="'${{ steps.plan.outputs.build }}'" bash -s <<'REMOTE'
+            bash -euo pipefail -c "$(cat)" </dev/null
             set -euo pipefail
             for s in $BUILD; do
               docker pull -q "localhost:5000/charcha-$s:latest" >/dev/null
@@ -361,6 +365,7 @@ jobs:
         run: |
           ssh -o BatchMode=yes -o ConnectTimeout=15 -o ServerAliveInterval=30 -i ~/.ssh/id_ed25519 "$VM" \
             RESTART="'${{ steps.plan.outputs.restart }}'" bash -s <<'REMOTE'
+            bash -euo pipefail -c "$(cat)" </dev/null
             set -euo pipefail
             cd ~/charcha
             if [ -f ~/charcha-deploy.bundle ]; then
@@ -396,7 +401,7 @@ jobs:
             docker compose -f docker-compose.prod.yml config --quiet
             docker compose -f docker-compose.prod.yml pull -q postgres nginx certbot
             # Infrastructure (recreated only if its config changed).
-            docker compose -f docker-compose.prod.yml up -d --no-build postgres nginx certbot
+            docker compose -f docker-compose.prod.yml up -d --no-build --no-deps postgres nginx certbot
             # Qdrant is rollback-only now (Pinecone serves search); its data
             # stays in the qdrant_data volume.
             docker rm -f charcha-qdrant-1 >/dev/null 2>&1 || true
@@ -435,6 +440,7 @@ jobs:
         if: contains(steps.plan.outputs.restart, 'backend') || contains(steps.plan.outputs.restart, 'notetaker')
         run: |
           ssh -o BatchMode=yes -o ConnectTimeout=15 -o ServerAliveInterval=30 -i ~/.ssh/id_ed25519 "$VM" bash -s <<'REMOTE'
+            bash -euo pipefail -c "$(cat)" </dev/null
             set -euo pipefail
             cd ~/charcha
             for service in backend notetaker; do

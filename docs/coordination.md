@@ -100,3 +100,7 @@ Final verification: 456 backend tests passed in 13.02 seconds; compile/whitespac
 ## Agent deployment authorization, 15 November 2026
 
 The user explicitly requested pushing, merging and deploying the action-agent branch, and will perform real-call acceptance afterward. Codex is releasing only `codex/meeting-agent-pipeline`; the mascot/frontend preview is not included. Release preparation adds PR-only checks, rollback image/environment snapshots, and authenticated live agent/notetaker smoke checks. Presentation will be enabled once on the server for this authorized test; subsequent deploys preserve the server's setting. Deployment remains pending until CI and live verification pass.
+
+## Deployment verification fix
+
+PR #1 merged at `ee8a3ed`; backend and notetaker images restarted. The first deployment run's final probe failed with a connection error while the API was starting. Public health and new authenticated route checks succeeded afterward. Codex is fixing readiness polling and SSH-script stdin consumption, and preserving initial rollback snapshots on retries. Deployment will only be reported complete after the live model-backed canary and bot runtime checks pass.
