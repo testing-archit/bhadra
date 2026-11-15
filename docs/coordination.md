@@ -1,5 +1,11 @@
 # Team coordination
 
+## Noise Canceller implementation, 15 November 2026
+
+Codex owns native-rate audio preparation, opt-in local enhancement, explicit Scribe v3 quality profile, usage attribution and noisy telephony evaluation in `/Users/vedantmoghe/Downloads/bhadra-noisy-telephony` on `codex/noisy-telephony-20261115`. The environment transition cleared the temporary worktree; source was restored from this session's patch records into this persistent checkout. Shared unfinished application files remain untouched. Initial 29-clip synthetic comparison favored Scribe; fresh ElevenLabs validation is running with retained evidence in `/Users/vedantmoghe/Downloads/wilco-audio-evidence`. Focused tests pass 71/71 against a disposable local Postgres. No production deployment or real-call acceptance is claimed.
+
+Completion: 21 fresh synthetic validation clips (84 evaluations) completed without provider errors. Original WER 27.41%; improved standard PCM 28.33%; integrated Scribe robust profile 10.74%; direct Scribe 10.56%. Robust critical-phrase recall 83.33%, versus original 63.33%; severe Hindi construction noise remains poor. Final full backend suite: 585 passed after integrating current voice workflows and fixing direct-call form defaults. Optional denoisers remain off. Source, reproduction, evidence and limits are in `docs/noisy-telephony.md` and `docs/telephony-validation.json`; the listening ZIP is outside git in the persistent evidence directory. No production setting was changed and no real call was made.
+
 Updated 15 November 2026. Read this before editing or synchronizing this checkout.
 
 ## Ownership
@@ -223,3 +229,7 @@ README pitch validated: local image/link checks and Markdown fences pass; GitHub
 ## Engagement deployment verified; Memory smoke correction
 
 PR #16 merged at c1628a6b27f70f2e6942dbc0364714f4e7a55683; deployment 43712304262 succeeded. Reseed 43712590519 succeeded for the existing demo accounts: 19 meetings, 51 tasks, 27 decisions, 19 risks. Production Home and task Done/Undo/+1 week/Undo work; model/Gnani voice canaries pass. The live Memory test exposed two existing issues amplified by the richer seed: fallback only reads the newest ten meetings, omitting the older billing ADR, and grouped model citations are not normalized. Codex is correcting bounded lexical fallback ordering and grouped citation validation in this isolated worktree before the final handoff. Shared unfinished source remains untouched.
+
+## Noise Canceller release scope, 15 November 2026
+
+The user explicitly authorizes merging PR #18 and deploying it, with the capability documented in README. Codex owns this release in the isolated persistent noisy-telephony worktree. Latest main (PR #19 memory retrieval/citation fix) was integrated without conflicts. README now reports the fresh synthetic comparison, direct Scribe baseline, opt-in configuration and real-call limitations. Preserve the standard production default; verify provider availability, CI, idle-aware deployment and live health before claiming release.

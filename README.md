@@ -90,6 +90,7 @@ These are application screenshots, not generated UI concepts. They show the impl
 | Technology | Its job in Wilco | Implementation |
 | --- | --- | --- |
 | **Gnani Prisma v3.0** | Recorded meetings, uploads and spoken questions; configured for code-mixed speech and automatic Indic language identification | [Transcription](backend/app/services/transcriber.py) |
+| **ElevenLabs Scribe v3** | Explicit robust transcription profile for noisy telephone audio; Gnani remains the default | [Robust transcription](backend/app/services/scribe_service.py) |
 | **Gnani Timbre v2.5 / v3.0** | Spoken answers, summaries, catch-ups and briefs; the demo’s speech assets | [Speech](backend/app/services/tts_service.py) |
 | **Gnani voice cloning** | Optional, consent-based voice for an explicitly disclosed AI stand-in | [Voice cloning](backend/app/services/voice_clone_service.py) |
 | **Gemini** | Structured notes, grounded answers, bounded action planning and translated summaries | [Generation](backend/app/services/gemini_service.py) |
@@ -102,13 +103,31 @@ Descriptions below are verbatim from the supplied award brief, also listed on [G
 
 | Track | Official description | Wilco’s case |
 | --- | --- | --- |
+| **Noise Canceller Award** | “The build that performs best on messy, noisy, real telephonic audio.” | Native-rate PCM handling, pause-aware chunks and an optional Scribe v3 profile, evaluated on generated 8 kHz telephone audio. Real-call acceptance remains pending. |
 | **Mixed Vibes Award** | “The best code-mixed voice experience across Hinglish, Tanglish and Benglish.” | Natural Hinglish becomes useful work and a spoken answer. Tanglish/Benglish performance needs dedicated evaluation. |
 | **Jugaad Genius Award** | “The most creative or unexpected use of Gnani AI's models.” | Speech carries the workflow: capture, recall, briefs and an optional disclosed stand-in. |
 | **Two-Person Army Award** | “The best project built by a team of two.” | Archit and Vedant built Team Bhadra’s meeting workspace, voice integrations and notetaker. |
 | **Demo Day Drop Award** | “The best 60-second demo video.” | One conversation, one visible task, one source-backed payoff. Final link pending. |
 | **Real Deal Award** | “The most useful real-world problem solved, for users such as farmers, kirana stores or rural health workers.” | Our chosen users are software teams losing context between meetings and delivery. We do not claim deployments with farmers, shops or health workers. |
 
-Regional-language features also align with **Main Character**, but need language-specific proof. Noisy audio is under evaluation; no **Noise Canceller** performance claim is made here. Solo and location-based categories are not claimed.
+Regional-language features also align with **Main Character**, but need language-specific proof. Solo and location-based categories are not claimed.
+
+## Tested against noisy telephone audio
+
+Wilco decodes audio once to lossless PCM at its native sample rate, preserves channels, and chooses nearby quiet points for bounded transcription chunks. The default **standard** profile uses Gnani Prisma. The explicit **robust** profile uses **ElevenLabs Scribe v3** directly, with timestamps and usage-cost tracking. Optional local denoisers stay off because they sometimes removed critical phrases.
+
+We generated **50 synthetic test clips** with ElevenLabs speech and environmental noise. The fresh 21-clip validation set includes G.711 μ-law at 8 kHz, +10/0/−5 dB noise, clipping, packet gaps and noise-only controls. Across 540 reference words:
+
+| Transcription path | Word error rate ↓ | Critical-phrase recall ↑ |
+| --- | ---: | ---: |
+| Original Gnani pipeline | 27.41% | 63.33% |
+| Improved standard PCM pipeline | 28.33% | 64.44% |
+| Integrated robust profile — Scribe v3 | **10.74%** | **83.33%** |
+| Direct Scribe v3 comparison | 10.56% | 82.22% |
+
+The robust profile produced **61% fewer word errors than the original pipeline** on this validation set. It uses Scribe itself; these results do not establish superiority over frontier models. PCM preparation alone did not improve aggregate validation WER. Severe Hindi construction noise remains difficult, and generated-script references are not human-verified real calls. No award win or real-world reliability claim follows from this test.
+
+[Implementation, research and reproduction](docs/noisy-telephony.md) · [Per-clip validation results](docs/telephony-validation.json)
 
 ## Trust is part of the product
 
@@ -120,7 +139,7 @@ Recording consent, optional voice enrolment and disclosed AI stand-ins are expli
 
 ```mermaid
 flowchart LR
-    A[Meet / Teams / recorder / voice question] --> B[Gnani Prisma]
+    A[Meet / Teams / recorder / voice question] --> B[Gnani Prisma / optional Scribe v3]
     B --> C[Gemini: notes, answers and actions]
     C --> D[(PostgreSQL: meetings and work)]
     C --> E[Gnani Timbre: spoken reply]
@@ -133,7 +152,7 @@ This is the recorded-audio and spoken-question path. Live commands and running t
 
 The workspace is **Next.js 16 / React 19 / TypeScript**; the API is **FastAPI / async SQLAlchemy / PostgreSQL**. The notetaker uses **Playwright, Chromium and FFmpeg**; the extension uses **Manifest V3**.
 
-The voice-workflow checkpoint records **560 passing backend tests**, frontend build/type checks, browser scenarios and synthetic media checks. Provider/Jira mocks are identified in the [verification notes](docs/voice-workflows.md). These are engineering checks, not a speech-quality, noisy-telephony or end-to-end latency benchmark.
+The voice-workflow checkpoint records **560 passing backend tests**, frontend build/type checks, browser scenarios and synthetic media checks. Provider/Jira mocks are identified in the [verification notes](docs/voice-workflows.md). Those are engineering checks; the separate synthetic noisy-telephony evaluation is reported above.
 
 ## Run it yourself
 
@@ -146,6 +165,16 @@ docker compose up --build
 ```
 
 Open **http://localhost:3000**; API health is **http://localhost:8080/health**. Use a recent Docker Compose version. Speech and model-backed actions need provider credentials. This stack starts the workspace, API, PostgreSQL and Qdrant; joining real calls additionally requires the [notetaker setup](backend/bot/README.md).
+
+To opt into robust transcription, set these in `backend/.env` and recreate the backend:
+
+```dotenv
+ELEVEN_LABS_API_KEY=your-key
+STT_PROFILE=robust
+STT_ENHANCEMENT=off
+```
+
+Keep `STT_PROFILE=standard` for the default Gnani path. An authenticated `/api/meetings/ingest` upload can instead select `transcription_profile=robust` for that request. Scribe incurs provider charges; [configuration and pricing notes](docs/noisy-telephony.md#runtime-behavior) explain usage tracking. Gnani credentials are still needed for speech output and the Gnani lab.
 
 [Development, environment, extension and deployment](docs/development.md) · [Testing guide](docs/testing-guide.md) · [Voice workflows](docs/voice-workflows.md) · [FigJam setup and limits](docs/meeting-first-figjam.md)
 

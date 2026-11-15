@@ -68,7 +68,9 @@ def default_token_prices(on: datetime.date | None = None) -> dict[str, dict[str,
 # usage now and let an operator set the contracted rate with
 # AI_PRICING_JSON, e.g. {"gnani": 0.01}. Until then cost is honestly shown as
 # ₹0 rather than inferred from another provider's price card.
-DEFAULT_AUDIO_PRICES: dict[str, float] = {"gnani": 0.0}
+# Scribe v3 API pay-as-you-go: $0.20/hour, checked 2026-11-15 at
+# https://elevenlabs.io/pricing/api . Override contracted rates as usual.
+DEFAULT_AUDIO_PRICES: dict[str, float] = {"gnani": 0.0, "elevenlabs": 0.20 / 60}
 
 
 @dataclass

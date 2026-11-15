@@ -2,9 +2,15 @@ import json
 from unittest.mock import patch
 
 import pytest
+import numpy as np
 
 from app.config import settings
 from app.services.transcriber import _build_turns, _diagnostics, _turns_from_prisma, format_transcript
+from app.services.audio_preparation import wav_bytes
+
+
+def sample_audio():
+    return wav_bytes((1000 * np.sin(np.arange(16000) * 0.1)).astype("<i2"), 16000)
 
 
 @pytest.fixture(autouse=True)
@@ -86,19 +92,20 @@ async def test_prisma_request_uses_v3_mode_auto_language_and_keyterms():
         )
 
     with patch.object(httpx.AsyncClient, "post", fake_post):
-        await transcriber.transcribe_audio_detailed(b"audio", "audio/webm", "en", people=["Archit"])
+        await transcriber.transcribe_audio_detailed(sample_audio(), "audio/wav", "en", people=["Archit"])
 
     assert captured["headers"] == {"X-API-Key-ID": "test-key"}
     assert captured["data"]["model"] == "prisma-v3.0"
-    assert captured["data"]["mode"] == "codemix"
+    assert captured["data"]["format"] == "codemix"
+    assert "mode" not in captured["data"]
     assert captured["data"]["language_code"] == "en-IN"
     # The meeting's people lead the key terms; other accounts in the test
     # database (created by earlier tests) may follow them.
-    assert json.loads(captured["data"]["key_terms"])[0] == "Archit"
+    assert json.loads(captured["data"]["keyterms"])[0] == "Archit"
     assert "audio_file" in captured["files"]
 
 
-async def test_hinglish_uses_prismas_auto_lid():
+async def test_hinglish_hints_both_languages():
     import httpx
     from unittest.mock import patch
 
@@ -115,9 +122,9 @@ async def test_hinglish_uses_prismas_auto_lid():
         )
 
     with patch.object(httpx.AsyncClient, "post", fake_post):
-        await transcriber.transcribe_audio_detailed(b"audio", "audio/webm", "hinglish")
+        await transcriber.transcribe_audio_detailed(sample_audio(), "audio/wav", "hinglish")
 
-    assert captured["data"]["language_code"] == "indic-auto"
+    assert captured["data"]["language_code"] == "hi-IN,en-IN"
 
 
 async def test_webm_is_repackaged_as_ogg_for_prisma(tmp_path):
@@ -125,7 +132,7 @@ async def test_webm_is_repackaged_as_ogg_for_prisma(tmp_path):
     import shutil
     import subprocess
 
-    from app.services.transcriber import _prisma_upload
+    from scripts.telephony_baseline import _prisma_upload
 
     if not shutil.which("ffmpeg"):
         pytest.skip("ffmpeg not installed")
@@ -141,7 +148,7 @@ async def test_webm_is_repackaged_as_ogg_for_prisma(tmp_path):
 
 
 async def test_supported_formats_are_sent_unchanged():
-    from app.services.transcriber import _prisma_upload
+    from scripts.telephony_baseline import _prisma_upload
 
     assert await _prisma_upload(b"m4a-bytes", "audio/mp4") == ("meeting.m4a", b"m4a-bytes", "audio/mp4")
     assert await _prisma_upload(b"wav-bytes", "audio/wav") == ("meeting.wav", b"wav-bytes", "audio/wav")
@@ -170,7 +177,7 @@ async def test_long_audio_is_sent_in_chunks_and_stitched_on_one_timeline(tmp_pat
 
     with patch.object(httpx.AsyncClient, "post", fake_post):
         result = await transcriber.transcribe_audio_detailed(long_clip.read_bytes(), "audio/webm", "hinglish")
-    assert len(sent) == 3 and all(name.endswith(".ogg") for name in sent)
+    assert len(sent) == 3 and all(name.endswith(".wav") for name in sent)
     assert [turn["text"] for turn in result["turns"]] == ["part 1", "part 2", "part 3"]
     assert [turn["start"] for turn in result["turns"]] == [0.0, 25.0, 50.0]
     assert [turn["speaker"] for turn in result["turns"]] == [0, 1, 2]
