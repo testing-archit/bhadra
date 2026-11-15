@@ -71,15 +71,9 @@ async def send(page: Page, text: str) -> bool:
         if not await open_panel(page):
             return False
         box = page.locator(CHAT_INPUT).first
-        await box.click(timeout=3000)
-        # Meet sends on Enter. Lines are joined with Shift+Enter, and the
-        # whole message is inserted at once rather than typed key by key.
-        lines = [line for line in text.split("\n")]
-        for index, line in enumerate(lines):
-            if line:
-                await page.keyboard.insert_text(line)
-            if index < len(lines) - 1:
-                await page.keyboard.press("Shift+Enter")
+        # Replace any draft left by a timed-out previous delivery. fill also
+        # handles multiline textarea/contenteditable inputs without per-line RPCs.
+        await box.fill(text, timeout=1000)
         await page.wait_for_timeout(50)
         await page.keyboard.press("Enter")
         for _ in range(8):

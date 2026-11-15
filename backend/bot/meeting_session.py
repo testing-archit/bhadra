@@ -908,14 +908,20 @@ class MeetingSession:
             return []
         spoken = [(f"asked aloud by {who}" if who else "asked aloud", q)
                   for who, q in self.spoken_questions()]
-        if any(normalize(question) in CONTROL_COMMANDS for _, question in spoken):
+        if spoken:
             return [Command(asked, question) for asked, question in spoken]
-        async with self._browser_lock:
-            if not self.chat_ready:
-                self.chat_ready = await meet_chat.open_panel(page)
-                if not self.chat_ready:
-                    return [Command(asked, question) for asked, question in spoken]
-            typed = [("", q) for q in await self.chat.new_questions(page)]
+        try:
+            # Revisit captions promptly even when chat is unavailable. Opening
+            # the panel can otherwise monopolize intake for several seconds.
+            async with asyncio.timeout(0.5):
+                async with self._browser_lock:
+                    if not self.chat_ready:
+                        self.chat_ready = await meet_chat.open_panel(page)
+                        if not self.chat_ready:
+                            return []
+                    typed = [("", q) for q in await self.chat.new_questions(page)]
+        except TimeoutError:
+            return []
         return [Command(asked, question) for asked, question in typed + spoken]
 
     async def execute_command(self, page: Page, command: Command) -> str | None:
@@ -966,9 +972,16 @@ class MeetingSession:
         return reply
 
     async def send_agent_message(self, page, message):
-        async with self._browser_lock:
-            self.chat.remember_sent(message)
-            return await meet_chat.send(page, message)
+        try:
+            # A closed/disabled chat must not hold the microphone lock through
+            # Meet's multi-selector retries while a spoken answer is ready.
+            async with asyncio.timeout(2):
+                async with self._browser_lock:
+                    self.chat.remember_sent(message)
+                    return await meet_chat.send(page, message)
+        except TimeoutError:
+            log.warning("Agent chat delivery timed out")
+            return False
 
     async def submit_agent_command(self, page, command, tool):
         if self._agent is None:
@@ -1179,6 +1192,8 @@ class MeetingSession:
     async def agent_results_loop(self, page, runtime):
         if self._agent is None:
             return
+        # Queue speech independently of chat success and delivery-ack retries.
+        speech_queued = set()
         while True:
             try:
                 results = await self._agent.outstanding()
@@ -1189,15 +1204,17 @@ class MeetingSession:
                         message = (result.get('result') or {}).get('message') or "I couldn't finish this request. Please try again."
                         if result['state'] == 'succeeded' and result.get('present_after'):
                             message += " " + await self.present_board(page)
+                        if identifier not in speech_queued and result['state'] in {'succeeded', 'needs_input'}:
+                            await runtime.enqueue_reply(command, message)
+                            speech_queued.add(identifier)
                         if await self.send_agent_message(page, message):
                             await self._agent.delivered(identifier)
+                            speech_queued.discard(identifier)
                             self._pending_commands.pop(identifier, None)
                             self._progress_shown.discard(identifier)
                             with stage(self.session_id, identifier, "agent_complete",
                                        completion_ms=round((time.monotonic()-command.received_at)*1000, 2), state=result['state']):
                                 pass
-                            if result['state'] in {'succeeded', 'needs_input'}:
-                                await runtime.enqueue_reply(command, message)
                     elif identifier not in self._progress_shown and time.monotonic()-command.received_at > 2:
                         messages = {'open_board': "Opening the board.", 'edit_board': "Updating the board.",
                                     'add_task': "Recording the action item.", 'answer': "Checking what was said."}
