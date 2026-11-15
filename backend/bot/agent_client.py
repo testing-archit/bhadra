@@ -14,6 +14,12 @@ class AgentClient:
             timeout=httpx.Timeout(5, connect=2), limits=httpx.Limits(max_connections=4, max_keepalive_connections=4),
             transport=transport)
 
+    async def translate(self, language, captions):
+        response = await self.client.post(self.base.removesuffix('/commands') + '/translations',
+            json={'language': language, 'captions': compact_captions(captions)}, timeout=16)
+        response.raise_for_status()
+        return response.json()['text']
+
     async def close(self):
         await self.client.aclose()
 

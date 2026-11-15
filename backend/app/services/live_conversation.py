@@ -70,8 +70,8 @@ async def meeting_digest(db, user: User) -> str:
 
 
 _TASK_WORDS = re.compile(
-    r"(\b(add|create|make|log|note|open|raise|file)\b.*\b(task|todo|to-do|action item|ticket|reminder)\b"
-    r"|\b(task|ticket|todo|reminder)\b.*\b(bana do|banao|bana de|daal do|daalo|add karo|add kar do|likh lo|likh do|create karo|kar do)\b"
+    r"(\b(add|create|make|log|note|open|raise|file)\b.*\b(task|todo|to-do|action item|ticket|issue|reminder)\b"
+    r"|\b(task|ticket|issue|todo|reminder)\b.*\b(bana do|banao|bana de|daal do|daalo|add karo|add kar do|likh lo|likh do|create karo|kar do)\b"
     r"|^\s*remind me to\b|^\s*(yaad dila|yaad dilana)\b)",
     re.I,
 )
@@ -79,7 +79,7 @@ _TASK_WORDS = re.compile(
 
 def looks_like_task(text: str) -> bool:
     """A spoken request to record a task, not a question about tasks."""
-    return bool(_TASK_WORDS.search(text)) and not re.search(r"\?\s*$|^\s*(what|which|kaun|kya|kitne|how many)\b", text, re.I)
+    return bool(_TASK_WORDS.search(text)) and not re.search(r"\?\s*$|^\s*(what|which|kaun|kya|kitne|how many)\b|\b(?:don[’']t|do not|never|cancel)\b", text, re.I)
 
 
 def task_confirmation(task: dict, language: str | None) -> str:

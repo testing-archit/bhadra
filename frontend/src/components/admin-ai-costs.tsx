@@ -10,6 +10,7 @@ const FEATURE_LABELS: Record<string, string> = {
   detailed_summary: "Detailed summaries",
   memory_chat: "Company memory chat",
   meeting_chat: "Ask about a meeting",
+  live_translation: "Live call translation",
   decision_conflicts: "Decision conflict checks",
   policy_assistant: "Policy assistant",
   pre_meeting_brief: "Pre-meeting briefs",

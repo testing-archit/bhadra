@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowUpRight, CalendarDays, ChevronDown, NotebookPen, Users } from "lucide-react";
 import { api, type CalendarEventItem, type CalendarState, type ChatSource, type PreMeetingBrief } from "@/lib/api";
+import { ListenInLanguage } from "@/components/listen-in-language";
 import { CitedMarkdown } from "@/components/cited-markdown";
 import { RecordSwitch } from "@/components/record-switch";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -41,6 +42,7 @@ function BriefPanel({ brief }: { brief: PreMeetingBrief }) {
   }));
   return (
     <div className="flex flex-col gap-3">
+      <ListenInLanguage text={[brief.text.replace(/\[M\d+\]/g, ""), ...brief.open_tasks.map((task) => `Open item: ${task.description}. Owner: ${task.owner || "not stated"}${task.deadline ? `. Due ${task.deadline}` : ""}.`)].join(" ").slice(0, 6000)} listenLabel="Listen to your brief" share={false} />
       <CitedMarkdown
         content={brief.text}
         sources={sources}

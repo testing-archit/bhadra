@@ -23,6 +23,7 @@ from sqlalchemy import case, func, or_, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.rate_limit import limiter
 from app.config import settings
 from app.database.db import get_db
 from app.database.models import CaptureEvent, CaptureRequest, LiveCaption as LiveCaptionRow, Meeting, MeetingInsight, RecordingSession, ServiceHeartbeat, User
@@ -998,3 +999,22 @@ async def ask_standin(request_id: uuid.UUID, update_id: uuid.UUID, body: Standin
                                  + (f"It answered: “{reply}”" if known else "It didn't know, so it said you'd follow up."))[:1000]))
     await db.commit()
     return {"name": name, "answer": reply, "known": known, "audio": audio}
+
+
+class CallTranslationRequest(BaseModel):
+    language: str = Field(min_length=2, max_length=8)
+    captions: list[AgentCaption] = Field(min_length=1, max_length=60)
+
+
+@router.post("/capture-requests/{request_id}/translations", dependencies=[Depends(require_bot)])
+@limiter.limit("12/minute", key_func=lambda request: str(request.path_params.get("request_id", "")))
+async def translate_call_delta(request: Request, request_id: uuid.UUID, body: CallTranslationRequest, db: AsyncSession = Depends(get_db)) -> dict:
+    from app.services import call_translation
+    if body.language not in call_translation.LANGUAGES:
+        raise HTTPException(status_code=422, detail="Choose a supported language")
+    capture = await db.get(CaptureRequest, request_id)
+    if capture is None or capture.status != "capturing":
+        raise HTTPException(status_code=404, detail="Active capture not found")
+    usage_ledger.attribute(user_id=capture.user_id, meeting_id=capture.meeting_id)
+    summary = await asyncio.to_thread(call_translation.summarize, [line.model_dump() for line in body.captions], body.language)
+    return {"language": body.language, "text": summary}

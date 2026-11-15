@@ -167,6 +167,7 @@ async def digest(db: AsyncSession, user: User, meeting: Meeting) -> dict | None:
 
     ordered = sorted(people.values(), key=lambda p: (p["name"] == UNATTRIBUTED, p["name"].lower()))
     return {
+        "spoken_text": spoken_text(meeting, insights.get(meeting.id)),
         "occurrences": [{"id": str(m.id), "title": m.title, "date": m.date.isoformat(), "current": m.id == meeting.id} for m in occurrences],
         "people": [
             {
@@ -178,3 +179,20 @@ async def digest(db: AsyncSession, user: User, meeting: Meeting) -> dict | None:
         ],
         "repeated_blockers": repeated,
     }
+
+
+def spoken_text(meeting: Meeting, insight: MeetingInsight | None) -> str:
+    """Read the selected occurrence, never stale plans from an older stand-up."""
+    lines = [f"{meeting.title}, {meeting.date.strftime('%d %B %Y')}."]
+    labels = {"updates": "Updates", "blockers": "Blockers", "plans": "Plans stated in this stand-up"}
+    for block in (insight.template_sections if insight else None) or []:
+        key = _section_key(block.get("heading", ""))
+        if key is None:
+            continue
+        for item in block.get("items") or []:
+            person, value = split_person(item)
+            if value:
+                lines.append(f"{labels[key]}. {person}: {value}.")
+    if len(lines) == 1:
+        lines.append(meeting.summary or "No updates, blockers or plans were captured for this stand-up.")
+    return " ".join(lines)[:6000]
