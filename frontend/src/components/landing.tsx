@@ -1,0 +1,541 @@
+"use client";
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import {
+  ArrowRight,
+  Check,
+  ChevronRight,
+  LockKeyhole,
+  Menu,
+  Mic,
+  Play,
+  RotateCcw,
+} from "lucide-react";
+import story from "@/lib/demo-story.json";
+import { type DebriefMark, formatMoment } from "@/lib/debrief-strip";
+import { DebriefStrip } from "@/components/meeting/debrief-strip";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+
+const moments = story.moments.map((row) => ({
+  ...row,
+  kind: row.kind as DebriefMark["kind"],
+}));
+const STEPS = ["Joins", "Answers out loud", "Debriefs", "Follows up"];
+const LINES = {
+  Hinglish:
+    "Ledger ke liye PostgreSQL use karenge — transactions aur reconciliation dono reliable rahenge.",
+  हिंदी:
+    "लेजर के लिए PostgreSQL इस्तेमाल करेंगे — लेन-देन और मिलान, दोनों भरोसेमंद रहेंगे।",
+  English:
+    "Use PostgreSQL for the ledger — atomic writes and reliable invoice reconciliation.",
+};
+
+export function Landing() {
+  const [reduced, setReduced] = useState(false),
+    [menu, setMenu] = useState(false),
+    [scrolled, setScrolled] = useState(false);
+  const [selected, setSelected] = useState(0),
+    [replay, setReplay] = useState(0),
+    [tick, setTick] = useState(0);
+  const [step, setStep] = useState(0),
+    [paused, setPaused] = useState(false);
+  const [language, setLanguage] = useState<keyof typeof LINES>("Hinglish");
+  const [viewer, setViewer] = useState("Organiser");
+  const [answer, setAnswer] = useState(0),
+    [answerWords, setAnswerWords] = useState(0),
+    [askReplay, setAskReplay] = useState(0);
+  const [prompt, setPrompt] = useState(story.answers[0].question);
+  const moment = moments[selected],
+    words = moment.line.split(/\s+/),
+    opened = viewer === "Organiser" || viewer === "Invited";
+  useEffect(() => {
+    const m = matchMedia("(prefers-reduced-motion: reduce)");
+    const update = () => setReduced(m.matches);
+    update();
+    m.addEventListener("change", update);
+    return () => m.removeEventListener("change", update);
+  }, []);
+  useEffect(() => {
+    if (reduced) {
+      setTick(10000);
+      return;
+    }
+    setTick(0);
+    let count = 0;
+    const id = setInterval(() => {
+      count++;
+      setTick(count);
+      if (count > 34 + words.length) clearInterval(id);
+    }, 70);
+    return () => clearInterval(id);
+  }, [selected, replay, reduced, words.length]);
+  useEffect(() => {
+    if (paused || reduced) return;
+    const id = setInterval(() => setStep((value) => (value + 1) % 4), 4000);
+    return () => clearInterval(id);
+  }, [paused, reduced]);
+  useEffect(() => {
+    if (reduced) {
+      setAnswerWords(10000);
+      return;
+    }
+    setAnswerWords(0);
+    let count = 0;
+    const id = setInterval(() => {
+      count++;
+      setAnswerWords(count);
+      if (count >= story.answers[answer].answer.split(/\s+/).length)
+        clearInterval(id);
+    }, 55);
+    return () => clearInterval(id);
+  }, [answer, askReplay, reduced]);
+  useEffect(() => {
+    const update = () => setScrolled(scrollY > 80);
+    window.addEventListener("scroll", update, { passive: true });
+    return () => window.removeEventListener("scroll", update);
+  }, []);
+  const landed = reduced || tick > 33 + words.length;
+  function chooseMoment(index: number) {
+    setSelected(index);
+    setReplay((value) => value + 1);
+  }
+  function chooseAnswer(index: number) {
+    setAnswer(index);
+    setPrompt(story.answers[index].question);
+    setAskReplay((value) => value + 1);
+  }
+  return (
+    <div className="claude-landing">
+      <nav className="landing-nav" data-scrolled={scrolled} aria-label="Main">
+        <Link className="landing-wordmark" href="/">
+          Wilco<span aria-hidden="true">↗</span>
+        </Link>
+        <div className="landing-nav-links" data-open={menu}>
+          <a href="#how" onClick={() => setMenu(false)}>
+            How
+          </a>
+          <a href="#languages" onClick={() => setMenu(false)}>
+            Languages
+          </a>
+          <a href="#privacy" onClick={() => setMenu(false)}>
+            Privacy
+          </a>
+          <Link href="/login">Sign in</Link>
+        </div>
+        <a href="#ask" className="signal-link">
+          Try it
+          <ArrowRight className="size-4" />
+        </a>
+        <button
+          className="landing-menu"
+          aria-label="Open menu"
+          aria-expanded={menu}
+          onClick={() => setMenu((value) => !value)}
+        >
+          <Menu className="size-5" />
+        </button>
+      </nav>
+      <main>
+        <section className="landing-hero landing-section">
+          <div className="landing-hero-copy">
+            <h1>
+              Heard.<span>Will comply.</span>
+            </h1>
+            <p>Meetings in Hinglish, notes with owners.</p>
+            <div className="landing-actions">
+              <a className="signal-link" href="#ask">
+                Try the demo
+                <ArrowRight className="size-4" />
+              </a>
+              <Link href="/extension" className="landing-outline">
+                Add the Chrome extension
+              </Link>
+            </div>
+            <div className="landing-platforms">
+              <span>Google Meet</span>
+              <span>Teams</span>
+              <span>In person</span>
+            </div>
+            <small>Hears with Gnani Prisma v3 · Speaks with Gnani Timbre</small>
+          </div>
+          <div className="landing-hero-demo">
+            <div className="landing-stage">
+              <header>
+                <span>{story.meeting}</span>
+                <time>Sample meeting</time>
+              </header>
+              <div className="landing-wave">
+                <DebriefStrip
+                  segments={story.segments}
+                  marks={moments}
+                  duration_ms={story.duration_ms}
+                  variant="ink"
+                  buckets={56}
+                  playback={
+                    Math.min(1, tick / 28) * (moment.at_ms / story.duration_ms)
+                  }
+                  selectedId={moment.id}
+                  onMarkClick={(mark) =>
+                    chooseMoment(moments.findIndex((row) => row.id === mark.id))
+                  }
+                />
+              </div>
+              <p className="landing-spoken">
+                {words.map((word, index) => (
+                  <span
+                    key={`${selected}-${index}`}
+                    data-visible={reduced || tick > 28 + index}
+                  >
+                    {word}{" "}
+                  </span>
+                ))}
+              </p>
+              <ToggleGroup
+                value={[String(selected)]}
+                onValueChange={(values) =>
+                  chooseMoment(Number(values[0] ?? selected))
+                }
+                aria-label="Replay a meeting moment"
+                className="landing-moment-chips"
+              >
+                {moments.map((row, index) => (
+                  <ToggleGroupItem key={row.id} value={String(index)}>
+                    {formatMoment(row.at_ms)} {row.kind}
+                  </ToggleGroupItem>
+                ))}
+              </ToggleGroup>
+            </div>
+            <article
+              className="landing-result"
+              data-landed={landed}
+              aria-live="polite"
+            >
+              <span className="landing-kind">{moment.kind}</span>
+              <h2>{moment.label}</h2>
+              <div>
+                <span>{moment.owner}</span>
+                <span>{moment.kind === "task" ? "Due today" : "Agreed"}</span>
+              </div>
+              <small>
+                Heard at {formatMoment(moment.at_ms)} · Sample outcome
+              </small>
+            </article>
+            <div className="landing-replay">
+              <img
+                src="/brand/wilco-mascot-v1.png"
+                alt=""
+                width={92}
+                height={92}
+              />
+              <button onClick={() => setReplay((value) => value + 1)}>
+                <RotateCcw className="size-4" />
+                Play it again
+              </button>
+            </div>
+          </div>
+        </section>
+        <section id="how" className="landing-section landing-how">
+          <div>
+            <h2>
+              In the room.<span>On the work.</span>
+            </h2>
+            <div
+              role="tablist"
+              aria-label="How Wilco works"
+              className="landing-steps"
+            >
+              {STEPS.map((label, index) => (
+                <button
+                  key={label}
+                  role="tab"
+                  id={`how-tab-${index}`}
+                  aria-controls="how-preview"
+                  aria-selected={step === index}
+                  onClick={() => {
+                    setStep(index);
+                    setPaused(true);
+                  }}
+                  onKeyDown={(event) => {
+                    if (["ArrowLeft", "ArrowRight"].includes(event.key)) {
+                      event.preventDefault();
+                      setPaused(true);
+                      setStep(
+                        (index + (event.key === "ArrowRight" ? 1 : 3)) % 4,
+                      );
+                      document
+                        .getElementById(
+                          `how-tab-${(index + (event.key === "ArrowRight" ? 1 : 3)) % 4}`,
+                        )
+                        ?.focus();
+                    }
+                  }}
+                  tabIndex={step === index ? 0 : -1}
+                >
+                  <span>0{index + 1}</span>
+                  {label}
+                  <ChevronRight className="size-4" />
+                  {step === index && (
+                    <i
+                      key={`${step}-${paused}-${reduced}`}
+                      data-running={!paused && !reduced}
+                    />
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div
+            className="landing-how-preview"
+            id="how-preview"
+            role="tabpanel"
+            aria-labelledby={`how-tab-${step}`}
+          >
+            {step === 0 ? (
+              <div className="landing-meet-grid">
+                {["Archit", "Riya", "Vedant", "Wilco"].map((name) => (
+                  <div key={name} data-wilco={name === "Wilco"}>
+                    {name === "Wilco" ? (
+                      <img
+                        src="/brand/wilco-mascot-v1.png"
+                        alt=""
+                        width={70}
+                        height={70}
+                      />
+                    ) : (
+                      <strong>{name[0]}</strong>
+                    )}
+                    <span>{name}</span>
+                  </div>
+                ))}
+              </div>
+            ) : step === 1 ? (
+              <div className="landing-qa">
+                <p>Why PostgreSQL?</p>
+                <div>
+                  {story.answers[0].answer}
+                  <small>From the sample meetings</small>
+                </div>
+              </div>
+            ) : step === 2 ? (
+              <div className="landing-mini-debrief">
+                <DebriefStrip
+                  segments={story.segments}
+                  marks={moments}
+                  duration_ms={story.duration_ms}
+                  variant="ink"
+                />
+                {moments.map((row) => (
+                  <div key={row.id}>
+                    <span>{row.kind}</span>
+                    <strong>{row.label}</strong>
+                    <Check className="size-4" />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="landing-jira">
+                <div>
+                  <strong>Wilco</strong>
+                  <span>{moments[0].label}</span>
+                </div>
+                <ArrowRight className="size-6" />
+                <div>
+                  <strong>Jira</strong>
+                  <span>Ready to send when connected</span>
+                </div>
+              </div>
+            )}
+          </div>
+        </section>
+        <section id="languages" className="landing-section landing-languages">
+          <header>
+            <h2>
+              Your words.<span>One clear decision.</span>
+            </h2>
+            <ToggleGroup
+              value={[language]}
+              onValueChange={(values) => {
+                if (values[0]) setLanguage(values[0] as keyof typeof LINES);
+              }}
+              aria-label="Sample language"
+            >
+              {Object.keys(LINES).map((value) => (
+                <ToggleGroupItem key={value} value={value}>
+                  {value}
+                </ToggleGroupItem>
+              ))}
+            </ToggleGroup>
+          </header>
+          <div className="landing-language-cards">
+            <blockquote
+              lang={
+                language === "हिंदी"
+                  ? "hi"
+                  : language === "Hinglish"
+                    ? "hi-Latn"
+                    : "en"
+              }
+            >
+              {LINES[language]}
+            </blockquote>
+            <article>
+              <span className="landing-kind">Decision</span>
+              <h3>{story.language_decision}</h3>
+              <p>{story.language_reason}</p>
+              <span className="landing-language-proof">
+                <Check className="size-4" />
+                Same outcome. Every language.
+              </span>
+            </article>
+          </div>
+        </section>
+        <section id="privacy" className="landing-section landing-privacy">
+          <div>
+            <h2>
+              Only the room.<span>Reads the notes.</span>
+            </h2>
+            <dl>
+              <div>
+                <dt>Invite-based</dt>
+                <dd>Granted invitees can open the meeting.</dd>
+              </div>
+              <div>
+                <dt>Held tasks</dt>
+                <dd>A task stays held until someone shares it.</dd>
+              </div>
+              <div>
+                <dt>Confidential</dt>
+                <dd>Sharing, exports and uninvited admin access stay off.</dd>
+              </div>
+            </dl>
+          </div>
+          <div className="landing-privacy-demo">
+            <ToggleGroup
+              value={[viewer]}
+              onValueChange={(values) => {
+                if (values[0]) setViewer(values[0]);
+              }}
+              aria-label="Sample meeting viewer"
+            >
+              {["Organiser", "Invited", "Not invited", "Admin"].map((value) => (
+                <ToggleGroupItem key={value} value={value}>
+                  <i
+                    data-allowed={value === "Organiser" || value === "Invited"}
+                  />
+                  {value}
+                </ToggleGroupItem>
+              ))}
+            </ToggleGroup>
+            <div className="landing-private-card">
+              <span className="landing-kind">Confidential</span>
+              <div data-locked={!opened} aria-hidden={!opened}>
+                <h3>Security exercise.</h3>
+                <p>Review the sanitized response checklist.</p>
+                <span>Archit · Invitees only</span>
+              </div>
+            </div>
+            <p className="landing-verdict">
+              {opened ? (
+                <Check className="size-4" />
+              ) : (
+                <LockKeyhole className="size-4" />
+              )}
+              {opened
+                ? "Can open this meeting."
+                : viewer === "Admin"
+                  ? "Admins need an invite too."
+                  : "An invite is required."}
+            </p>
+          </div>
+        </section>
+        <section id="ask" className="landing-section landing-ask">
+          <h2>
+            Ask it something.<span>It remembers.</span>
+          </h2>
+          <div className="landing-ask-chips">
+            {story.answers.map((row, index) => (
+              <button
+                key={row.question}
+                aria-pressed={answer === index}
+                onClick={() => chooseAnswer(index)}
+              >
+                {row.question}
+              </button>
+            ))}
+          </div>
+          <form
+            onSubmit={(event) => {
+              event.preventDefault();
+              const index = story.answers.findIndex(
+                (row) =>
+                  row.question.toLowerCase() === prompt.trim().toLowerCase(),
+              );
+              chooseAnswer(index < 0 ? answer : index);
+            }}
+            className="landing-ask-bar"
+          >
+            <label htmlFor="sample-question">Wilco,</label>
+            <input
+              id="sample-question"
+              value={prompt}
+              readOnly
+              aria-label="Sample question"
+            />
+            <button aria-label="Play sample answer" type="submit">
+              <Play className="size-5" />
+            </button>
+          </form>
+          <div className="landing-stream" aria-live="polite">
+            {story.answers[answer].answer.split(/\s+/).map((word, index) => (
+              <span
+                key={`${answer}-${index}`}
+                data-visible={reduced || index < answerWords}
+              >
+                {word}{" "}
+              </span>
+            ))}
+          </div>
+          <span className="landing-citation">
+            {story.answers[answer].source} · Sample notes
+          </span>
+          <p className="landing-sample-label">
+            From the sample meetings in the demo workspace.
+          </p>
+          <Link className="signal-link" href="/login">
+            Sign in and ask your own meetings
+            <ArrowRight className="size-4" />
+          </Link>
+        </section>
+      </main>
+      <footer className="landing-footer">
+        <div>
+          <h2>Heard. Will comply.</h2>
+          <p>
+            Built by team Bhadra for Gnani AI’s Great Indian AI Internship
+            Challenge.
+          </p>
+        </div>
+        <div className="landing-footer-links">
+          <div>
+            <strong>Product</strong>
+            <a href="#how">How it works</a>
+            <a href="#languages">Languages</a>
+          </div>
+          <div>
+            <strong>Get started</strong>
+            <Link href="/login">Sign in</Link>
+            <Link href="/extension">Chrome extension</Link>
+          </div>
+          <div>
+            <strong>Trust</strong>
+            <a href="#privacy">Privacy</a>
+            <a href="#ask">Sample meetings</a>
+          </div>
+        </div>
+        <div className="landing-giant" aria-hidden="true">
+          WILCO
+        </div>
+      </footer>
+    </div>
+  );
+}

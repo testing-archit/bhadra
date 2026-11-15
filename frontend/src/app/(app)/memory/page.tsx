@@ -23,7 +23,10 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { ChatMarkdown } from "@/components/chat-markdown";
-import "../../hackathon-intelligence.css";
+import {
+  MemorySourceRail,
+  memorySourceKey,
+} from "@/components/memory-source-rail";
 import { CitedMarkdown, ResolvedCitation } from "@/components/cited-markdown";
 import { ChatActions } from "@/components/chat-actions";
 import { VoiceAskButton } from "@/components/voice-ask-button";
@@ -66,6 +69,13 @@ export default function MemoryPage() {
     MemoryConversationSummary[]
   >([]);
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [sourceSelection, setSourceSelection] = useState<{
+    key: string;
+    seq?: number;
+  } | null>(null);
+  const [inspectedSources, setInspectedSources] = useState<ChatSource[] | null>(
+    null,
+  );
   const [query, setQuery] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -91,7 +101,9 @@ export default function MemoryPage() {
     ? scopedMeeting.title
     : scope.length
       ? `${scope.length} meetings`
-      : "All my meetings";
+      : meetings.length
+        ? `${meetings.length} meetings`
+        : "All meetings";
   const active = entries.length > 0;
 
   useEffect(() => {
@@ -128,6 +140,8 @@ export default function MemoryPage() {
     setActiveId(null);
     setScope(nextScope);
     setEntries([]);
+    setInspectedSources(null);
+    setSourceSelection(null);
     setQuery("");
     setError(null);
     setLastFailedQuestion(null);
@@ -150,15 +164,18 @@ export default function MemoryPage() {
   }
 
   function openCitation(citation: ResolvedCitation) {
-    const meetingId = citation.source.meeting_id;
-    if (!meetingId) return;
-    const segment = citation.segment;
-    const params = new URLSearchParams();
-    if (segment?.segment_id) {
-      params.set("segment", segment.segment_id);
-      if (segment.start_ms !== null) params.set("t", String(segment.start_ms));
-    }
-    router.push(`/meetings/${meetingId}${params.size ? `?${params}` : ""}`);
+    const key = memorySourceKey(citation.source);
+    setSourceSelection({ key, seq: citation.segment?.seq });
+    requestAnimationFrame(() =>
+      document
+        .getElementById(`memory-source-${key}`)
+        ?.scrollIntoView({
+          block: "nearest",
+          behavior: matchMedia("(prefers-reduced-motion: reduce)").matches
+            ? "instant"
+            : "smooth",
+        }),
+    );
   }
 
   async function openConversation(conversation: MemoryConversationSummary) {
@@ -212,6 +229,8 @@ export default function MemoryPage() {
   async function ask(question: string, spoken = false) {
     if (!question || busy || opening) return;
     stick.pin();
+    setInspectedSources(null);
+    setSourceSelection(null);
     const history = entries.map(({ role, content }) => ({ role, content }));
     setEntries((previous) => [
       ...previous,
@@ -281,6 +300,107 @@ export default function MemoryPage() {
     }
   }
 
+  const sourcePicker = (
+    <Dialog
+      open={scopeOpen}
+      onOpenChange={(open) => {
+        setScopeOpen(open);
+        if (open) {
+          setDraftScope(scope);
+          setMeetingSearch("");
+        }
+      }}
+    >
+      <DialogTrigger
+        render={<Button variant="ghost" size="sm" disabled={busy || opening} />}
+      >
+        <FileSearch aria-hidden="true" />
+        <span className="truncate">{scopeLabel}</span>
+        <ChevronDown aria-hidden="true" />
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-lg">
+        <DialogTitle>Choose meetings</DialogTitle>
+        <DialogDescription>
+          Pick up to 10 meetings. Changing sources starts a new chat.
+        </DialogDescription>
+        <Input
+          aria-label="Find a meeting"
+          placeholder="Find a meeting…"
+          value={meetingSearch}
+          onChange={(event) => setMeetingSearch(event.target.value)}
+        />
+        <Button
+          variant={draftScope.length ? "outline" : "secondary"}
+          onClick={() => setDraftScope([])}
+        >
+          All my meetings{" "}
+          {draftScope.length === 0 && <Check aria-hidden="true" />}
+        </Button>
+        <div className="memory-picker-list">
+          {meetingsError && (
+            <p role="alert">
+              Meetings couldn’t load. Reload this page to try again.
+            </p>
+          )}
+          {!meetingsError && visibleMeetings.length === 0 && (
+            <p>No meetings found.</p>
+          )}
+          {visibleMeetings.map((meeting) => {
+            const selected = draftScope.some((item) => item.id === meeting.id);
+            return (
+              <label key={meeting.id} className="memory-picker-row">
+                <input
+                  type="checkbox"
+                  checked={selected}
+                  disabled={!selected && draftScope.length >= MAX_SCOPE}
+                  onChange={() => toggleDraft(meeting)}
+                />
+                <span>
+                  <strong>{meeting.title}</strong>
+                  <small>{new Date(meeting.date).toLocaleDateString()}</small>
+                </span>
+              </label>
+            );
+          })}
+        </div>
+        <div className="memory-picker-footer">
+          <span>
+            {draftScope.length
+              ? `${draftScope.length} of 10 selected`
+              : "Search all meetings you can access"}
+          </span>
+          <Button
+            onClick={() => {
+              const changed =
+                scope
+                  .map((x) => x.id)
+                  .sort()
+                  .join() !==
+                draftScope
+                  .map((x) => x.id)
+                  .sort()
+                  .join();
+              if (changed) {
+                const draft = query;
+                startNewChat(draftScope);
+                setQuery(draft);
+              }
+              setScopeOpen(false);
+            }}
+          >
+            Apply
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+  const latestSources =
+    inspectedSources ??
+    [...entries]
+      .reverse()
+      .find((entry) => entry.role === "assistant" && entry.sources?.length)
+      ?.sources ??
+    [];
   const composer = (
     <div className="memory-compose-wrap">
       <form
@@ -331,114 +451,14 @@ export default function MemoryPage() {
           <Send className="h-4 w-4" />
         </Button>
       </form>
-      <div className="memory-compose-meta">
-        <Dialog
-          open={scopeOpen}
-          onOpenChange={(open) => {
-            setScopeOpen(open);
-            if (open) {
-              setDraftScope(scope);
-              setMeetingSearch("");
-            }
-          }}
-        >
-          <DialogTrigger
-            render={
-              <Button variant="ghost" size="sm" disabled={busy || opening} />
-            }
-          >
-            <FileSearch aria-hidden="true" />
-            <span className="truncate">{scopeLabel}</span>
-            <ChevronDown aria-hidden="true" />
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-lg">
-            <DialogTitle>Choose meetings</DialogTitle>
-            <DialogDescription>
-              Pick up to 10 meetings. Changing sources starts a new chat.
-            </DialogDescription>
-            <Input
-              aria-label="Find a meeting"
-              placeholder="Find a meeting…"
-              value={meetingSearch}
-              onChange={(event) => setMeetingSearch(event.target.value)}
-            />
-            <Button
-              variant={draftScope.length ? "outline" : "secondary"}
-              onClick={() => setDraftScope([])}
-            >
-              All my meetings{" "}
-              {draftScope.length === 0 && <Check aria-hidden="true" />}
-            </Button>
-            <div className="memory-picker-list">
-              {meetingsError && (
-                <p role="alert">
-                  Meetings couldn’t load. Reload this page to try again.
-                </p>
-              )}
-              {!meetingsError && visibleMeetings.length === 0 && (
-                <p>No meetings found.</p>
-              )}
-              {visibleMeetings.map((meeting) => {
-                const selected = draftScope.some(
-                  (item) => item.id === meeting.id,
-                );
-                return (
-                  <label key={meeting.id} className="memory-picker-row">
-                    <input
-                      type="checkbox"
-                      checked={selected}
-                      disabled={!selected && draftScope.length >= MAX_SCOPE}
-                      onChange={() => toggleDraft(meeting)}
-                    />
-                    <span>
-                      <strong>{meeting.title}</strong>
-                      <small>
-                        {new Date(meeting.date).toLocaleDateString()}
-                      </small>
-                    </span>
-                  </label>
-                );
-              })}
-            </div>
-            <div className="memory-picker-footer">
-              <span>
-                {draftScope.length
-                  ? `${draftScope.length} of 10 selected`
-                  : "Search all meetings you can access"}
-              </span>
-              <Button
-                onClick={() => {
-                  const changed =
-                    scope
-                      .map((x) => x.id)
-                      .sort()
-                      .join() !==
-                    draftScope
-                      .map((x) => x.id)
-                      .sort()
-                      .join();
-                  if (changed) {
-                    const draft = query;
-                    startNewChat(draftScope);
-                    setQuery(draft);
-                  }
-                  setScopeOpen(false);
-                }}
-              >
-                Apply
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
-        <span>Answers with meeting sources</span>
-      </div>
+      <div className="memory-compose-meta"></div>
     </div>
   );
 
   return (
-    <div className="signal-intelligence-page signal-memory-page memory-studio" data-active={active}>
+    <div className="memory-studio engagement-memory" data-active={active}>
       <div className="memory-toolbar">
-        <span className="memory-toolbar-label">Your meeting memory</span>
+        {sourcePicker}
         <div>
           <Dialog open={historyOpen} onOpenChange={setHistoryOpen}>
             <DialogTrigger
@@ -521,229 +541,207 @@ export default function MemoryPage() {
           </Button>
         </div>
       </div>
-      {!active ? (
-        <div className="memory-start">
-          <div className="memory-intro">
-            <div>
-              <p>Decisions, blockers, and the why behind them.</p>
-              <h1>Ask your team memory.</h1>
+      <div className="memory-work-columns">
+        {!active ? (
+          <div className="memory-start">
+            <div className="memory-intro">
+              <div>
+                <h1 className="two-tone">
+                  It’s in your meetings.<span>Let’s find it.</span>
+                </h1>
+              </div>
+              <WilcoMascot className="memory-mascot" />
             </div>
-            <WilcoMascot className="memory-mascot" />
-          </div>
-          {composer}
-          <div className="memory-prompts" aria-label="Start with a question">
-            {[
-              ["Release decisions", "What changed in the latest release plan?"],
-              ["Open blockers", "Which launch blockers are still open?"],
-              ["My follow-ups", "What engineering work should I follow up on this week?"],
-            ].map(([label, question]) => (
-              <button
-                key={label}
-                type="button"
-                onClick={() => {
-                  setQuery(question);
-                  inputRef.current?.focus();
-                }}
-              >
-                {label}
-                <ArrowUpRight aria-hidden="true" />
-              </button>
-            ))}
-          </div>
-          {error && (
-            <p role="alert" className="text-sm text-destructive">
-              {error}
-            </p>
-          )}
-          <section className="memory-recent" aria-label="Recent meetings">
-            <header>
-              <h2>Start from a meeting</h2>
-              <Link href="/meetings">View all</Link>
-            </header>
-            {meetingsError ? (
-              <p>Meetings couldn’t load.</p>
-            ) : meetings.length === 0 ? (
-              <p>Your recorded meetings will appear here.</p>
-            ) : (
-              meetings.slice(0, 3).map((meeting) => (
+            {composer}
+            <div className="memory-prompts" aria-label="Start with a question">
+              {[
+                [
+                  "Release decisions",
+                  "What changed in the latest release plan?",
+                ],
+                ["Open blockers", "Which launch blockers are still open?"],
+                [
+                  "My follow-ups",
+                  "What engineering work should I follow up on this week?",
+                ],
+              ].map(([label, question]) => (
                 <button
+                  key={label}
                   type="button"
-                  key={meeting.id}
                   onClick={() => {
-                    chooseScope(meeting);
-                    inputRef.current?.focus();
+                    void ask(question);
                   }}
-                  aria-label={`Ask about ${meeting.title}`}
                 >
-                  <span className="memory-meeting-icon">
-                    <Video aria-hidden="true" />
-                  </span>
-                  <span>
-                    <strong>{meeting.title}</strong>
-                    <small>
-                      {new Date(meeting.date).toLocaleDateString(undefined, {
-                        day: "numeric",
-                        month: "short",
-                      })}
-                      {meeting.duration_minutes
-                        ? ` · ${meeting.duration_minutes} min`
-                        : ""}
-                    </small>
-                  </span>
+                  {label}
                   <ArrowUpRight aria-hidden="true" />
                 </button>
-              ))
+              ))}
+            </div>
+            {error && (
+              <p role="alert" className="text-sm text-destructive">
+                {error}
+              </p>
             )}
-          </section>
-        </div>
-      ) : (
-        <section className="memory-conversation" aria-label="Conversation">
-          <h1 className="sr-only">Ask Wilco</h1>
-          <div ref={stick.panelRef} className="memory-messages">
-            <div className="memory-message-column">
-              {entries.map((entry, index) =>
-                entry.role === "user" ? (
-                  <div
-                    key={index}
-                    className="flex max-w-[82%] flex-col items-end self-end"
+            <section className="memory-recent" aria-label="Recent meetings">
+              <header>
+                <h2>Start from a meeting</h2>
+                <Link href="/meetings">View all</Link>
+              </header>
+              {meetingsError ? (
+                <p>Meetings couldn’t load.</p>
+              ) : meetings.length === 0 ? (
+                <p>Your recorded meetings will appear here.</p>
+              ) : (
+                meetings.slice(0, 3).map((meeting) => (
+                  <button
+                    type="button"
+                    key={meeting.id}
+                    onClick={() => {
+                      chooseScope(meeting);
+                      inputRef.current?.focus();
+                    }}
+                    aria-label={`Ask about ${meeting.title}`}
                   >
-                    <div className="rounded-[20px] rounded-br-md bg-primary px-4 py-3 text-sm leading-6 text-primary-foreground shadow-sm">
-                      <p className="whitespace-pre-wrap">{entry.content}</p>
-                    </div>
-                    <span className="mt-1.5 pr-1 text-[10px] text-muted-foreground">
-                      You · {messageTime(entry.createdAt)}
+                    <span className="memory-meeting-icon">
+                      <Video aria-hidden="true" />
                     </span>
-                  </div>
-                ) : (
-                  <div
-                    key={index}
-                    className="flex max-w-[94%] items-start gap-3 self-start"
-                  >
-                    <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-accent text-foreground">
-                      <Sparkles className="h-3.5 w-3.5" />
+                    <span>
+                      <strong>{meeting.title}</strong>
+                      <small>
+                        {new Date(meeting.date).toLocaleDateString(undefined, {
+                          day: "numeric",
+                          month: "short",
+                        })}
+                        {meeting.duration_minutes
+                          ? ` · ${meeting.duration_minutes} min`
+                          : ""}
+                      </small>
                     </span>
-                    <div className="min-w-0 flex-1">
-                      <div className="mb-1.5 flex items-center gap-2">
-                        <span className="text-xs font-semibold text-foreground">
-                          Wilco
-                        </span>
-                        <span className="text-[10px] text-muted-foreground">
-                          {messageTime(entry.createdAt)}
-                        </span>
-                      </div>
-                      <div className="rounded-[20px] rounded-tl-md border bg-card px-4 py-4 leading-6 shadow-[0_10px_28px_-24px_rgba(15,45,38,0.7)] sm:px-5">
-                        {entry.sources?.some((source) => source.tag) ? (
-                          <CitedMarkdown
-                            content={entry.content}
-                            sources={entry.sources}
-                            onCite={openCitation}
-                          />
-                        ) : (
-                          <ChatMarkdown content={entry.content} />
-                        )}
-                        {entry.sources && entry.sources.length > 0 && (
-                          <MemorySources sources={entry.sources} />
-                        )}
-                      </div>
-                      <ChatActions
-                        content={entry.content}
-                        onRetry={() => {
-                          if (!busy) retryAnswer(index);
-                        }}
-                        speak={entry.spoken}
-                      />
-                    </div>
-                  </div>
-                ),
+                    <ArrowUpRight aria-hidden="true" />
+                  </button>
+                ))
               )}
-
-              {busy && (
-                <div
-                  role="status"
-                  className="flex items-center gap-3 self-start"
-                >
-                  <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-accent text-foreground">
-                    <Sparkles className="h-3.5 w-3.5 animate-pulse" />
-                  </span>
-                  <div className="rounded-2xl rounded-tl-md border bg-card px-4 py-3 text-sm text-muted-foreground shadow-sm">
-                    Searching your meetings
-                    <span className="animate-pulse">…</span>
-                  </div>
-                </div>
-              )}
-
-              {error && (
-                <div
-                  role="alert"
-                  className="flex items-center justify-between gap-3 rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive"
-                >
-                  <span>{error}</span>
-                  {lastFailedQuestion && (
-                    <button
-                      type="button"
-                      className="shrink-0 font-semibold underline"
-                      onClick={() => ask(lastFailedQuestion)}
-                    >
-                      Try again
-                    </button>
-                  )}
-                </div>
-              )}
-            </div>
+            </section>
           </div>
-          {composer}
-        </section>
-      )}
-    </div>
-  );
-}
-
-function MemorySources({ sources }: { sources: ChatSource[] }) {
-  return (
-    <details className="group/sources mt-4 border-t pt-3">
-      <summary className="flex cursor-pointer list-none items-center gap-2 text-xs font-medium text-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary/20">
-        <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-accent text-foreground">
-          <CalendarDays className="h-3.5 w-3.5" />
-        </span>
-        Sources · {sources.length} meeting{sources.length === 1 ? "" : "s"}
-        <ChevronDown className="ml-auto h-3.5 w-3.5 transition-transform group-open/sources:rotate-180" />
-      </summary>
-      <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
-        {sources.map((source, index) => {
-          const body = (
-            <>
-              <span className="block truncate text-xs font-medium text-foreground">
-                {source.meeting_title}
-              </span>
-              <span className="mt-1 flex items-center justify-between gap-2 text-[10px] text-muted-foreground">
-                {new Date(source.meeting_date).toLocaleDateString()}
-                {source.segments &&
-                  source.segments.length > 0 &&
-                  ` · ${source.segments.length} cited line${source.segments.length === 1 ? "" : "s"}`}
-                {source.meeting_id && (
-                  <ExternalLink className="ml-auto h-3 w-3" />
+        ) : (
+          <section className="memory-conversation" aria-label="Conversation">
+            <h1 className="sr-only">Ask Wilco</h1>
+            <div ref={stick.panelRef} className="memory-messages">
+              <div className="memory-message-column">
+                {entries.map((entry, index) =>
+                  entry.role === "user" ? (
+                    <div
+                      key={index}
+                      className="flex max-w-[82%] flex-col items-end self-end"
+                    >
+                      <div className="memory-user-bubble rounded-[20px] rounded-br-md bg-primary px-4 py-3 text-sm leading-6 text-primary-foreground shadow-sm">
+                        <p className="whitespace-pre-wrap">{entry.content}</p>
+                      </div>
+                      <span className="mt-1.5 pr-1 text-[10px] text-muted-foreground">
+                        You · {messageTime(entry.createdAt)}
+                      </span>
+                    </div>
+                  ) : (
+                    <div
+                      key={index}
+                      className="flex max-w-[94%] items-start gap-3 self-start"
+                    >
+                      <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-accent text-foreground">
+                        <Sparkles className="h-3.5 w-3.5" />
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <div className="mb-1.5 flex items-center gap-2">
+                          <span className="text-xs font-semibold text-foreground">
+                            Wilco
+                          </span>
+                          <span className="text-[10px] text-muted-foreground">
+                            {messageTime(entry.createdAt)}
+                          </span>
+                        </div>
+                        <div className="memory-answer rounded-[20px] rounded-tl-md border bg-card px-4 py-4 leading-6 shadow-[0_10px_28px_-24px_rgba(15,45,38,0.7)] sm:px-5">
+                          {entry.sources?.some((source) => source.tag) ? (
+                            <CitedMarkdown
+                              numbers
+                              content={entry.content}
+                              sources={entry.sources}
+                              onCite={(citation) => {
+                                setInspectedSources(entry.sources ?? []);
+                                openCitation(citation);
+                              }}
+                            />
+                          ) : (
+                            <ChatMarkdown content={entry.content} />
+                          )}
+                        </div>
+                        <ChatActions
+                          content={entry.content}
+                          onRetry={() => {
+                            if (!busy) retryAnswer(index);
+                          }}
+                          speak={entry.spoken}
+                        />
+                      </div>
+                    </div>
+                  ),
                 )}
-              </span>
-            </>
-          );
-          return source.meeting_id ? (
-            <Link
-              key={`${source.meeting_id}-${index}`}
-              href={`/meetings/${source.meeting_id}`}
-              className="rounded-lg border bg-muted/50 px-3 py-2.5 transition-colors hover:border-border hover:bg-card"
-            >
-              {body}
-            </Link>
-          ) : (
-            <div
-              key={`${source.meeting_title}-${index}`}
-              className="rounded-lg border bg-muted/50 px-3 py-2.5"
-            >
-              {body}
+
+                {busy && (
+                  <div
+                    role="status"
+                    className="flex items-center gap-3 self-start"
+                  >
+                    <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-accent text-foreground">
+                      <Sparkles className="h-3.5 w-3.5 animate-pulse" />
+                    </span>
+                    <div className="rounded-2xl rounded-tl-md border bg-card px-4 py-3 text-sm text-muted-foreground shadow-sm">
+                      Searching your meetings
+                      <span className="animate-pulse">…</span>
+                    </div>
+                  </div>
+                )}
+
+                {error && (
+                  <div
+                    role="alert"
+                    className="flex items-center justify-between gap-3 rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive"
+                  >
+                    <span>{error}</span>
+                    {lastFailedQuestion && (
+                      <button
+                        type="button"
+                        className="shrink-0 font-semibold underline"
+                        onClick={() => ask(lastFailedQuestion)}
+                      >
+                        Try again
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
-          );
-        })}
+            {composer}
+          </section>
+        )}
+        <MemorySourceRail
+          sources={latestSources}
+          meetings={meetings}
+          selected={sourceSelection}
+          onSelect={(source) => {
+            if (!latestSources.length) {
+              const meeting = meetings.find(
+                (row) => row.id === source.meeting_id,
+              );
+              if (meeting) chooseScope(meeting);
+            }
+            setSourceSelection({
+              key: memorySourceKey(source),
+              seq: source.segments?.[0]?.seq,
+            });
+          }}
+          onAsk={(question) => void ask(question)}
+          busy={busy || opening}
+        />
       </div>
-    </details>
+    </div>
   );
 }

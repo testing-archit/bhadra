@@ -35,7 +35,7 @@ export function Waveform({ className, bars = WAVE.length, live = false }: { clas
       {values.map((value, index) => (
         <span
           key={index}
-          className={cn("w-[3px] shrink-0 rounded-full bg-marigold motion-reduce:animate-none", live ? "wave-live" : "wave-bar")}
+          className={cn("w-[3px] shrink-0 rounded-full bg-signal motion-reduce:animate-none", live ? "wave-live" : "wave-bar")}
           style={{
             height: `${Math.round(value * 100)}%`,
             animationDelay: `${live ? (index % 7) * 110 : index * 22}ms`,
@@ -60,9 +60,9 @@ export function TwoTone({ lead, rest, className }: { lead: React.ReactNode; rest
 /** Kept for the record page: the waveform inside a round signal disc. */
 export function VoiceDisc({ className, live = false }: { className?: string; live?: boolean }) {
   return (
-    <div className={cn("grid size-48 place-items-center rounded-full bg-marigold/15", className)} aria-hidden="true">
-      <div className="grid size-[64%] place-items-center rounded-full bg-marigold">
-        <Waveform bars={9} live={live} className="h-[38%] [&>span]:bg-marigold-foreground" />
+    <div className={cn("grid size-48 place-items-center rounded-full bg-signal/15", className)} aria-hidden="true">
+      <div className="grid size-[64%] place-items-center rounded-full bg-signal">
+        <Waveform bars={9} live={live} className="h-[38%] [&>span]:bg-signal-foreground" />
       </div>
     </div>
   );

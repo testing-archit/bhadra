@@ -147,7 +147,7 @@ html:not(.dark) .signal-support {
   --support-cyan: var(--signal-light-cyan);
   --support-violet: var(--signal-light-violet);
   --support-orange: var(--signal-light-orange-fill);
-  --marigold-foreground: #241207;
+  --signal-foreground: #241207;
 }
 html:not(.dark) .signal-support [data-slot="tabs-trigger"][data-active] { background: #d9e9f5; }
 html:not(.dark) .signal-support .support-hero { background: radial-gradient(ellipse at 84% 20%, #dedaf68c, transparent 42%), linear-gradient(125deg, #ffffff, #f4f7ff); }
@@ -183,7 +183,7 @@ html:not(.dark) .signal-public-shared {
   --public-violet: var(--signal-light-violet);
   --public-orange: var(--signal-light-orange-fill);
   --primary-foreground: #ffffff;
-  --marigold-foreground: #241207;
+  --signal-foreground: #241207;
   color-scheme: light;
 }
 html:not(.dark) .signal-public-auth [data-slot="card"] { box-shadow: 0 20px 60px #20375b20; }

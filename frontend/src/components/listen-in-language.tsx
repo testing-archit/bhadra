@@ -26,7 +26,7 @@ type State = "idle" | "loading" | "playing" | "error";
 
 /** Hear meeting notes in your own language: Gemini translates, Gnani Timbre
  * speaks, and the translated text is shown so you can read along. */
-export function ListenInLanguage({ text, title, listenLabel = "Listen", share = true }: { text: string; title?: string; listenLabel?: string; share?: boolean }) {
+export function ListenInLanguage({ text, title, listenLabel = "Listen", share = true, compact = false, onListen }: { text: string; title?: string; listenLabel?: string; share?: boolean; compact?: boolean; onListen?: () => void }) {
   const [language, setLanguage] = useState("en-IN");
   const [state, setState] = useState<State>("idle");
   const [error, setError] = useState<string | null>(null);
@@ -94,6 +94,7 @@ export function ListenInLanguage({ text, title, listenLabel = "Listen", share = 
 
   async function play() {
     if (state === "playing" || state === "loading") return stop();
+    onListen?.();
     const token = ++generation.current;
     setState("loading");
     setError(null);
@@ -129,7 +130,7 @@ export function ListenInLanguage({ text, title, listenLabel = "Listen", share = 
   return (
     <div className="flex flex-col gap-2">
       <div className="flex flex-wrap items-center gap-2">
-        <Select
+        {!compact && <Select
           value={language}
           onValueChange={(next) => {
             if (!next) return;
@@ -147,16 +148,16 @@ export function ListenInLanguage({ text, title, listenLabel = "Listen", share = 
               {LANGUAGES.map((item) => <SelectItem key={item.code} value={item.code}>{item.label}</SelectItem>)}
             </SelectGroup>
           </SelectContent>
-        </Select>
+        </Select>}
         <Button size="sm" variant="outline" onClick={() => void play()} aria-pressed={state === "playing"} title="Read aloud with Gnani Timbre">
           {state === "loading" ? <Loader2 className="animate-spin" aria-hidden="true" /> : state === "playing" ? <Square aria-hidden="true" /> : <Volume2 aria-hidden="true" />}
           {state === "loading" ? (language === "en-IN" ? "Loading" : "Translating") : state === "playing" ? "Stop" : listenLabel}
         </Button>
-        {share && <Button size="sm" variant="outline" onClick={() => void shareOnWhatsApp()} disabled={sharing} title="Send these notes on WhatsApp in the chosen language">
+        {share && !compact && <Button size="sm" variant="outline" onClick={() => void shareOnWhatsApp()} disabled={sharing} title="Send these notes on WhatsApp in the chosen language">
           {sharing ? <Loader2 className="animate-spin" aria-hidden="true" /> : <MessageCircle aria-hidden="true" />}
           WhatsApp
         </Button>}
-        {voiceNote?.language === language && (
+        {!compact && voiceNote?.language === language && (
           <Button size="sm" variant="ghost" nativeButton={false} render={<a href={`data:audio/mpeg;base64,${voiceNote.audio}`} download={`wilco-notes-${language}.mp3`} />} title="Download the spoken notes to forward as a voice note">
             <Download aria-hidden="true" />
             Voice note

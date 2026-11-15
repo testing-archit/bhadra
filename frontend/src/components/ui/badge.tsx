@@ -9,6 +9,11 @@ const badgeVariants = cva(
   {
     variants: {
       variant: {
+        peach: "bg-tint-peach text-tint-peach-foreground",
+        lilac: "bg-tint-lilac text-tint-lilac-foreground",
+        mint: "bg-tint-mint text-tint-mint-foreground",
+        rose: "bg-tint-rose text-tint-rose-foreground",
+        sky: "bg-tint-sky text-tint-sky-foreground",
         default: "bg-primary text-primary-foreground [a]:hover:bg-primary/80",
         secondary:
           "bg-secondary text-secondary-foreground [a]:hover:bg-secondary/80",

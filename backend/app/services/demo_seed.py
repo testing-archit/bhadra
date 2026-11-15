@@ -3,16 +3,19 @@
 Everything here is invented. Used by scripts/seed_demo.py and by the
 no-sign-up demo (POST /api/auth/demo), which seeds one per guest."""
 from datetime import date, datetime, timedelta, timezone
+import uuid
+from zoneinfo import ZoneInfo
 
 from sqlalchemy import select
 
-from app.database.models import Decision, Meeting, MeetingAttendee, MeetingTask, Project, Risk, User
+from app.database.models import Decision, Meeting, MeetingAttendee, MeetingTask, MeetingInsight, Project, Risk, TranscriptSegment, User
+from app.data.software_demo import SOFTWARE_MEETINGS
 
 SEED_PREFIX = "demo-seed-"
 
 
 def days(n: int) -> date:
-    return date.today() + timedelta(days=n)
+    return datetime.now(ZoneInfo("Asia/Kolkata")).date() + timedelta(days=n)
 
 
 # Each task: (owner_key, description, due offset in days or None, priority, status)
@@ -253,6 +256,8 @@ MEETINGS = [
     },
 ]
 
+MEETINGS.extend(SOFTWARE_MEETINGS)
+
 def _decision(meeting_id, project_id, entry, speakers) -> Decision:
     """entry: (text, reason) or (text, reason, alternatives, conflict_note).
     A conflict_note marks a decision that reverses an earlier one."""
@@ -265,6 +270,34 @@ def _decision(meeting_id, project_id, entry, speakers) -> Decision:
     )
 
 
+
+
+def build_demo_turns(spec, who):
+    """One authored conversation shared by database seeding and public previews."""
+    turns = []
+    for line in spec["transcript"].splitlines():
+        speaker, _, text = line.partition(":")
+        speaker = who("me")[0] if speaker == "Archit" else who("mate")[0] if speaker == "Vedant" else speaker
+        if text.strip(): turns.append((speaker, text.strip()))
+    task_turns, decision_turns, risk_turns = [], [], []
+    lead = who("me")[0]
+    for entry in spec["decisions"]:
+        text, reason, *rest = entry
+        alternatives = (rest[0] if rest else []) or []
+        decision_turns.append(len(turns))
+        turns.append((lead, f"Decision: {text}. Reason: {reason}." + (" Considered: " + "; ".join(alternatives) + "." if alternatives else "")))
+    turns.append((lead, "Final action owners and calendar dates replace the relative dates mentioned earlier. These are the agreed follow-ups."))
+    for key, text, due, priority, status in spec["tasks"]:
+        name, _ = who(key)
+        task_turns.append(len(turns))
+        turns.append((name or lead, f"Action: {text}. Owner: {name or 'not yet assigned'}. Due: {days(due).isoformat() if due is not None else 'not agreed'}. Status: {status.replace('_', ' ')}."))
+    for text, severity in spec["risks"]:
+        risk_turns.append(len(turns))
+        turns.append(("Sam", f"Risk to watch: {text}. Severity: {severity}."))
+    questions = spec.get("questions") or ["What evidence will confirm the remaining release checks are complete?"]
+    turns.extend(("Riya", f"Open question: {question}") for question in questions)
+    turns.append((lead, "These notes are a synthetic software-team scenario for the demo. No customer account, external ticket or email was created."))
+    return turns, task_turns, decision_turns, risk_turns, questions
 
 
 async def seed_workspace(db, owner: User, mate: User | None = None, skip: set[int] | None = None,
@@ -297,10 +330,13 @@ async def seed_workspace(db, owner: User, mate: User | None = None, skip: set[in
             projects[name] = project
         project = projects[name]
 
-        when = now - timedelta(days=spec["ago"], hours=2 + index)
+        when = now - timedelta(days=spec["ago"], hours=.5 if spec.get("featured") else 2 + index/12)
         meeting = Meeting(
-            user_id=owner.id, organizer_user_id=owner.id, title=spec["title"], date=when,
-            transcript=spec["transcript"], summary=spec["summary"], duration_minutes=spec["minutes"],
+            user_id=owner.id, organizer_user_id=owner.id, title="Demo · " + spec["title"], date=when,
+            confidential=bool(spec.get("confidential")), confidential_source="manual" if spec.get("confidential") else None,
+            confidential_reason="Synthetic security exercise; organiser only." if spec.get("confidential") else None,
+            transcript=spec["transcript"], summary="Synthetic demo. " + spec["summary"], duration_minutes=spec["minutes"],
+            transcript_revision=1, insights_revision=1,
             source=spec["source"], client_meeting_id=f"{SEED_PREFIX}{index}",
         )
         meeting.projects.append(project)
@@ -308,30 +344,60 @@ async def seed_workspace(db, owner: User, mate: User | None = None, skip: set[in
         await db.flush()
         counts["meetings"] += 1
 
-        for user in users:
+        for user in ([owner] if spec.get("confidential") else users):
             db.add(MeetingAttendee(
                 meeting_id=meeting.id, user_id=user.id, email=user.email,
                 display_name=user.name or user.email.split("@")[0],
                 kind="internal", source="manual", access="granted",
             ))
-        speakers = {line.split(":", 1)[0].split(" (")[0] for line in spec["transcript"].splitlines()}
-        for speaker in sorted(speakers - {"Archit", "Vedant"}):
-            db.add(MeetingAttendee(meeting_id=meeting.id, display_name=speaker, kind="external", source="manual"))
-
-        for owner_key, text, due, priority, status in spec["tasks"]:
+        # Illustrative timings belong to authored synthetic turns, never to a
+        # recording/provider. The UI reads these stored segments, not random bars.
+        turns, task_turns, decision_turns, risk_turns, questions = build_demo_turns(spec, who)
+        duration = spec["minutes"] * 60000
+        step = duration / len(turns)
+        segments = [TranscriptSegment(id=uuid.uuid4(), meeting_id=meeting.id, seq=i,
+            speaker_key=speaker, speaker_label=speaker, text=text, original_text=text,
+            start_ms=round(i*step), end_ms=min(duration,round((i+.83)*step)),
+            language="hi-en", confidence=None) for i,(speaker,text) in enumerate(turns)]
+        db.add_all(segments)
+        meeting.transcript = "\n".join(f"{speaker}: {text}" for speaker,text in turns)
+        speakers = {speaker for speaker,_ in turns}
+        invited = {user.name or user.email.split("@")[0] for user in users}
+        for speaker in sorted(speakers - invited):
+            db.add(MeetingAttendee(meeting_id=meeting.id, display_name=speaker, kind="internal", source="manual", access="pending"))
+        def evidence(turn):
+            row = segments[turn]
+            return [{"segment_id":str(row.id),"seq":row.seq,"start_ms":row.start_ms,"end_ms":row.end_ms,
+                     "speaker":row.speaker_label,"excerpt":row.text,"verified":True}]
+        for task_index, (owner_key, text, due, priority, status) in enumerate(spec["tasks"]):
             owner_name, owner_user = who(owner_key)
+            reviewed = (index + task_index) % 3 == 0
             db.add(MeetingTask(
-                meeting_id=meeting.id, project_id=project.id, owner=owner_name,
+                meeting_id=meeting.id, project_id=project.id, owner=owner_name or None,
                 owner_user_id=owner_user.id if owner_user else None,
                 description=text, due_date=days(due) if due is not None else None,
                 deadline=days(due).strftime("%d %b") if due is not None else None,
-                priority=priority, status=status, origin="ai",
+                priority=priority, status=status, origin="ai", evidence=evidence(task_turns[task_index]),
+                verified_at=now if reviewed else None, verified_by=owner.id if reviewed else None,
+                ai_flags=["due_date_ambiguous"] if due is None else [],
             ))
             counts["tasks"] += 1
-        for entry in spec["decisions"]:
-            db.add(_decision(meeting.id, project.id, entry, speakers))
+        for decision_index, entry in enumerate(spec["decisions"]):
+            decision = _decision(meeting.id, project.id, entry, speakers)
+            decision.evidence = evidence(decision_turns[decision_index])
+            if (index + decision_index) % 4 == 0:
+                decision.verified_at, decision.verified_by = now, owner.id
+            db.add(decision)
             counts["decisions"] += 1
-        for text, severity in spec["risks"]:
-            db.add(Risk(meeting_id=meeting.id, project_id=project.id, description=text, severity=severity))
+        for risk_index, (text, severity) in enumerate(spec["risks"]):
+            db.add(Risk(meeting_id=meeting.id, project_id=project.id, description=text,
+                        severity=severity, evidence=evidence(risk_turns[risk_index])))
             counts["risks"] += 1
+        db.add(MeetingInsight(meeting_id=meeting.id, overview=spec["summary"],
+            key_topics=[spec["project"], "Software delivery", "Owned follow-ups"],
+            open_questions=questions, highlights=[entry[0] for entry in spec["decisions"]],
+            next_steps=[task[1] for task in spec["tasks"]],
+            speaker_activity=[{"speaker":speaker,"words":sum(len(text.split()) for name,text in turns if name==speaker),"share":round(sum(len(text.split()) for name,text in turns if name==speaker)/max(1,sum(len(text.split()) for _,text in turns)),4)} for speaker in sorted(speakers)],
+            sections=[{"title":"Decisions","text":spec["decisions"][0][0],"summary":spec["decisions"][0][0],"evidence":evidence(decision_turns[0])}] if decision_turns else [],
+            follow_up_draft="Draft — synthetic demo only.\n" + spec["summary"] + "\n" + "\n".join("• " + task[1] for task in spec["tasks"])))
     return counts

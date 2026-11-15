@@ -1,43 +1,28 @@
 # Wilco design system
 
-## Product and audience
+The pinned reference is the Claude design canvas supplied by the user, with implementation details in [the redesign spec](docs/design/redesign-spec.md). Section 3b, Engagement pass, overrides earlier per-screen layouts. The canvas is currently blocked by Cloudflare in this environment; do not claim a visual comparison or click-through of that external artifact.
 
-Wilco is meeting intelligence for software companies. The interface helps a team turn an engineering discussion into decisions, owned tasks, project context, and evidence they can revisit. Use incident reviews, release planning, architecture decisions, customer engineering calls, and multilingual team conversations as examples. Demo counts and activity must come from the application, not a visual mockup.
+## Frame, sheets and signal
 
-The current design direction is the [Signal Room](docs/hackathon-ui-direction.md). The [concept image](docs/design-references/hackathon-signal-room-concept.png) sets the mood; its names and numbers are illustrative and must not appear as real account data.
+An ink frame holds a stone tray and working sheets. The sidebar and bands stay ink in both themes. Signal yellow means voice, the active navigation notch, a debrief tick or the single key action. Use the semantic tokens in `frontend/src/app/globals.css`; components do not introduce raw colours. Light sheets are white, dark sheets are graphite. Pastel tints appear only as labelled statuses and owner chips. No gradient text, glass, decorative waveforms or coloured card edges.
 
-## Visual language
+Geist is the interface typeface, Mukta the Devanagari fallback, Geist Mono the timing face and Doto the two-digit Home count. Page headings use two clauses. Sheet radius is 20px, band radius 24px; actions are pills. Borders carry separation. Shadows belong to floating navigation, the composer, popovers and the mobile bar.
 
-- **Frame:** midnight navy shell with precise cyan, violet, and orange signals. Keep page content on the same canvas so a light gutter never surrounds a dark route.
-- **Typography:** Geist for interface and headlines, Mukta for Devanagari fallback, Geist Mono for compact source or timing data, Doto only for meaningful numeric emphasis.
-- **Surfaces:** use spacing, type size, and one prominent graphic to create hierarchy. A card should hold a real task, decision, meeting, or control; empty cards must direct the next action.
-- **Color:** define palette values in route or shared CSS custom properties, then use semantic tokens in components. The app shell lives in `frontend/src/app/hackathon-shell.css`; Home, work pages, meeting intelligence, support tools, public pages, Delivery Radar, and Voice lab each have scoped styles under `frontend/src/app/`.
-- **Icons:** Lucide communicates actions and status. The Wilco mascot belongs in brand and voice contexts; it should not decorate every navigation item or work card.
+## Working screens
 
-## Navigation
+- Home uses real owned-task counts, the latest accessible meeting's timed strip, in-place completion and Undo, calendar connection/empty states, user-triggered questions and a three-column recent-meeting grid. No generation request runs on load.
+- Meeting presents Moment, Confirm and Outcomes beneath the timed strip. Evidence, confirmation mutations and Jira actions use the existing APIs. Summary is behind Listen and advanced notes. Transcript, People, Insights, Board, Ask, editing, sharing and confidentiality controls remain reachable.
+- Tasks uses a tappable date rail, selected rows, the existing Done/reassign/snooze/Jira flows and Undo. Waiting-person cards copy reminders only; they do not contact people. Empty days say “Nothing due that day.”
+- Memory keeps the conversation beside Sources and Related. Numbered citations select an actual returned source; its quote and timed strip remain visible. Scope selection, history, deletion, voice entry and conversation persistence keep their original API paths.
+- The public landing uses scripted, labelled previews exported from the same synthetic software-team corpus. Moment replay, the four-step walkthrough, languages and privacy examples run without account or provider calls. The login's existing demo and sign-in actions remain intact.
+- Live keeps its current microphone, task creation, speech and interruption workflow. This pass changes its frame and listening/speaking ring only. Other utility workflows and the Chrome extension are preserved; the extension's visual redesign is outside this pass.
 
-The desktop sidebar is a compact SaaS rail. Every product destination is a normal visible link; there is no **More** disclosure. A distinct **New meeting** action opens the existing capture and import options. The top bar owns command search; the sidebar must not duplicate it. The account menu remains available at the bottom. Admin appears only for admins. On phones, the bottom bar keeps the primary actions close and the menu opens the full destination list.
+## Density, access and motion
 
-Primary workflow: **Home → Meetings → Tasks → Delivery Radar → Decisions/Projects → Memory/Live**. Delivery Radar at `/delivery` uses accessible tasks, decisions, and projects. `/khata` redirects there for old bookmarks; the legacy khata API remains for integrations and is not promoted in the product UI.
+Minimum text, equal-height sibling panels and controls that change real state are the defaults. Never invent counts or evidence to fill space. The strip comes only from timed transcript segments. Roles and confidential access follow backend checks, including the rule that an uninvited admin cannot open a confidential meeting. A held task stays held until it is shared.
 
-## Page families
+Reduced motion stops sequences and auto-advance and shows final states. Keep keyboard navigation, visible focus and AA text contrast in both themes. Read [coordination.md](docs/coordination.md) before merges; preserve colleagues' backend and bot changes.
 
-- **Home:** capture action, actual live status, latest notes needing review, owned follow-ups, upcoming calendar, and a user-submitted Memory question. Keep loading, empty, and error states honest.
-- **Meetings:** source-backed notes and review. Preserve transcript evidence, access controls, recording consent, processing state, and links to the native FigJam meeting board.
-- **Tasks and Delivery Radar:** put the next action and owner first. The Radar derives attention from high-priority or overdue tasks and never invents project health.
-- **Decisions and Projects:** show why a choice was made, the source meeting, and related work. Let real activity counts carry the visual hierarchy.
-- **Memory and Live:** make question entry immediate. Cite accessible meetings; do not imply a voice or model answered when it did not.
-- **Voice lab:** lead with a short visual speech → insight → voice story and working Prisma/Timbre demos. Put advanced model controls in a clear disclosure. Keep Gnani attribution visible and avoid server configuration prose in the main view.
-- **Account and utility pages:** use the same typography, surface contrast, and action language as the workspace.
+## Demo data
 
-## Motion, accessibility, and trust
-
-Use motion to explain a signal or action. The live listening halo, short header traces, and slow Radar sweep are the main visual moments. Prefer transform and opacity, avoid continuously animating large painted surfaces, and provide `prefers-reduced-motion` fallbacks. Maintain visible focus, keyboard access, readable contrast, and responsive layouts.
-
-Recording consent, speaker uncertainty, confidential meetings, source evidence, and failed saves must remain explicit. A task from a meeting the viewer cannot open must not gain a source link. Demo content is synthetic and labelled. No new feature should make an external API call just to fill a dashboard with decorative data.
-
-## Verification
-
-Check `npm run typecheck` and `npm run build` in `frontend/`. Review desktop and phone browser renders for entry, Home, Meetings, Delivery Radar, Voice lab, and at least one detailed meeting route. Verify empty, loading, error, and reduced-motion states. The repository's ESLint command is currently blocked by TypeScript 7 support in typescript-eslint; this is separate from UI compilation.
-
-Read [docs/coordination.md](docs/coordination.md) before editing or merging shared work. Historical light/violet screenshots and design notes in `docs/` remain records of previous passes, not the current UI contract.
+`backend/app/services/demo_seed.py` and `backend/app/data/software_demo.py` contain authored, clearly labelled software-company scenarios: incidents, release gates, database choices, SSO, SDK migration, search decisions and a confidential security drill. Timings are illustrative synthetic data, not ASR evidence. Every task/decision quote points to a stored segment. No real Jira issue, email, calendar connection or customer credential is fabricated. Public previews are generated by `backend/scripts/export_demo_story.py`.
