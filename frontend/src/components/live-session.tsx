@@ -481,6 +481,8 @@ export function LiveSession() {
         <div className="live-starters">
           <span>Try asking</span>
           <p>“What did we decide in our last meeting?”</p>
+          <p>“Gupta ji ka kitna udhaar baaki hai?”</p>
+          <p>“Ramesh bhaiya ne 250 ka doodh udhaar liya” <span className="text-xs text-muted-foreground">(writes it in your khata)</span></p>
           <Link href="/memory">Prefer to type? Open Memory</Link>
         </div>
       )}
