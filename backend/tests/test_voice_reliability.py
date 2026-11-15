@@ -1,3 +1,4 @@
+import pytest
 import asyncio
 from unittest.mock import AsyncMock
 
@@ -107,3 +108,59 @@ async def test_cancel_reports_once_and_marks_the_cancelled_job_delivered(tmp_pat
     assert sent == ['Stopped the request. Completed changes were kept.']
     agent.delivered.assert_awaited_once_with(job)
     assert job not in session._pending_commands
+
+
+@pytest.mark.parametrize('text,language', [
+    ('முக்கிய முடிவுகள்: விலை மாற்றம் இல்லை.', 'ta-IN'),
+    ('ముఖ్య నిర్ణయాలు ఇవి.', 'te-IN'),
+    ('ಮುಖ್ಯ ನಿರ್ಧಾರಗಳು.', 'kn-IN'),
+    ('പ്രധാന തീരുമാനങ്ങൾ.', 'ml-IN'),
+    ('মূল সিদ্ধান্ত: দাম একই থাকবে।', 'bn-IN'),
+    ('મુખ્ય નિર્ણયો.', 'gu-IN'),
+    ('ਮੁੱਖ ਫੈਸਲੇ.', 'pa-IN'),
+    ('किंमत बदलणार नाही आणि लॉन्च शुक्रवारी आहे.', 'mr-IN'),
+    ('कीमत नहीं बदलेगी, लॉन्च शुक्रवार को है.', 'hi-en'),
+    ('Recap: Vedant ships the flow by Friday.', 'en-IN'),
+])
+def test_spoken_language_follows_the_script_of_the_answer(text, language):
+    assert tts_service.language_for_text(text) == language
+
+
+def test_off_the_record_words_never_leave_the_bot(tmp_path, monkeypatch):
+    clock = [100.0]
+    monkeypatch.setattr(meeting_session.time, 'monotonic', lambda: clock[0])
+    log = meeting_session.CaptionLog()
+    log.audio_started_at = 100.0
+    async def say(text, at, block=1):
+        clock[0] = at
+        await log.on_captions([{'id': block, 'speaker': 'Ravi', 'text': text}])
+    asyncio.run(say('launch is Friday', 101))
+    clock[0] = 105
+    assert log.pause()
+    asyncio.run(say('salary of Asha is twelve lakh', 106, block=2))
+    clock[0] = 110
+    assert log.resume()
+    asyncio.run(say('next we review pricing', 112, block=3))
+    text = ' '.join(item['text'] for item in log.export())
+    assert 'launch is Friday' in text and 'next we review pricing' in text
+    assert 'salary' not in text and 'lakh' not in text
+
+
+async def test_spoken_pause_mutes_the_recording_and_resume_unmutes(tmp_path, monkeypatch):
+    monkeypatch.setattr(meeting_session.config, 'SESSIONS_DIR', tmp_path)
+    calls = []
+    monkeypatch.setattr(meeting_session, '_pactl', lambda *args: calls.append(args) or '')
+    session = meeting_session.MeetingSession({'capture_request_id': 'test'})
+    sent = []
+    async def send(page, message):
+        sent.append(message)
+        return True
+    session.send_agent_message = send
+    assert await session.handle_control(None, meeting_session.Command('', 'pause recording'))
+    assert session.captions.paused and calls[-1] == ('set-sink-mute', session.sink, '1')
+    assert sent[-1].startswith('Paused.')
+    assert await session.handle_control(None, meeting_session.Command('', 'pause'))
+    assert sent[-1].startswith("I'm already paused")
+    assert await session.handle_control(None, meeting_session.Command('', 'resume'))
+    assert not session.captions.paused and calls[-1] == ('set-sink-mute', session.sink, '0')
+    assert sent[-1].startswith('Recording again')

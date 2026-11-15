@@ -12,6 +12,8 @@ Once admitted, the bot shows the Wilco mascot on camera, turns on captions and p
 | "Wilco, draw a signup, verification and payment flow" | Draws on the meeting board, or in the paired FigJam file |
 | "Wilco, undo that" / "move payment after verification" | Edits the board |
 | "status", "cancel that", "cancel all requests", "stop speaking" | Controls running requests |
+| "Wilco, pause recording" / "Wilco, resume" | Off the record: the recorded audio is muted and words said meanwhile never reach the transcript, notes or answers. A reminder is posted after 10 minutes |
+| "Wilco, recap in Tamil" (or any supported language) | Answers in that language and script, and speaks it with the matching Timbre voice |
 | "Wilco, please leave" or "notetaker please leave" | The bot leaves the call |
 
 Requests run as durable jobs on the backend (`app/services/meeting_agent.py`; see `docs/meeting-action-agent.md`). Board and FigJam details are in `docs/voice-whiteboard.md` and `docs/voice-figjam-reliability.md`. The bot's speech goes through an isolated Web Audio microphone (`browser_voice.py`), so meeting audio never feeds back into it.

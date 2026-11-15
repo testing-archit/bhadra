@@ -114,6 +114,7 @@ def join_notice(display_name: str, requested_by: str | None, app_url: str | None
         'Ask about this call by saying "Wilco, ..." out loud (with captions on) or typing it here. Repeat "Wilco" for each command.',
         'For a shared FigJam file, say "Wilco, open FigJam", connect it once, then ask "Wilco, draw a signup and payment flow".',
         'Record an action item with "Wilco, add task: Vedant to send the invoice by Friday".',
+        'For anything sensitive, say "Wilco, pause recording", then "Wilco, resume" when you are done.',
     ]
     if app_url:
         lines.append(f"Notes appear at {app_url}/meetings after the call.")

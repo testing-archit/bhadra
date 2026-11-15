@@ -156,7 +156,13 @@ SPEECH_IS_COMPANY_SECONDS = 30
 WAKE_RE = re.compile(r"\b(?:hey\s+)?(?:will?\s?co|wilko|vilco|char\s?cha+|charchaa|carcha|charchya)\b[\s,:.!-]+(.+?)(?=$|\b(?:hey\s+)?(?:will?\s?co|wilko|vilco|char\s?cha+|charchaa|carcha)\b)", re.IGNORECASE)
 # A spoken question is answered once its speaker has paused this long.
 SPOKEN_QUESTION_PAUSE_SECONDS = 0.8
-CONTROL_COMMANDS = {"stop", "stop speaking", "be quiet", "quiet", "cancel that", "cancel request",
+# A pause nobody ends shouldn't silently cost the rest of the meeting.
+PAUSE_REMINDER_SECONDS = 600
+PAUSE_COMMANDS = {"pause", "pause recording", "pause the recording", "pause the notes", "off the record",
+                  "go off the record", "recording pause karo", "recording roko"}
+RESUME_COMMANDS = {"resume", "resume recording", "resume the recording", "start recording again", "back on the record",
+                   "on the record", "recording resume karo", "recording chalu karo", "recording shuru karo"}
+CONTROL_COMMANDS = PAUSE_COMMANDS | RESUME_COMMANDS | {"stop", "stop speaking", "be quiet", "quiet", "cancel that", "cancel request",
                     "stop working", "cancel all requests", "status", "what are you doing", "what's running",
                     "stop presenting", "stop sharing", "stop presenting the board", "stop sharing the board"}
 
@@ -353,6 +359,32 @@ class CaptionLog:
         # Meet block id -> (speaker, latest text, last change); read by the
         # spoken wake word ("Wilco, ...") detector.
         self.latest: dict[int, tuple[str, str, float]] = {}
+        # "Wilco, pause recording": caption-clock intervals kept off the
+        # record. Words first heard inside one never leave the bot.
+        self.private: list[tuple[float, float]] = []
+        self.paused_at: float | None = None
+
+    @property
+    def paused(self) -> bool:
+        return self.paused_at is not None
+
+    def pause(self) -> bool:
+        if self.paused_at is not None:
+            return False
+        self.paused_at = self._now()
+        return True
+
+    def resume(self) -> bool:
+        if self.paused_at is None:
+            return False
+        self.private.append((self.paused_at, self._now()))
+        self.paused_at = None
+        return True
+
+    def _is_private(self, seen: float) -> bool:
+        if self.paused_at is not None and seen >= self.paused_at:
+            return True
+        return any(start <= seen <= end for start, end in self.private)
 
     def heard_within(self, seconds: float) -> bool:
         return self._last_heard is not None and time.monotonic() - self._last_heard <= seconds
@@ -410,6 +442,9 @@ class CaptionLog:
         for block in self._blocks.values():
             current: dict | None = None
             for word, seen in block["words"]:
+                if self._is_private(seen):
+                    current = None  # never join speech across an off-the-record stretch
+                    continue
                 if (
                     current is None
                     or seen - current["end"] > self.CHUNK_GAP_SECONDS
@@ -487,6 +522,8 @@ class MeetingSession:
         self._caption_sent_keys: set[tuple[str, float]] = set()
         self._caption_seq = 0
         self._board_active = False
+        self._paused_since: float | None = None
+        self._pause_reminded = False
         self._agent = None
         self._pending_commands = {}
         self._progress_shown = set()
@@ -915,10 +952,39 @@ class MeetingSession:
         await self.send_agent_message(page, message)
         return message
 
+    def set_recording_paused(self, paused: bool) -> bool:
+        """Off the record: silence the recorded sink and hide new captions.
+        Wilco's own voice uses a separate microphone, so it can still reply."""
+        changed = self.captions.pause() if paused else self.captions.resume()
+        if changed:
+            try:
+                _pactl("set-sink-mute", self.sink, "1" if paused else "0")
+            except Exception as error:
+                log.warning("Could not %s the recorded audio (%s)", "mute" if paused else "unmute", type(error).__name__)
+            self._paused_since = time.monotonic() if paused else None
+            self._pause_reminded = False
+            log.info("Recording %s", "paused" if paused else "resumed")
+        return changed
+
     async def handle_control(self, page, command):
         control = normalize(command.question)
         if control not in CONTROL_COMMANDS:
             return False
+        if control in PAUSE_COMMANDS:
+            changed = await asyncio.to_thread(self.set_recording_paused, True)
+            message = ("Paused. I'm not recording or taking notes until someone says \u201cWilco, resume\u201d."
+                       if changed else "I'm already paused. Say \u201cWilco, resume\u201d to continue.")
+            await self.send_agent_message(page, message)
+            if self._agent_runtime:
+                await self._agent_runtime.enqueue_reply(command, "Paused. Say Wilco, resume, when you're ready.")
+            return True
+        if control in RESUME_COMMANDS:
+            changed = await asyncio.to_thread(self.set_recording_paused, False)
+            message = "Recording again. Notes pick up from here." if changed else "I'm already recording."
+            await self.send_agent_message(page, message)
+            if changed and self._agent_runtime:
+                await self._agent_runtime.enqueue_reply(command, "Recording again.")
+            return True
         if control in {"stop presenting", "stop sharing", "stop presenting the board", "stop sharing the board"}:
             if config.PRESENT_BOARD and self.USES_GOOGLE_LOGIN:
                 async with self._browser_lock:
@@ -1197,6 +1263,13 @@ class MeetingSession:
                 limit = config.ALONE_TIMEOUT_SECONDS if others_seen else config.WAIT_FOR_OTHERS_SECONDS
                 if time.monotonic() - alone_since > limit:
                     return "everyone else left" if others_seen else "nobody joined"
+            if (self._paused_since is not None and not self._pause_reminded
+                    and time.monotonic() - self._paused_since > PAUSE_REMINDER_SECONDS):
+                self._pause_reminded = True
+                try:
+                    await self.send_agent_message(page, "Still paused: nothing has been recorded for 10 minutes. Say \u201cWilco, resume\u201d to start the notes again.")
+                except Exception as error:
+                    log.warning("Pause reminder failed (%s)", type(error).__name__)
             await asyncio.sleep(5)
 
     async def leave(self, page: Page) -> None:

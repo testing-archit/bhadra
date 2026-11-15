@@ -112,8 +112,26 @@ def voice_for(language: str) -> tuple[str, str]:
     return settings.gnani_tts_multilingual_model, settings.gnani_tts_multilingual_voice
 
 
+# Unicode block -> Timbre language, for answers written in a regional script
+# ("Wilco, recap in Tamil"). The English voice can't read these.
+_SCRIPTS = (
+    (r'[\u0b80-\u0bff]', 'ta-IN'), (r'[\u0c00-\u0c7f]', 'te-IN'), (r'[\u0c80-\u0cff]', 'kn-IN'),
+    (r'[\u0d00-\u0d7f]', 'ml-IN'), (r'[\u0980-\u09ff]', 'bn-IN'), (r'[\u0a80-\u0aff]', 'gu-IN'),
+    (r'[\u0a00-\u0a7f]', 'pa-IN'),
+)
+_MARATHI = re.compile(r'(?:आहे|आहेत|आणि|झाले|झाला|पाहिजे|करायचे|नाही)')
+
+
 def language_for_text(text: str) -> str:
-    if re.search(r'[\u0900-\u097f]', text) or re.search(r'\b(?:hai|hain|haan|nahi|nahin|aap|kya|karna|karo|ji|bana|theek)\b', text, re.I):
+    """The Timbre language to read `text` in, from its script and words."""
+    counts = {language: len(re.findall(pattern, text)) for pattern, language in _SCRIPTS}
+    devanagari = len(re.findall(r'[\u0900-\u097f]', text))
+    language, letters = max(counts.items(), key=lambda item: item[1])
+    if letters and letters >= devanagari:
+        return language
+    if devanagari:
+        return 'mr-IN' if _MARATHI.search(text) else 'hi-en'
+    if re.search(r'\b(?:hai|hain|haan|nahi|nahin|aap|kya|karna|karo|ji|bana|theek)\b', text, re.I):
         return 'hi-en'
     return 'en-IN'
 
