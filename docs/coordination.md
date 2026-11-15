@@ -174,3 +174,10 @@ Checkpoint verification: 534 backend tests pass against disposable local Postgre
 ## Software-team UI refresh, 15 November 2026
 
 The user requested a more expressive interface across all pages and replaced the retail Voice khata page with Delivery Radar. Codex built this on isolated branch `codex/ui-refresh-20261115` in `/Users/archit/Desktop/charcha-ui-refresh-20261115`; the shared checkout remains untouched. Work was divided across core work pages, meeting intelligence pages, support pages, and public utility pages. `/delivery` uses existing accessible task, decision, and project APIs, while `/khata` redirects there. Legacy khata API routes remain for existing integrations. Scoped styles add responsive signal graphics and reduced-motion fallbacks. The branch includes the latest `origin/main` FigJam work via merge `8e53521`, preserving its native board changes. Frontend production build/typecheck and desktop/mobile browser renders pass. This topic branch has not been merged into `main` or deployed.
+
+
+## Meeting response latency scope, 15 November 2026
+
+Codex owns a focused latency fix in `/private/tmp/wilco-meeting-latency` on `codex/meeting-latency-20261115`, based on fetched main `5e62c81`. Scope: live answer/task model selection, bot caption intake and independent speech/chat delivery, plus regression checks. Preserve incoming native FigJam, camera and frontend work. No active meeting is restarted for validation.
+
+Latency fix verified: 540 backend tests passed with disposable Postgres; Chromium multiline/retry checks passed for both supported chat input types. Changes explicitly select the fast meeting model, prioritize spoken intake, bound chat browser-lock occupancy, and queue speech independently of chat/delivery acknowledgments with retry deduplication. Details and live-measurement limits: `docs/meeting-response-latency.md`. Release uses prior voice reliability deployment authorization and the idle-aware notetaker update.

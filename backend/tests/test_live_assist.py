@@ -109,3 +109,16 @@ async def test_bot_speak_returns_timbre_audio(client):
     assert response.status_code == 200
     assert response.headers["content-type"] == "audio/mpeg"
     assert response.content == b"ID3audio"
+
+
+def test_interactive_meeting_tools_use_the_fast_model():
+    with patch.object(settings, "gemini_api_key", "test"), patch.object(settings, "gemini_fast_model", "test-fast"), patch(
+        "app.services.gemini_service.generate_text", return_value=("Vedant ships by Friday.", {})
+    ) as generate:
+        live_assist.answer("who ships?", CAPTIONS, timeout_seconds=7)
+        assert generate.call_args.kwargs["model"] == "test-fast"
+        assert generate.call_args.kwargs["timeout_seconds"] == 7
+        assert generate.call_args.kwargs["thinking_budget"] == 0
+        live_assist.parse_task("Vedant ships Friday", timeout_seconds=7)
+        assert generate.call_args.kwargs["model"] == "test-fast"
+        assert generate.call_args.kwargs["timeout_seconds"] == 7

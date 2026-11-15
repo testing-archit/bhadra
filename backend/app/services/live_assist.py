@@ -82,7 +82,7 @@ def answer(question: str, captions: list[dict], meeting_title: str = "", *, time
         + f"{facts}\n\nTranscript so far:\n{transcript}\n\nQuestion: {question.strip()}"
     )
     text, _usage = gemini_service.generate_text(
-        SYSTEM_PROMPT, prompt, max_output_tokens=500, temperature=0.2, thinking_budget=0, feature="live_answer", **({"timeout_seconds": timeout_seconds} if timeout_seconds else {})
+        SYSTEM_PROMPT, prompt, max_output_tokens=500, temperature=0.2, thinking_budget=0, feature="live_answer", model=settings.gemini_fast_model, **({"timeout_seconds": timeout_seconds} if timeout_seconds else {})
     )
     return _clean(text) or "I couldn't put an answer together for that. Try asking another way."
 
@@ -99,7 +99,7 @@ def parse_task(text: str, *, timeout_seconds=None) -> dict:
         return fallback
     try:
         reply, _usage = gemini_service.generate_text(
-            TASK_PROMPT, text, max_output_tokens=200, temperature=0.0, thinking_budget=0, feature="live_task", **({"timeout_seconds": timeout_seconds} if timeout_seconds else {})
+            TASK_PROMPT, text, max_output_tokens=200, temperature=0.0, thinking_budget=0, feature="live_task", model=settings.gemini_fast_model, **({"timeout_seconds": timeout_seconds} if timeout_seconds else {})
         )
         match = re.search(r"\{.*\}", reply, re.S)
         data = json.loads(match.group(0)) if match else {}

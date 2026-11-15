@@ -216,3 +216,74 @@ async def test_standin_answer_is_labelled_ai_and_spoken_in_the_cloned_voice(tmp_
     assert events[0][0] == 'chat' and "AI stand-in (AI voice, not Vedant live)" in events[0][1]
     assert events[1] == ('speak', "Vedant's AI stand-in will answer, in an AI copy of Vedant's voice.")
     assert events[2] == ('play', b'ID3')
+
+
+async def test_spoken_command_intake_does_not_wait_for_chat_lock(tmp_path, monkeypatch):
+    monkeypatch.setattr(meeting_session.config, 'SESSIONS_DIR', tmp_path)
+    monkeypatch.setattr(meeting_session.config, 'ANSWER_IN_CHAT', True)
+    session = meeting_session.MeetingSession({})
+    session.spoken_questions = lambda: [('Ravi', 'recap please')]
+    async with session._browser_lock:
+        commands = await asyncio.wait_for(session.discover_commands(None), 0.1)
+    assert [command.question for command in commands] == ['recap please']
+
+
+@pytest.mark.parametrize('chat_ok', [True, False])
+async def test_result_speech_starts_before_chat_and_is_not_repeated(tmp_path, monkeypatch, chat_ok):
+    monkeypatch.setattr(meeting_session.config, 'SESSIONS_DIR', tmp_path)
+    session = meeting_session.MeetingSession({'capture_request_id': 'test'})
+    runtime = AsyncMock()
+    agent = session._agent = AsyncMock()
+    result = {'command_id': 'cmd1', 'state': 'succeeded', 'result': {'message': 'Pricing stays the same.'}}
+    agent.outstanding.return_value = [result]
+    visited_twice = asyncio.Event()
+    calls = 0
+    async def send(page, message):
+        nonlocal calls
+        calls += 1
+        # Voice synthesis is scheduled even if the chat attempt stalls/fails.
+        runtime.enqueue_reply.assert_awaited_once()
+        if calls == 2:
+            visited_twice.set()
+        return chat_ok
+    session.send_agent_message = send
+    async def delivered(identifier):
+        # Simulate a lost acknowledgment, so the next status repeats the result.
+        raise RuntimeError('ack lost')
+    agent.delivered.side_effect = delivered
+    task = asyncio.create_task(session.agent_results_loop(None, runtime))
+    try:
+        await asyncio.wait_for(visited_twice.wait(), 2)
+    finally:
+        task.cancel()
+        await asyncio.gather(task, return_exceptions=True)
+    runtime.enqueue_reply.assert_awaited_once()
+    if chat_ok:
+        assert agent.delivered.await_count == 2
+    else:
+        agent.delivered.assert_not_awaited()
+
+
+async def test_stalled_chat_releases_microphone_lock(tmp_path, monkeypatch):
+    monkeypatch.setattr(meeting_session.config, 'SESSIONS_DIR', tmp_path)
+    session = meeting_session.MeetingSession({})
+    entered = asyncio.Event()
+    async def stalled(*args):
+        entered.set()
+        await asyncio.Event().wait()
+    monkeypatch.setattr(meeting_session.meet_chat, 'send', stalled)
+    task = asyncio.create_task(session.send_agent_message(None, 'Ready.'))
+    await entered.wait()
+    assert await asyncio.wait_for(task, 3) is False
+    assert not session._browser_lock.locked()
+
+
+async def test_chat_discovery_does_not_block_new_captions(tmp_path, monkeypatch):
+    monkeypatch.setattr(meeting_session.config, 'SESSIONS_DIR', tmp_path)
+    monkeypatch.setattr(meeting_session.config, 'ANSWER_IN_CHAT', True)
+    session = meeting_session.MeetingSession({})
+    async def stalled(*args):
+        await asyncio.Event().wait()
+    monkeypatch.setattr(meeting_session.meet_chat, 'open_panel', stalled)
+    assert await asyncio.wait_for(session.discover_commands(None), 1) == []
+    assert not session._browser_lock.locked()
