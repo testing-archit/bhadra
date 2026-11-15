@@ -44,7 +44,7 @@ const MAX_UTTERANCE_MS = 30_000;
 
 /** Wilco Live: a hands-free spoken conversation, like Gemini Live, built
  * on Gnani. Prisma hears each utterance, Gemini answers from your meetings,
- * Timbre says it; talking over Wilco stops it and it listens. */
+ * Timbre says it. Interrupt stops playback before listening resumes. */
 export function LiveSession() {
   const [phase, setPhase] = useState<Phase>("idle");
   const [turns, setTurns] = useState<Turn[]>([]);
@@ -413,7 +413,7 @@ export function LiveSession() {
       </div>
       <p className="live-helper">
         {active
-          ? "Speak naturally. You can interrupt Wilco."
+          ? "Speak naturally. Tap Interrupt to speak during a reply."
           : "Your microphone turns on only when you start."}
       </p>
       {error && (

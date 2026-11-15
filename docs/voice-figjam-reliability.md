@@ -45,10 +45,11 @@ The built-in live draft is now optional and does not mount or run its polling wh
 ## Verification
 
 - 468 backend tests passed on isolated Postgres, including paired/unpaired routing, token scope/replay, native acknowledgment, cancellation, cross-origin scope, command recognition, mixed instructions, priority admission and audio cancellation.
-- Three Node tests exercised the native shape/connector implementation, replay, human-edit conflicts, and preservation of unrelated objects.
+- Five Node tests exercised the native shape/connector implementation, replay, human-edit conflicts, locks/deletions during planning, and preservation of unrelated objects.
 - Frontend typecheck and production build passed.
 - Real Chromium/WebRTC audio proof: 24 kHz synthetic speech decoded at 48 kHz, remote RMS 0.19454 with dominant frequency 433.59 Hz for a 440 Hz source, unrelated speaker RMS below 0.005, stopped RMS zero, malformed audio rejected. This is synthetic transport validation, not a real Meet voice test.
 - Native MLflow dataset/scorer evaluation: 10 synthetic command routes, all correct. Run `414daf761f2f45a9a0385cc8bec0d489`; persisted application trace `tr-d16c0829b723472e1d542df8fe127eec`. This evaluates routing, not live model/audio accuracy or Figma account access.
+- Browser walkthrough: pairing/code copy, connected shared link, no hidden-draft requests, mobile overflow, speaker-echo injection without another turn, and interruption followed by another captured turn all passed. API writes and voice responses were mocked; the browser used real Web Audio/MediaRecorder playback with a synthetic tone. [Desktop](screenshots/wilco-figjam-connection.png) / [mobile](screenshots/wilco-figjam-mobile.png).
 
 Reproduce the optional evaluation and browser proof with the tracing/browser tools installed:
 

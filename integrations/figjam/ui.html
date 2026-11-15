@@ -25,5 +25,6 @@ window.onmessage=event=>{
   if (!message) return;
   document.getElementById('status').textContent=message.status;
   if(message.connected){document.getElementById('code').value='';document.getElementById('pair').hidden=true;}
+  if(message.connected===false){document.getElementById('code').value='';document.getElementById('pair').hidden=false;}
 };
 </script></html>

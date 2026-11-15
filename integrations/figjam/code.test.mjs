@@ -55,3 +55,14 @@ test('unmanaged FigJam objects are preserved and unchanged points keep human edi
   assert.equal(s.nodes[1].x,120);
   assert.ok(s.nodes.includes(human));
 });
+for (const change of ['lock','delete']) test(`a concurrent ${change} blocks a new connection before creating points`,()=>{
+  const s=setup();
+  const before={nodes:[point('signup','Signup')],edges:[]};
+  s.apply(empty,before);
+  if(change==='lock') s.nodes[0].locked=true;
+  else s.nodes[0].remove();
+  const count=s.nodes.length;
+  const after={nodes:[point('signup','Signup'),point('payment','Payment',450)],edges:[{id:'edge',source:'signup',target:'payment'}]};
+  assert.equal(s.apply(before,after),'conflict');
+  assert.equal(s.nodes.length,count);
+});
