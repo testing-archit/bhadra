@@ -19,10 +19,12 @@ export function CitedMarkdown({
   content,
   sources,
   onCite,
+  numbers=false,
 }: {
   content: string;
   sources: ChatSource[];
   onCite: (citation: ResolvedCitation) => void;
+  numbers?:boolean;
 }) {
   const byTag = new Map(sources.filter((s) => s.tag).map((s) => [s.tag as string, s]));
   const multiMeeting = byTag.size > 1;
@@ -36,7 +38,7 @@ export function CitedMarkdown({
     const key = `M${meeting}${seq !== undefined ? `-S${seq}` : ""}`;
     resolved.set(key, { source, segment });
     const time = segment ? (segment.start_ms !== null ? formatClock(segment.start_ms) : `line ${segment.seq + 1}`) : "notes";
-    const label = multiMeeting ? `M${meeting} · ${time}` : time;
+    const label = numbers ? meeting : multiMeeting ? `M${meeting} · ${time}` : time;
     return ` [${label}](#cite-${key})`;
   });
 
@@ -59,6 +61,7 @@ export function CitedMarkdown({
                 <button
                   type="button"
                   onClick={() => onCite(citation)}
+                  aria-label={numbers?`Source ${citation.source.tag?.replace("M","")}: ${citation.source.meeting_title}`:undefined}
                   title={citation.segment ? `${citation.segment.speaker}: “${citation.segment.excerpt}”` : citation.source.meeting_title}
                   className="mx-0.5 inline-flex items-center rounded border bg-muted/60 px-1 py-px align-baseline text-[11px] font-medium text-foreground/80 hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >

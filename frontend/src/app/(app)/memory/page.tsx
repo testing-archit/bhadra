@@ -23,7 +23,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { ChatMarkdown } from "@/components/chat-markdown";
-import "../../hackathon-intelligence.css";
+import { MemorySourceRail, memorySourceKey } from "@/components/memory-source-rail";
 import { CitedMarkdown, ResolvedCitation } from "@/components/cited-markdown";
 import { ChatActions } from "@/components/chat-actions";
 import { VoiceAskButton } from "@/components/voice-ask-button";
@@ -66,6 +66,8 @@ export default function MemoryPage() {
     MemoryConversationSummary[]
   >([]);
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [sourceSelection,setSourceSelection]=useState<{key:string;seq?:number}|null>(null);
+  const [inspectedSources,setInspectedSources]=useState<ChatSource[]|null>(null);
   const [query, setQuery] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -91,7 +93,7 @@ export default function MemoryPage() {
     ? scopedMeeting.title
     : scope.length
       ? `${scope.length} meetings`
-      : "All my meetings";
+      : meetings.length?`${meetings.length} meetings`:"All meetings";
   const active = entries.length > 0;
 
   useEffect(() => {
@@ -128,6 +130,7 @@ export default function MemoryPage() {
     setActiveId(null);
     setScope(nextScope);
     setEntries([]);
+    setInspectedSources(null);setSourceSelection(null);
     setQuery("");
     setError(null);
     setLastFailedQuestion(null);
@@ -149,16 +152,10 @@ export default function MemoryPage() {
     );
   }
 
-  function openCitation(citation: ResolvedCitation) {
-    const meetingId = citation.source.meeting_id;
-    if (!meetingId) return;
-    const segment = citation.segment;
-    const params = new URLSearchParams();
-    if (segment?.segment_id) {
-      params.set("segment", segment.segment_id);
-      if (segment.start_ms !== null) params.set("t", String(segment.start_ms));
-    }
-    router.push(`/meetings/${meetingId}${params.size ? `?${params}` : ""}`);
+  function openCitation(citation:ResolvedCitation){
+    const key=memorySourceKey(citation.source);
+    setSourceSelection({key,seq:citation.segment?.seq});
+    requestAnimationFrame(()=>document.getElementById(`memory-source-${key}`)?.scrollIntoView({block:"nearest",behavior:matchMedia("(prefers-reduced-motion: reduce)").matches?"instant":"smooth"}));
   }
 
   async function openConversation(conversation: MemoryConversationSummary) {
@@ -212,6 +209,7 @@ export default function MemoryPage() {
   async function ask(question: string, spoken = false) {
     if (!question || busy || opening) return;
     stick.pin();
+    setInspectedSources(null);setSourceSelection(null);
     const history = entries.map(({ role, content }) => ({ role, content }));
     setEntries((previous) => [
       ...previous,
@@ -281,57 +279,7 @@ export default function MemoryPage() {
     }
   }
 
-  const composer = (
-    <div className="memory-compose-wrap">
-      <form
-        onSubmit={(event) => {
-          event.preventDefault();
-          void ask(query.trim());
-        }}
-        className="memory-composer"
-        aria-label="Ask your meetings"
-      >
-        <Textarea
-          ref={inputRef}
-          aria-label="Question about your meetings"
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-          onKeyDown={(event) => {
-            if (
-              event.key === "Enter" &&
-              !event.shiftKey &&
-              !event.nativeEvent.isComposing
-            ) {
-              event.preventDefault();
-              void ask(query.trim());
-            }
-          }}
-          placeholder={
-            scopedMeeting
-              ? `Ask about “${scopedMeeting.title}”…`
-              : scope.length > 1
-                ? "Ask across the selected meetings…"
-                : "Ask anything from your meetings…"
-          }
-          rows={2}
-          className="min-h-16 resize-none border-0 bg-transparent dark:bg-transparent px-3 py-2 shadow-none focus-visible:ring-0"
-        />
-        <VoiceAskButton
-          disabled={busy || opening}
-          onQuestion={(text) => void ask(text, true)}
-          onError={setError}
-        />
-        <Button
-          type="submit"
-          size="icon"
-          disabled={busy || opening || !query.trim()}
-          aria-label="Send question"
-          className="h-10 w-10 shrink-0 rounded-xl"
-        >
-          <Send className="h-4 w-4" />
-        </Button>
-      </form>
-      <div className="memory-compose-meta">
+  const sourcePicker=(
         <Dialog
           open={scopeOpen}
           onOpenChange={(open) => {
@@ -430,15 +378,69 @@ export default function MemoryPage() {
             </div>
           </DialogContent>
         </Dialog>
-        <span>Answers with meeting sources</span>
+  );
+  const latestSources=inspectedSources??[...entries].reverse().find(entry=>entry.role==="assistant"&&entry.sources?.length)?.sources??[];
+  const composer = (
+    <div className="memory-compose-wrap">
+      <form
+        onSubmit={(event) => {
+          event.preventDefault();
+          void ask(query.trim());
+        }}
+        className="memory-composer"
+        aria-label="Ask your meetings"
+      >
+        <Textarea
+          ref={inputRef}
+          aria-label="Question about your meetings"
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          onKeyDown={(event) => {
+            if (
+              event.key === "Enter" &&
+              !event.shiftKey &&
+              !event.nativeEvent.isComposing
+            ) {
+              event.preventDefault();
+              void ask(query.trim());
+            }
+          }}
+          placeholder={
+            scopedMeeting
+              ? `Ask about “${scopedMeeting.title}”…`
+              : scope.length > 1
+                ? "Ask across the selected meetings…"
+                : "Ask anything from your meetings…"
+          }
+          rows={2}
+          className="min-h-16 resize-none border-0 bg-transparent dark:bg-transparent px-3 py-2 shadow-none focus-visible:ring-0"
+        />
+        <VoiceAskButton
+          disabled={busy || opening}
+          onQuestion={(text) => void ask(text, true)}
+          onError={setError}
+        />
+        <Button
+          type="submit"
+          size="icon"
+          disabled={busy || opening || !query.trim()}
+          aria-label="Send question"
+          className="h-10 w-10 shrink-0 rounded-xl"
+        >
+          <Send className="h-4 w-4" />
+        </Button>
+      </form>
+      <div className="memory-compose-meta">
+
+
       </div>
     </div>
   );
 
   return (
-    <div className="signal-intelligence-page signal-memory-page memory-studio" data-active={active}>
+    <div className="memory-studio engagement-memory" data-active={active}>
       <div className="memory-toolbar">
-        <span className="memory-toolbar-label">Your meeting memory</span>
+        {sourcePicker}
         <div>
           <Dialog open={historyOpen} onOpenChange={setHistoryOpen}>
             <DialogTrigger
@@ -521,12 +523,12 @@ export default function MemoryPage() {
           </Button>
         </div>
       </div>
+      <div className="memory-work-columns">
       {!active ? (
         <div className="memory-start">
           <div className="memory-intro">
             <div>
-              <p>Decisions, blockers, and the why behind them.</p>
-              <h1>Ask your team memory.</h1>
+              <h1 className="two-tone">It’s in your meetings.<span>Let’s find it.</span></h1>
             </div>
             <WilcoMascot className="memory-mascot" />
           </div>
@@ -541,8 +543,7 @@ export default function MemoryPage() {
                 key={label}
                 type="button"
                 onClick={() => {
-                  setQuery(question);
-                  inputRef.current?.focus();
+                  void ask(question);
                 }}
               >
                 {label}
@@ -607,7 +608,7 @@ export default function MemoryPage() {
                     key={index}
                     className="flex max-w-[82%] flex-col items-end self-end"
                   >
-                    <div className="rounded-[20px] rounded-br-md bg-primary px-4 py-3 text-sm leading-6 text-primary-foreground shadow-sm">
+                    <div className="memory-user-bubble rounded-[20px] rounded-br-md bg-primary px-4 py-3 text-sm leading-6 text-primary-foreground shadow-sm">
                       <p className="whitespace-pre-wrap">{entry.content}</p>
                     </div>
                     <span className="mt-1.5 pr-1 text-[10px] text-muted-foreground">
@@ -631,19 +632,18 @@ export default function MemoryPage() {
                           {messageTime(entry.createdAt)}
                         </span>
                       </div>
-                      <div className="rounded-[20px] rounded-tl-md border bg-card px-4 py-4 leading-6 shadow-[0_10px_28px_-24px_rgba(15,45,38,0.7)] sm:px-5">
+                      <div className="memory-answer rounded-[20px] rounded-tl-md border bg-card px-4 py-4 leading-6 shadow-[0_10px_28px_-24px_rgba(15,45,38,0.7)] sm:px-5">
                         {entry.sources?.some((source) => source.tag) ? (
                           <CitedMarkdown
+                            numbers
                             content={entry.content}
                             sources={entry.sources}
-                            onCite={openCitation}
+                            onCite={citation=>{setInspectedSources(entry.sources??[]);openCitation(citation);}}
                           />
                         ) : (
                           <ChatMarkdown content={entry.content} />
                         )}
-                        {entry.sources && entry.sources.length > 0 && (
-                          <MemorySources sources={entry.sources} />
-                        )}
+
                       </div>
                       <ChatActions
                         content={entry.content}
@@ -694,56 +694,9 @@ export default function MemoryPage() {
           {composer}
         </section>
       )}
+      <MemorySourceRail sources={latestSources} meetings={meetings} selected={sourceSelection} onSelect={source=>{if(!latestSources.length){const meeting=meetings.find(row=>row.id===source.meeting_id);if(meeting)chooseScope(meeting);}setSourceSelection({key:memorySourceKey(source),seq:source.segments?.[0]?.seq});}} onAsk={question=>void ask(question)} busy={busy||opening}/>
+      </div>
     </div>
   );
 }
 
-function MemorySources({ sources }: { sources: ChatSource[] }) {
-  return (
-    <details className="group/sources mt-4 border-t pt-3">
-      <summary className="flex cursor-pointer list-none items-center gap-2 text-xs font-medium text-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary/20">
-        <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-accent text-foreground">
-          <CalendarDays className="h-3.5 w-3.5" />
-        </span>
-        Sources · {sources.length} meeting{sources.length === 1 ? "" : "s"}
-        <ChevronDown className="ml-auto h-3.5 w-3.5 transition-transform group-open/sources:rotate-180" />
-      </summary>
-      <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
-        {sources.map((source, index) => {
-          const body = (
-            <>
-              <span className="block truncate text-xs font-medium text-foreground">
-                {source.meeting_title}
-              </span>
-              <span className="mt-1 flex items-center justify-between gap-2 text-[10px] text-muted-foreground">
-                {new Date(source.meeting_date).toLocaleDateString()}
-                {source.segments &&
-                  source.segments.length > 0 &&
-                  ` · ${source.segments.length} cited line${source.segments.length === 1 ? "" : "s"}`}
-                {source.meeting_id && (
-                  <ExternalLink className="ml-auto h-3 w-3" />
-                )}
-              </span>
-            </>
-          );
-          return source.meeting_id ? (
-            <Link
-              key={`${source.meeting_id}-${index}`}
-              href={`/meetings/${source.meeting_id}`}
-              className="rounded-lg border bg-muted/50 px-3 py-2.5 transition-colors hover:border-border hover:bg-card"
-            >
-              {body}
-            </Link>
-          ) : (
-            <div
-              key={`${source.meeting_title}-${index}`}
-              className="rounded-lg border bg-muted/50 px-3 py-2.5"
-            >
-              {body}
-            </div>
-          );
-        })}
-      </div>
-    </details>
-  );
-}
