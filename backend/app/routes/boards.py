@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.database.db import get_db
 from app.database.models import CaptureRequest, FigJamConnection, LiveCaption, Meeting, MeetingBoard, MeetingBoardRevision, User
 from app.dependencies import get_current_user, user_can_read_meeting
-from app.services import board_service, capture_service, mermaid_safety
+from app.services import board_service, capture_service, excalidraw_safety, mermaid_safety
 
 
 router = APIRouter(prefix="/api/boards", tags=["boards"])
@@ -44,6 +44,7 @@ class BoardNode(BaseModel):
     locked: bool = False
     source_start_ms: int | None = Field(default=None, ge=0)
     source_id: str | None = Field(default=None, max_length=120)
+    scene: dict | None = None  # Excalidraw drawing of a diagram, edited after the call
 
 
 class BoardEdge(BaseModel):
@@ -71,6 +72,10 @@ class BoardUpdate(BaseModel):
         for node in self.nodes:
             if node.kind == "diagram":
                 node.text = mermaid_safety.clean(node.text)
+                if node.scene is not None:
+                    node.scene = excalidraw_safety.clean_scene(node.scene)
+            elif node.scene is not None:
+                raise ValueError("Only diagrams can hold a drawing")
         return self
 
 
@@ -154,10 +159,12 @@ async def update_board(
     nodes = []
     for entry in body.nodes:
         node = entry.model_dump()
+        if node["scene"] is None:
+            node.pop("scene")
         previous = old.get(node["id"])
         if previous:
             # An edited AI node becomes human-owned; later AI updates leave it alone.
-            changed = any(previous.get(key) != node[key] for key in ("kind", "title", "text", "x", "y", "locked"))
+            changed = any(previous.get(key) != node.get(key) for key in ("kind", "title", "text", "x", "y", "locked", "scene"))
             node["origin"] = "manual" if changed or previous.get("origin") == "manual" else "ai"
             node["source_start_ms"] = previous.get("source_start_ms")
             node["source_id"] = previous.get("source_id")

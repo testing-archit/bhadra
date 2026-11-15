@@ -534,7 +534,10 @@ async def bot_board_state(request_id: uuid.UUID, db: AsyncSession = Depends(get_
     from app.services import figjam_service
     connection = await figjam_service.connection_for(db, request_id)
     await db.commit()
-    return {**board_service.serialize(board), 'external_url': connection.file_url if connection else None}
+    state = board_service.serialize(board)
+    # The bot polls every two seconds and presents Mermaid; drawings stay in the app.
+    state['nodes'] = [{key: value for key, value in node.items() if key != 'scene'} for node in state['nodes']]
+    return {**state, 'external_url': connection.file_url if connection else None}
 
 
 @router.post("/capture-requests/{request_id}/board/commands", dependencies=[Depends(require_bot)])
