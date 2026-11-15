@@ -65,3 +65,31 @@ def test_tamil_uses_the_multilingual_voice():
     from app.services import tts_service
     assert tts_service.voice_for("ta-IN") == ("timbre-v3.0", "Shivani")
     assert tts_service.voice_for("hi-en") == ("timbre-v2.5", "Nalini")
+
+
+def test_spoken_task_requests_are_recognised_but_questions_are_not():
+    assert live_conversation.looks_like_task("Vedant ko login bug Friday tak fix karna hai, task bana do")
+    assert live_conversation.looks_like_task("Add a task for Priya to publish the postmortem by Monday")
+    assert live_conversation.looks_like_task("remind me to review the webhook PR")
+    assert not live_conversation.looks_like_task("Which tasks are open for Vedant?")
+    assert not live_conversation.looks_like_task("What did we decide about the rollout")
+
+
+async def test_live_creates_a_real_task_from_a_spoken_request(client, member_user):
+    from unittest.mock import AsyncMock
+    heard = {"turns": [{"text": "Vedant ko login bug Friday tak fix karna hai, task bana do"}], "language": "hi-IN"}
+    parsed = {"owner": "Vedant", "description": "Fix the login bug", "deadline": "Friday"}
+    with patch.object(settings, "gnani_api_key", "test"), \
+         patch("app.services.transcriber.transcribe_audio_detailed", return_value=heard), \
+         patch("app.services.live_assist.parse_task", return_value=parsed), \
+         patch("app.services.gemini_service.generate_text") as llm, \
+         patch("app.services.tts_service.synthesize", new=AsyncMock(return_value=b"ID3")):
+        response = await client.post("/api/live/turn", files={"audio": ("t.webm", b"x", "audio/webm")}, headers=auth_headers(member_user))
+    body = response.json()
+    assert body["reply"] == "Task bana diya: Fix the login bug, Vedant ke liye, Friday tak."
+    assert body["task_added"]["description"] == "Fix the login bug"
+    llm.assert_not_called()
+    tasks = (await client.get("/api/tasks", headers=auth_headers(member_user))).json()
+    created = [t for t in tasks if t["description"] == "Fix the login bug"]
+    assert created and created[0]["origin"] == "live"
+    await client.delete(f"/api/tasks/{created[0]['id']}", headers=auth_headers(member_user))

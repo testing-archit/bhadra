@@ -251,49 +251,41 @@ async def create_task(
     if not body.description.strip():
         raise HTTPException(status_code=400, detail="Description is required")
 
-    result = await db.execute(
-        select(Meeting).where(
-            Meeting.user_id == user.id,
-            Meeting.title == MANUAL_TASKS_MEETING_TITLE,
-            Meeting.deleted_at.is_(None),
-        )
-    )
-    meeting = result.scalar_one_or_none()
-    if meeting is None:
-        meeting = Meeting(
-            user_id=user.id,
-            title=MANUAL_TASKS_MEETING_TITLE,
-            date=datetime.datetime.now(datetime.UTC),
-            duration_minutes=0,
-            department=user.department,
-        )
-        db.add(meeting)
-        await db.flush()
-
     if body.parent_task_id:
         try:
             await _get_owned_task(body.parent_task_id, user, db)
         except HTTPException:
             raise HTTPException(status_code=404, detail="Parent task not found")
+    task, meeting = await add_manual_task(
+        db, user, owner=body.owner, description=body.description, deadline=body.deadline,
+        due_date=body.due_date, priority=body.priority, parent_task_id=body.parent_task_id,
+    )
+    return _serialize(task, meeting.title, meeting.date, None, _relation(task, user, meeting.user_id, None))
 
+
+async def add_manual_task(db: AsyncSession, user: User, *, owner: str | None, description: str, deadline: str | None = None,
+                          due_date=None, priority: str | None = None, parent_task_id=None, origin: str = "manual"):
+    """A task outside any meeting (Tasks page, or said to Wilco Live), filed
+    in the person's own manual-tasks meeting and handed to its owner."""
+    meeting = (await db.execute(select(Meeting).where(
+        Meeting.user_id == user.id, Meeting.title == MANUAL_TASKS_MEETING_TITLE, Meeting.deleted_at.is_(None),
+    ))).scalar_one_or_none()
+    if meeting is None:
+        meeting = Meeting(user_id=user.id, title=MANUAL_TASKS_MEETING_TITLE, date=datetime.datetime.now(datetime.UTC),
+                          duration_minutes=0, department=user.department)
+        db.add(meeting)
+        await db.flush()
     task = MeetingTask(
-        meeting_id=meeting.id,
-        owner=body.owner or None,
-        description=body.description.strip(),
-        deadline=body.deadline or None,
-        due_date=body.due_date,
-        priority=body.priority or None,
-        parent_task_id=body.parent_task_id,
-        origin="manual",
-        owner_user_id=await insight_service.resolve_owner_user_id(db, meeting.id, body.owner),
+        meeting_id=meeting.id, owner=owner or None, description=description.strip(), deadline=deadline or None,
+        due_date=due_date, priority=priority or None, parent_task_id=parent_task_id, origin=origin,
+        owner_user_id=await insight_service.resolve_owner_user_id(db, meeting.id, owner),
     )
     db.add(task)
     await db.flush()
     await _hand_to_owner(db, task, meeting, user)
     await db.commit()
     await db.refresh(task)
-
-    return _serialize(task, meeting.title, meeting.date, None, _relation(task, user, meeting.user_id, None))
+    return task, meeting
 
 
 async def _get_owned_task(

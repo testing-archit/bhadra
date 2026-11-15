@@ -9,7 +9,7 @@ Live app: https://34-58-54-115.sslip.io. Plain-HTTP requests to the server's IP 
 
 | Try | Expect |
 |---|---|
-| Click the chip "Sharma ji ka kitna udhaar baaki hai?" | Memory answers with amounts: Rs 6,750 owed by 14 customers, Gupta ji Rs 1,100 the largest; Sharma ji owes Ramesh Rs 1,240 |
+| Ask "Auth release kyun rollback kiya?" | Memory answers: a stale token cache caused an 18-minute login outage; rolled back at 21:40, staged rollout before redeploying |
 | Tap the marigold mic and say "Is hafte kya decide hua?" | Gnani transcribes it, the answer lists decisions by meeting with citations, and **it's read aloud automatically** |
 | Under any answer, press **Listen** | Timbre reads it in Hinglish; the button switches to Stop |
 | Meeting page → Detailed summary → **Listen** | The summary is read aloud |
@@ -28,7 +28,8 @@ More questions with known answers in the demo data:
 
 1. Tap **Start talking** and allow the microphone.
 2. Just talk, with no button to hold. Try these:
-   - "Sharma ji ka kitna udhaar baaki hai?" → it answers in Hinglish with the exact amounts.
+   - "Auth release kyun rollback kiya?" → it answers in Hinglish: stale token cache, 18 minutes of failed logins.
+   - "Vedant ko login bug Friday tak fix karna hai, task bana do" → "Task bana diya: …" with a "Task added" chip; the task is on /tasks.
    - Then follow up with "Aur Gupta ji ka?" → it keeps the conversation's context.
    - In Tamil, "சர்மா ஜிக்கு எவ்வளவு பணம் பாக்கி உள்ளது?" → it replies in Tamil and speaks Tamil.
    - "Is hafte kya decide hua?", "Ward 7 ka paani kab aayega?", "PTM mein parents ne kya bola?"
@@ -60,7 +61,7 @@ Each session saves screenshots in `/data/sessions/<id>/`.
 
 1. Settings → **Connect Claude** → Create connector token.
 2. Paste the `claude mcp add ...` command it shows into a terminal with Claude Code.
-3. Ask Claude: "Search my Charcha meetings for the kirana pilot", "What are my open tasks in Charcha?", "Add a Charcha task: call Sharma ji tomorrow".
+3. Ask Claude: "Search my Wilco meetings for the API incident", "What are my open tasks in Wilco?", "Add a Wilco task: publish the postmortem tomorrow".
 
 ## 5. Every page should load
 
@@ -119,16 +120,3 @@ On `/gnani` (real account, voice recorded): fill "Send your AI stand-in" with a 
 | "Vedant se poocho demo kab hai?" | Same, answered in Hinglish |
 | "Wilco, ask Vedant, can you take the Jira migration?" | "I don't have that from Vedant. I'll pass your question on…" (never commits him) |
 | Afterwards, as Vedant | A notification per question; the update on `/gnani` lists every question and answer |
-
-## Voice khata (`/khata`) — added 15 Nov
-
-A kirana's udhaar book kept by speaking (Real Deal). Demo guests start with Sharma ji's sample book (₹2,130 to collect).
-
-| Do | Expect |
-|---|---|
-| Speak an entry: "Gupta ji ne paanch sau ka atta aur dal udhaar liya" | "Heard: …" with a Gnani Prisma chip; Gupta ji +₹500 (note "atta aur dal") |
-| Type "Meena didi ne 300 jama kiye" | A payment; her balance drops |
-| Type "Karthik anna 750 rupees kadan, paruppu and oil" (Tanglish) | Karthik anna ₹750 udhaar |
-| Type "Ravi bhaiya kitne ka baaki hai" | "I didn't hear a name and an amount" (questions never create entries) |
-| In Talk to Wilco, say "Ramesh bhaiya ne 250 ka doodh udhaar liya" | Wilco: "Khata mein likh diya: Ramesh bhaiya 250 rupaye udhaar." and a "Written to your Voice khata" chip; then ask "Ramesh bhaiya ka kitna baaki hai?" |
-| Pick தமிழ் → Remind on Murugan anna | A polite Tamil WhatsApp message; Send on WhatsApp opens wa.me; Listen / Voice note play it in Timbre's Tamil voice |

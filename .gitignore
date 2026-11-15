@@ -19,3 +19,4 @@ backend/bot/data/
 .bug-hunter/
 .claude/
 nginx/ssl.conf
+.playwright-mcp/

@@ -23,7 +23,7 @@ interface Pipeline {
   heardMs?: number;
   answeredMs?: number;
   spokeMs?: number;
-  khata?: number;
+  task?: string;
 }
 
 function modelName(id?: string): string {
@@ -148,7 +148,7 @@ export function LiveSession() {
           heardMs: result.timings?.input_and_context_ms,
           answeredMs: result.timings?.reply_ms,
           spokeMs: result.timings?.tts_ms,
-          khata: result.khata_added?.length || undefined,
+          task: result.task_added?.description || undefined,
         });
         if (!result.audio || phaseRef.current !== "thinking") {
           go("listening");
@@ -468,7 +468,7 @@ export function LiveSession() {
           {pipeline && (
             <ul className="live-pipeline" aria-label="Models that handled this turn">
               <li>Heard by {pipeline.heard}{last[0]?.language && LANGUAGE_LABELS[last[0].language] ? ` · ${LANGUAGE_LABELS[last[0].language]}` : ""}{seconds(pipeline.heardMs)}</li>
-              <li>{pipeline.khata ? "Processed by Wilco" : `Answered by ${pipeline.answered}${seconds(pipeline.answeredMs)}`}</li>
+              <li>{pipeline.task ? <Link href="/tasks">Task added: {pipeline.task}</Link> : `Answered by ${pipeline.answered}${seconds(pipeline.answeredMs)}`}</li>
               <li>Spoken by {pipeline.spoke}{pipeline.voice ? ` (${pipeline.voice})` : ""}{seconds(pipeline.spokeMs)}</li>
             </ul>
           )}
@@ -479,6 +479,7 @@ export function LiveSession() {
           <p>“What did we decide in our last meeting?”</p>
           <p>“Why did we roll back the auth release?”</p>
           <p>“Which launch blockers still need an owner?”</p>
+          <p>“Vedant ko login bug Friday tak fix karna hai, task bana do” <span className="text-xs text-muted-foreground">(adds a real task)</span></p>
           <Link href="/memory">Prefer to type? Open Memory</Link>
         </div>
       )}
