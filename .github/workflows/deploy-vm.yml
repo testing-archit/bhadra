@@ -179,9 +179,10 @@ jobs:
   test:
     needs: changes
     runs-on: ubuntu-latest
-    # A newer push makes this one's checks pointless.
+    # A newer run of the same event makes this one's checks pointless. Keep
+    # late PR checks separate from main deployments after a merge.
     concurrency:
-      group: test-${{ github.ref }}
+      group: test-${{ github.event_name }}-${{ github.ref }}
       cancel-in-progress: true
     services:
       postgres:
@@ -241,10 +242,12 @@ jobs:
   # Unchanged services rebuild from cache in seconds.
   prebuild:
     needs: changes
-    if: needs.changes.outputs.images != ''
+    # PRs validate code in test; image cache writes need the permissions of a
+    # main push or manual deployment and otherwise fail after a PR is merged.
+    if: needs.changes.outputs.images != '' && github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     concurrency:
-      group: prebuild-${{ github.ref }}
+      group: prebuild-${{ github.event_name }}-${{ github.ref }}
       cancel-in-progress: true
     steps:
       - uses: actions/checkout@v4
