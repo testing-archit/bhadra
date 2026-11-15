@@ -203,3 +203,9 @@ Pre-release correction confirmed and fixed unintended Jira dispatch from an inte
 ## Voice workflows deployed, 15 November 2026
 
 PR #15 merged at `694f15285010a41b99566b280d921db911c9601d`; workflow `43709991315` succeeded. All five voice-workflow changes plus the two pre-release corrections are live. CI passed 560 backend tests and applicable frontend/extension/FigJam checks; the production build, rollback snapshots, idle-aware service restarts, image identity/runtime checks, authenticated stand-up/decision-source reads, real synthetic translation and Prisma/Gemini/Timbre canary passed. Public health/Home/Delivery/Live return 200; invalid credentials on the new stand-up endpoint return 401. Synthetic records were removed. No actual Jira ticket or real meeting was created by verification. Real in-call quality acceptance remains with the user; scope and evidence are in `docs/voice-workflows.md`.
+
+## README pitch release scope
+
+Codex is preparing a documentation-only product pitch in `/Users/vedantmoghe/Downloads/bhadra-readme-release` on `codex/readme-release-20261115`. The earlier temporary worktree is no longer available. Scope: README, preserved development guide, source/capture notes and three unedited screenshots of UI commit `eaa6f21`. The demo video link is pending; Gnani speech and separate music credits are explicit. Shared application changes remain untouched.
+
+README pitch validated: local image/link checks and Markdown fences pass; GitHub Markdown API render loads all images. Three screenshots were visually inspected after loading finished. Preserved operational setup in `docs/development.md`. No application source, private tokens or recordings are included. The selected award wording comes from the user’s supplied brief; no award wins, unmeasured accuracy or customer adoption is claimed.
