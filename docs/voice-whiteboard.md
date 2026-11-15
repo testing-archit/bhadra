@@ -1,6 +1,6 @@
 # Voice whiteboards and meeting presentation
 
-Status: implementation checkpoint on `codex/meeting-agent-pipeline`; not deployed. Reviewed 15 November 2026.
+Status: deployed at `25fec90`; presentation enabled for acceptance testing on production. Real Meet remote reception remains unverified. Reviewed 15 November 2026. See the [release verification](meeting-action-agent.md#production-release-15-november-2026).
 
 ## What the bot can do at this checkpoint
 
@@ -44,7 +44,7 @@ The Python adapter clicks Meet's Present now control and checks for both a live 
 
 The board is painted at a modest cadence so a WebRTC subscriber joining after the first frame still receives it. The read-only presentation fits the current graph to a 1280×720 canvas. Large boards will need focus/pan controls before this becomes a polished presentation experience. The web board's existing polling interval is unchanged.
 
-To enable for a controlled acceptance session after building this branch's backend and bot images, add `PRESENT_BOARD=1` to `backend/bot/.env` and recreate the notetaker service. This is off in default installations. Teams presentation is not enabled. This document does not authorize or record a production deployment.
+For other installations, enable a controlled acceptance session by adding `PRESENT_BOARD=1` to `backend/bot/.env` and recreating the notetaker service. This is off by default. The authorized production test release has it enabled. Teams presentation is not enabled.
 
 ## Tools and workflows researched
 

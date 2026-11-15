@@ -136,3 +136,11 @@ PR #1 merged at `ee8a3ed`; backend and notetaker images restarted. The first dep
 ## Talking mascot release scope
 
 The user explicitly requested an animated talking mascot for Live and a push/production deployment for testing. Codex owns Live, its SVG mascot and scoped styling, plus necessary session cleanup fixes. Release includes the already reviewed mascot theme, Home, Tasks Flow and Memory on this branch. Preserve collaborator backend changes by integrating latest main in isolation; use the existing checked deployment workflow.
+
+## Live provider compatibility fix
+
+PR #2 merged at `737d10d`; services are healthy and presentation is enabled for the authorized test. The real model canary exposed an SDK serialization error: strict nested Pydantic fields became `additional_properties` in the legacy response schema. A synthetic production probe confirmed that sending JSON Schema directly succeeds with one whiteboard operation. Codex is correcting the shared generation wrapper, preserving strict local validation and cost attribution, and adding a real SDK transport regression test. A manually invoked diagnostics mode checks service metadata and makes a synthetic provider request without joining a meeting; it never logs keys or real meeting content. Release verification remains pending.
+
+## Agent production release complete, 15 November 2026
+
+PR #3 merged; application commit `25fec901b995ded0a540f3bd922758a92b01432f` deployed successfully in workflow `43661300614`. All 457 backend tests passed in CI. The real model-backed command/job/board canary succeeded, including delivery acknowledgment and synthetic cleanup (admission 33.69 ms; completion 2,904.18 ms, container-local HTTP, excluding audio/Meet/WAN). Backend and notetaker images match their release tags, runtime imports/auth state checks passed, and server presentation is enabled for the authorized test. Public app/health are 200; protected command API is 401 without credentials. Original rollback snapshots remain available. Real-call voice/remote-presentation acceptance is now with the user. The unrelated mascot/frontend/shared application work was not included. Release evidence and limitations are in `docs/meeting-action-agent.md`.
