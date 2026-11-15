@@ -961,6 +961,15 @@ class MeetingSession:
                         results = await asyncio.wait_for(asyncio.gather(*(
                             self._agent.cancel(identifier) for identifier in dict.fromkeys(identifiers))), timeout=3)
                         message = "That request already finished; its changes were kept." if all(row['state'] == 'succeeded' for row in results) else "Stopped the request. Completed changes were kept."
+                        # This reply already reports the cancellation; don't post
+                        # the job's own "Stopped this request" again from the results loop.
+                        for row in results:
+                            if row['state'] == 'cancelled':
+                                try:
+                                    await self._agent.delivered(row['command_id'])
+                                    self._pending_commands.pop(row['command_id'], None)
+                                except Exception:
+                                    pass
                     except Exception:
                         message = "Stopped speaking. I couldn't confirm task cancellation; say ‘status’ to check."
                 else:
