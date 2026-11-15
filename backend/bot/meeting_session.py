@@ -938,12 +938,13 @@ class MeetingSession:
             reply = await self.present_board(page)
         elif self.capture_request_id and intent in {"open", "open_present"}:
             self._board_active = True
-            if intent == "open_present":
-                command.follow_up = 'present_board'
+            command.follow_up = 'present_board'
             compound = requires_plan(question)
             tool = 'open_board' if opening_only(question) else ('auto' if compound else 'edit_board')
             return await self.submit_agent_command(page, command, tool)
         elif self.capture_request_id and intent == "edit":
+            if not self._board_active:
+                command.follow_up = 'present_board'
             self._board_active = True
             compound = requires_plan(question)
             return await self.submit_agent_command(page, command, "auto" if compound else "edit_board")

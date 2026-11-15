@@ -35,6 +35,8 @@ Provision it to the notetaker's private state volume as `/data/figma-auth.json` 
 - Native MLflow routing evaluation: 15/15 synthetic commands; dataset `d-3c6b61151b624934b15d3cd86a11236e`, run `1a7392b69fa54ede9dc8f4e34087642c`. This evaluates dispatch, not audio or Figma.
 - API tests cover authentication, capture/token scope, cancellation, no duplicate claims, real-URL validation, acknowledgment ordering, and authentication preflight before inference.
 - `backend/scripts/validate_figjam_frame.py` ran in Chromium with intercepted synthetic pages: canvas pixels transferred, account DOM excluded and login navigation suppressed frames. It contacts neither Figma nor Google Meet.
+- Desktop/mobile Live-page walkthrough with intercepted synthetic API responses: no pairing fields or built-in draft, native file link appears after polling, no horizontal overflow and zero API mutations. The outbound control uses native link semantics.
+- Read-only production diagnostics confirm Google Meet authentication is present and Figma authentication is absent (workflow `43690812256`). The local Figma sign-in window is pending the account holder; no session has been provisioned.
 - No new end-to-end latency or throughput result is claimed. Opening avoids inference, browser work is separate from recording/intake, and the existing bounded workers/deadlines remain in force.
 
 ## Primary references

@@ -59,11 +59,14 @@ class FigJamBrowser:
         for _ in range(30):
             await check()
             native = canonical(self.page.url)
-            if native and await self.page.locator('canvas').count():
+            canvas = self.page.locator('canvas').first
+            share = self.page.get_by_role('button', name=re.compile(r'^Share\b'))
+            if native:
                 if await self.page.get_by_role('button', name=re.compile(r'^(Log in|Sign in|Sign up)$', re.I)).count():
                     return 'auth_required'
-                self.file_url = native
-                return None
+                if await canvas.is_visible() and await share.first.is_visible():
+                    self.file_url = native
+                    return None
             if re.search(r'/(?:login|signup)(?:[/?#]|$)|accounts\.google\.com', self.page.url):
                 return 'auth_required'
             await asyncio.sleep(.2)
@@ -202,12 +205,14 @@ class FigJamBrowser:
 
 
 async def run_actions(client, browser, has_work=lambda: True, session_id='figjam'):
+    delay = .3
     while True:
         try:
             if not has_work():
                 await asyncio.sleep(.3)
                 continue
             action = await client.claim_browser()
+            delay = .3
             if action:
                 last_check = 0
                 async def check():
@@ -236,4 +241,5 @@ async def run_actions(client, browser, has_work=lambda: True, session_id='figjam
             raise
         except Exception as error:
             log.warning('FigJam browser transport unavailable (%s)', type(error).__name__)
-        await asyncio.sleep(.3)
+            delay = min(3, delay*2)
+        await asyncio.sleep(delay)
