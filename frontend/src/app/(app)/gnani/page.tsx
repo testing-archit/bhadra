@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { AudioLines, Brain, CircleCheck, Fingerprint, Loader2, Mic, Radio, Square, Trash2, Volume2 } from "lucide-react";
+import Link from "next/link";
+import { ArrowRight, AudioLines, Brain, PhoneCall, CircleCheck, Fingerprint, Loader2, Mic, Radio, Square, Trash2, Volume2 } from "lucide-react";
 import { api, type GnaniModels, type VoiceUpdate } from "@/lib/api";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -33,7 +34,7 @@ const LANGUAGE_NAMES: Record<string, string> = {
 
 /** Where each Gnani model runs inside Wilco. */
 const IN_WILCO = [
-  { model: "Prisma v3", icon: Mic, uses: ["Transcribes every meeting, Hinglish and 10+ Indian languages", "Hears Wilco Live and spoken questions", "Auto-detects the language for each answer"] },
+  { model: "Prisma v3", icon: Mic, uses: ["Transcribes every meeting, Hinglish, Tanglish and 10+ Indian languages", "Recaps noisy phone calls and WhatsApp voice notes", "Hears Wilco Live and spoken questions"] },
   { model: "Timbre v2.5 + v3", icon: Volume2, uses: ["Wilco's voice in Google Meet calls", "Spoken replies in Wilco Live, in your language", "Listen to meeting notes in 11 languages"] },
   { model: "Timbre voice cloning", icon: Fingerprint, uses: ["Your update read in your own voice in a call you'll miss", "Opt-in, your voice only, deletable anytime"] },
   { model: "Evon v3.3", icon: Brain, uses: ["Answers Wilco Live when the team hosts it", "Gemini takes over if Evon is unreachable"] },
@@ -358,6 +359,17 @@ export default function GnaniLabPage() {
           </div>
         ))}
       </section>
+
+      <Link href="/recap" className="flex items-center justify-between gap-4 rounded-xl border bg-card px-4 py-3 transition-colors hover:bg-muted">
+        <span className="flex items-center gap-3">
+          <PhoneCall className="size-5 shrink-0 text-primary" aria-hidden="true" />
+          <span>
+            <span className="block text-sm font-semibold">Got a noisy phone call or a WhatsApp voice note?</span>
+            <span className="block text-xs text-muted-foreground">Upload it: Prisma transcribes 8 kHz telephony audio in any Indian language, Wilco writes the recap and Timbre reads it back.</span>
+          </span>
+        </span>
+        <ArrowRight className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+      </Link>
 
       <div className="grid gap-6 lg:grid-cols-2">
         <PrismaCard model={models?.prisma} />
