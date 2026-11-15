@@ -12,6 +12,7 @@ import httpx
 
 from app.config import settings
 from app.services import usage_ledger, vocabulary_service
+from app.services.speech_admission import SpeechAdmission
 
 logger = logging.getLogger(__name__)
 
@@ -52,13 +53,13 @@ _MAX_SINGLE_SECONDS = 28.0
 # otherwise), so every Prisma call in this process queues on one lock and a
 # 429 from elsewhere (another process) is retried with a short back-off.
 _RATE_LIMIT_RETRIES = 8
-_prisma_lock: asyncio.Lock | None = None
+_prisma_lock: SpeechAdmission | None = None
 
 
-def _lock() -> asyncio.Lock:
+def _lock() -> SpeechAdmission:
     global _prisma_lock
     if _prisma_lock is None:
-        _prisma_lock = asyncio.Lock()
+        _prisma_lock = SpeechAdmission()
     return _prisma_lock
 
 
@@ -310,6 +311,7 @@ async def transcribe_audio_detailed(
     # Names of the people in this meeting (invitees, Meet speakers), listened
     # for ahead of everyone else at the company.
     people: list[str] | None = None,
+    interactive: bool = False,
 ) -> dict[str, Any]:
     if not settings.gnani_api_key:
         if settings.fixture_mode_active:
@@ -338,8 +340,8 @@ async def transcribe_audio_detailed(
     timeout = httpx.Timeout(min(timeout_seconds, 300.0), connect=20.0)
 
     async def transcribe_piece(client: httpx.AsyncClient, upload: tuple[str, bytes, str]) -> dict:
-        for attempt in range(_RATE_LIMIT_RETRIES):
-            async with _lock():
+        for attempt in range(2 if interactive else _RATE_LIMIT_RETRIES):
+            async with _lock().slot(interactive):
                 response = await client.post(
                     settings.gnani_stt_url,
                     headers={"X-API-Key-ID": settings.gnani_api_key},

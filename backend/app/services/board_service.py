@@ -355,7 +355,7 @@ async def command_capture_board(db, capture_id: uuid.UUID, command_id: uuid.UUID
     if not undo:
         usage_ledger.attribute(user_id=user_id, meeting_id=meeting_id)
         provider = run_provider or asyncio.to_thread
-        options = {"timeout_seconds": settings.meeting_agent_provider_seconds, "attempts": 1, "thinking_budget": 0} if run_provider else {}
+        options = {"timeout_seconds": settings.meeting_agent_provider_seconds, "attempts": 1, "thinking_budget": 0, "model": settings.gemini_fast_model} if run_provider else {}
         plan, _ = await provider(
             gemini_service.generate_structured, SYSTEM_PROMPT,
             json.dumps({'request': command, 'board': planning_snapshot(snapshot, command), 'recent_captions': context or []}, ensure_ascii=False),

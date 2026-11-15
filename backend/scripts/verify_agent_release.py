@@ -20,6 +20,41 @@ from app.database.db import async_session
 from app.database.models import CaptureRequest, MeetingAgentJob, MeetingBoard, User
 
 
+async def verify_voice():
+    """Exercise Gnani -> fast model -> Gnani with synthetic speech only."""
+    from app.services import live_conversation, transcriber, tts_service, usage_ledger
+    if not settings.gnani_api_key:
+        raise RuntimeError('Gnani voice is not configured')
+    report = {'speech_provider': 'gnani', 'reply_model': settings.gemini_fast_model}
+    started = time.perf_counter()
+    async with asyncio.timeout(12):
+        clip = await tts_service.synthesize('Hello Wilco. Are you ready for the meeting?', 'en-IN')
+    report['input_tts_ms'] = round((time.perf_counter()-started)*1000, 2)
+    started = time.perf_counter()
+    async with asyncio.timeout(12):
+        heard = await transcriber.transcribe_audio_detailed(clip, 'audio/mpeg', 'en', timeout_seconds=8, interactive=True)
+    text_heard = ' '.join(turn['text'] for turn in heard['turns']).strip()
+    assert text_heard, 'Synthetic speech was not transcribed'
+    report['stt_ms'] = round((time.perf_counter()-started)*1000, 2)
+    started = time.perf_counter()
+    # This standalone probe can use the synchronous wrapper directly, so all
+    # paid usage is scheduled on this running loop and flushed below.
+    answer = live_conversation.reply([], text_heard, 'No meetings yet.', 'Release check', 'en-IN')
+    assert answer, 'Voice reply was empty'
+    report['reply_ms'] = round((time.perf_counter()-started)*1000, 2)
+    started = time.perf_counter()
+    async with asyncio.timeout(10):
+        spoken = await tts_service.synthesize(answer, 'en-IN')
+    assert len(spoken) > 100, 'Speech audio was empty'
+    report.update(tts_ms=round((time.perf_counter()-started)*1000, 2),
+                  speech_model=tts_service.voice_for('en-IN')[0], speech_voice=tts_service.voice_for('en-IN')[1])
+    report['pipeline_ms'] = round(report['stt_ms']+report['reply_ms']+report['tts_ms'], 2)
+    pending = list(usage_ledger._pending)
+    if pending:
+        await asyncio.gather(*pending)
+    return report
+
+
 async def verify(args):
     if not settings.bot_api_secret:
         raise RuntimeError('Bot authentication is not configured')
@@ -95,6 +130,8 @@ async def verify(args):
                     await db.delete(user)
             await db.commit()
     report['synthetic_records_removed']=True
+    if args.voice_canary:
+        report['synthetic_voice_canary'] = await verify_voice()
     print(json.dumps(report,sort_keys=True))
 
 
@@ -102,6 +139,7 @@ if __name__=='__main__':
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--base-url',default='http://127.0.0.1:8080')
     parser.add_argument('--model-canary',action='store_true')
+    parser.add_argument('--voice-canary',action='store_true')
     try:
         asyncio.run(verify(parser.parse_args()))
     except Exception as error:

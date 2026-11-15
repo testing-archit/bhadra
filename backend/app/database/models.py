@@ -1178,3 +1178,30 @@ class MeetingAgentJob(Base):
     finished_at: Mapped[datetime | None] = mapped_column(TIMESTAMP(timezone=True))
     deadline_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), nullable=False)
     delivered_at: Mapped[datetime | None] = mapped_column(TIMESTAMP(timezone=True))
+
+
+class FigJamConnection(Base):
+    __tablename__ = 'figjam_connections'
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    capture_request_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey('capture_requests.id', ondelete='CASCADE'), unique=True)
+    user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey('users.id', ondelete='CASCADE'))
+    file_url: Mapped[str] = mapped_column(String, nullable=False)
+    file_key: Mapped[str] = mapped_column(String, nullable=False)
+    pair_hash: Mapped[str | None] = mapped_column(String(64), unique=True)
+    token_hash: Mapped[str | None] = mapped_column(String(64), unique=True)
+    pair_expires_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True))
+    expires_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True))
+    last_seen_at: Mapped[datetime | None] = mapped_column(TIMESTAMP(timezone=True))
+
+
+class FigJamDelivery(Base):
+    __tablename__ = 'figjam_deliveries'
+    __table_args__ = (UniqueConstraint('connection_id', 'command_id', name='uq_figjam_delivery_command'),)
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    connection_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey('figjam_connections.id', ondelete='CASCADE'))
+    job_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey('meeting_agent_jobs.id', ondelete='CASCADE'))
+    command_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
+    baseline: Mapped[dict] = mapped_column(JSONB, nullable=False)
+    snapshot: Mapped[dict] = mapped_column(JSONB, nullable=False)
+    state: Mapped[str] = mapped_column(String, default='pending', nullable=False)
+    expires_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True))

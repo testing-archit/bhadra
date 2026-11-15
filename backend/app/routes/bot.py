@@ -530,8 +530,10 @@ async def bot_board_state(request_id: uuid.UUID, db: AsyncSession = Depends(get_
     if capture is None or capture.status != "capturing":
         raise HTTPException(status_code=404, detail="Active capture not found")
     board = await board_service.ensure_for_capture(db, capture)
+    from app.services import figjam_service
+    connection = await figjam_service.connection_for(db, request_id)
     await db.commit()
-    return board_service.serialize(board)
+    return {**board_service.serialize(board), 'external_url': connection.file_url if connection else None}
 
 
 @router.post("/capture-requests/{request_id}/board/commands", dependencies=[Depends(require_bot)])
@@ -574,7 +576,8 @@ async def bot_speak(body: BotSpeech) -> Response:
     from app.services import tts_service
 
     try:
-        audio = await tts_service.synthesize(body.text)
+        async with asyncio.timeout(8):
+            audio = await tts_service.synthesize(body.text, tts_service.language_for_text(body.text))
     except (tts_service.SpeechNotConfigured, ValueError) as error:
         raise HTTPException(status_code=422, detail=str(error)) from error
     return Response(content=audio, media_type="audio/mpeg")
@@ -761,6 +764,7 @@ class AgentRequest(BaseModel):
     tool: Literal["auto", "open_board", "edit_board", "add_task", "answer"] = "auto"
     board_active: bool = False
     present_after: bool = False
+    board_provider: Literal['internal', 'figjam'] = 'internal'
     captions: list[AgentCaption] = Field(default_factory=list, max_length=120)
 
 

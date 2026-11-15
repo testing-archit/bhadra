@@ -2,6 +2,7 @@ import asyncio
 import base64
 import json
 import logging
+import time
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -43,12 +44,22 @@ async def live_turn(
     except (ValueError, TypeError):
         past = []
 
-    heard = await transcriber.transcribe_audio_detailed(audio_bytes, audio.content_type or "audio/webm", "hinglish")
+    started = time.monotonic()
+    async def hear():
+        # A live caller must not wait through an entire batch or eight retries.
+        async with asyncio.timeout(12):
+            return await transcriber.transcribe_audio_detailed(
+                audio_bytes, audio.content_type or 'audio/webm', 'hinglish', timeout_seconds=8, interactive=True)
+    try:
+        heard, digest = await asyncio.gather(hear(), live_conversation.meeting_digest(db, user))
+    except TimeoutError as error:
+        raise HTTPException(status_code=503, detail='Speech is busy. Please try again in a moment.') from error
+    speech_input_ms = round((time.monotonic()-started)*1000, 2)
     text = " ".join(turn["text"] for turn in heard["turns"]).strip()
     if not text:
         return {"transcript": "", "reply": None, "audio": None}
 
-    digest = await live_conversation.meeting_digest(db, user)
+    reply_started = time.monotonic()
     try:
         answer = await asyncio.to_thread(
             live_conversation.reply, past, text, digest, (user.name or "").split(" ")[0] or None, heard.get("language")
@@ -58,10 +69,20 @@ async def live_turn(
         answer = "Sorry, abhi jawab nahi de paaya. Ek baar phir boliye?"
     if not answer:
         answer = "Sorry, main samjha nahi. Ek baar phir boliye?"
+    reply_ms = round((time.monotonic()-reply_started)*1000, 2)
+    tts_started = time.monotonic()
+    spoken_language = live_conversation.speech_language(heard.get('language')) if heard.get('language') else tts_service.language_for_text(answer)
     try:
-        speech = await tts_service.synthesize(answer, live_conversation.speech_language(heard.get("language")))
+        async with asyncio.timeout(8):
+            speech = await tts_service.synthesize(answer, spoken_language)
         encoded = base64.b64encode(speech).decode()
     except Exception:
         logger.exception("Charcha Live speech failed")
         encoded = None
-    return {"transcript": text, "reply": answer, "audio": encoded, "language": heard.get("language")}
+    timings = {'input_and_context_ms': speech_input_ms, 'reply_ms': reply_ms,
+               'tts_ms': round((time.monotonic()-tts_started)*1000, 2),
+               'total_ms': round((time.monotonic()-started)*1000, 2)}
+    logger.info('live_turn_timing %s', json.dumps(timings))
+    return {"transcript": text, "reply": answer, "audio": encoded, "language": heard.get("language"),
+            'timings': timings, 'speech_provider': 'gnani', 'speech_model': tts_service.voice_for(spoken_language)[0],
+            'speech_voice': tts_service.voice_for(spoken_language)[1], 'speech_language': spoken_language}

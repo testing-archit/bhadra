@@ -188,7 +188,7 @@ def test_caption_commands_wait_for_revisions_and_do_not_repeat(tmp_path, monkeyp
     clock = {"now": 10.0}
     monkeypatch.setattr(meeting_session.time, "monotonic", lambda: clock["now"])
     session = meeting_session.MeetingSession({"meet_url": "https://meet.google.com/abc-defg-hij"})
-    session.captions.latest[1] = ("Ravi", "Charcha, recap please", 9.0)
+    session.captions.latest[1] = ("Ravi", "Charcha, recap please", 9.7)
     assert session.spoken_questions() == []
     session.captions.latest[1] = ("Ravi", "Charcha, recap the pricing discussion", 10.0)
     clock["now"] = 12.6
@@ -228,6 +228,7 @@ def test_shutdown_terminates_playback_and_removes_audio(tmp_path, monkeypatch):
         monkeypatch.setattr(meeting_session.asyncio, "create_subprocess_exec", spawn)
         monkeypatch.setattr(meeting_session, "_click_if_visible", click)
         session = meeting_session.MeetingSession({"meet_url": "https://meet.google.com/abc-defg-hij"})
+        session.USES_GOOGLE_LOGIN = False  # Legacy Teams/Pulse playback cleanup.
         session.voice_modules = ["test"]
         page = type("Page", (), {"evaluate": AsyncMock(), "wait_for_timeout": AsyncMock(), "is_closed": lambda self: False})()
         task = asyncio.create_task(session.speak(page, "hello"))

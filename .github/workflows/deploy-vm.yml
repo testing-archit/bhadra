@@ -8,6 +8,8 @@ on:
     paths:
       - "backend/**"
       - "frontend/**"
+      - "integrations/figjam/**"
+      - "tools/package-figjam-plugin.py"
       - "src/**"
       - "manifest.json"
       - "package.json"
@@ -127,7 +129,7 @@ jobs:
           has() { printf "%s\n" $changed | grep -Eq "$1" && echo true || echo false; }
           backend=$(printf "%s\n" $changed | grep -E "^backend/" | grep -Evq "^backend/bot/" && echo true || echo false)
           bot=$(has "^backend/bot/")
-          frontend=$(has "^frontend/")
+          frontend=$(has "^(frontend/|integrations/figjam/|tools/package-figjam-plugin.py$)")
           extension=$(has "^(src/|manifest.json|package(-lock)?.json|vite.config.js|tools/)")
           compose=$(has "^docker-compose.prod.yml$")
           images=""
@@ -194,6 +196,9 @@ jobs:
         run: |
           npm ci --no-audit --no-fund
           npx tsc --noEmit
+      - name: Native FigJam operation checks
+        if: needs.changes.outputs.frontend == 'true'
+        run: node --test integrations/figjam/code.test.mjs
 
   # Builds every image into GitHub's layer cache at the same time as the
   # tests, so the deploy job below only replays cached layers and ships them.
@@ -511,12 +516,12 @@ jobs:
               expected=$(docker image inspect -f '{{.Id}}' "charcha-$service:latest")
               test "$current" = "$expected" || { echo "$service has not restarted onto the new image"; exit 1; }
             done
-            docker compose -f docker-compose.prod.yml exec -T backend python scripts/verify_agent_release.py --model-canary
+            docker compose -f docker-compose.prod.yml exec -T backend python scripts/verify_agent_release.py --model-canary --voice-canary
             docker compose -f docker-compose.prod.yml exec -T notetaker python - <<'PYBOT'
           import config
-          import agent_client, board_presenter, command_runtime
+          import agent_client, board_presenter, browser_voice, command_runtime
           from pathlib import Path
-          print({"presentation_enabled": config.PRESENT_BOARD, "google_auth_state_present": config.AUTH_STATE_PATH.is_file(), "runtime_imports": "ok"})
+          print({"presentation_enabled": config.PRESENT_BOARD, "google_auth_state_present": config.AUTH_STATE_PATH.is_file(), "isolated_microphone_available": bool(browser_voice.SCRIPT), "runtime_imports": "ok"})
           assert config.AUTH_STATE_PATH.is_file()
           PYBOT
             docker compose -f docker-compose.prod.yml ps

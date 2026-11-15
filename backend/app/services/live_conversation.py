@@ -11,11 +11,12 @@ import uuid
 
 from sqlalchemy import select
 
+from app.config import settings
 from app.database.models import Decision, Meeting, MeetingTask, User
 from app.dependencies import visible_meeting_ids
 from app.services import gemini_service
 
-DIGEST_MEETINGS = 12
+DIGEST_MEETINGS = 6
 DIGEST_TTL_SECONDS = 300
 MAX_HISTORY_TURNS = 8
 _digests: dict[uuid.UUID, tuple[float, str]] = {}
@@ -44,19 +45,25 @@ async def meeting_digest(db, user: User) -> str:
         .order_by(Meeting.date.desc())
         .limit(DIGEST_MEETINGS)
     )).all()
+    identifiers = [meeting.id for meeting in meetings]
+    tasks_by_meeting, decisions_by_meeting = {}, {}
+    for task in (await db.scalars(select(MeetingTask).where(
+        MeetingTask.meeting_id.in_(identifiers), MeetingTask.deleted_at.is_(None), MeetingTask.status != 'done'
+    ).order_by(MeetingTask.created_at.desc()))).all():
+        tasks_by_meeting.setdefault(task.meeting_id, []).append(task)
+    for decision in (await db.scalars(select(Decision).where(
+        Decision.meeting_id.in_(identifiers), Decision.deleted_at.is_(None)
+    ).order_by(Decision.created_at.desc()))).all():
+        decisions_by_meeting.setdefault(decision.meeting_id, []).append(decision)
     blocks = []
     for meeting in meetings:
-        tasks = (await db.scalars(select(MeetingTask).where(
-            MeetingTask.meeting_id == meeting.id, MeetingTask.deleted_at.is_(None), MeetingTask.status != "done"
-        ))).all()
-        decisions = (await db.scalars(select(Decision).where(
-            Decision.meeting_id == meeting.id, Decision.deleted_at.is_(None)
-        ))).all()
-        lines = [f"## {meeting.title} ({meeting.date.date().isoformat()})", (meeting.summary or "").strip()[:900]]
-        lines += [f"- Task: {t.description} (owner: {t.owner or 'unassigned'}{', due ' + t.deadline if t.deadline else ''})" for t in tasks[:8]]
-        lines += [f"- Decision: {d.decision}" + (f" (because {d.reason})" if d.reason else "") for d in decisions[:6]]
+        tasks = tasks_by_meeting.get(meeting.id, [])
+        decisions = decisions_by_meeting.get(meeting.id, [])
+        lines = [f"## {meeting.title} ({meeting.date.date().isoformat()})", (meeting.summary or "").strip()[:500]]
+        lines += [f"- Task: {t.description[:240]} (owner: {t.owner or 'unassigned'}{', due ' + t.deadline if t.deadline else ''})" for t in tasks[:4]]
+        lines += [f"- Decision: {d.decision[:240]}" for d in decisions[:3]]
         blocks.append("\n".join(line for line in lines if line))
-    digest = "\n\n".join(blocks) or "No meetings yet."
+    digest = "\n\n".join(blocks)[:8000] or "No meetings yet."
     _digests[user.id] = (time.monotonic(), digest)
     return digest
 
@@ -70,6 +77,8 @@ LANGUAGE_NAMES = {
 def speech_language(detected: str | None) -> str:
     """The Timbre language for the reply: the person's own Indian language,
     else Hinglish (which also reads English well)."""
+    if detected and detected.lower().startswith('en'):
+        return 'en-IN'
     return detected if detected in LANGUAGE_NAMES else "hi-en"
 
 
@@ -88,6 +97,7 @@ def reply(history: list[dict], user_text: str, digest: str, name: str | None, de
         + f"Person: {user_text.strip()}\nCharcha:"
     )
     text, _usage = gemini_service.generate_text(
-        SYSTEM_PROMPT, prompt, max_output_tokens=300, temperature=0.4, thinking_budget=0, feature="live_conversation"
+        SYSTEM_PROMPT, prompt, max_output_tokens=220, temperature=0.4, thinking_budget=0, feature="live_conversation",
+        model=settings.gemini_fast_model, timeout_seconds=8,
     )
     return " ".join(text.replace("*", "").replace("#", "").split()).strip()

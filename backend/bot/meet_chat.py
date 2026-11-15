@@ -80,15 +80,21 @@ async def send(page: Page, text: str) -> bool:
                 await page.keyboard.insert_text(line)
             if index < len(lines) - 1:
                 await page.keyboard.press("Shift+Enter")
-        await page.wait_for_timeout(300)
+        await page.wait_for_timeout(50)
         await page.keyboard.press("Enter")
-        await page.wait_for_timeout(800)
+        for _ in range(8):
+            await page.wait_for_timeout(100)
+            if not await _box_text(page):
+                return True
         if await _box_text(page):
             # Still sitting in the box: try the send button.
             button = page.locator(SEND_BUTTON).first
             if await button.count():
                 await button.click(timeout=3000)
-                await page.wait_for_timeout(800)
+                for _ in range(8):
+                    await page.wait_for_timeout(100)
+                    if not await _box_text(page):
+                        return True
         if await _box_text(page):
             log.warning("Chat message did not send; it is still in the message box")
             return False
@@ -105,8 +111,9 @@ def join_notice(display_name: str, requested_by: str | None, app_url: str | None
     lines = [
         f"Hi, I'm {display_name}{invited}. I'm recording this call so Charcha can write up the notes, tasks and decisions.",
         f'To stop me, say "{leave_phrase}" or remove me from the call.',
-        'Ask me about this call by saying "Charcha, ..." out loud (with captions on) or typing it here, e.g. "Charcha recap" or "Charcha, what did we decide?"',
-        'Add a task the same way: "Charcha, add task: Vedant to send the invoice by Friday".',
+        'Ask about this call by saying "Wilco, ..." out loud (with captions on) or typing it here. Repeat "Wilco" for each command.',
+        'For a shared FigJam file, say "Wilco, open FigJam", connect it once, then ask "Wilco, draw a signup and payment flow".',
+        'Record an action item with "Wilco, add task: Vedant to send the invoice by Friday".',
     ]
     if app_url:
         lines.append(f"Notes appear at {app_url}/meetings after the call.")

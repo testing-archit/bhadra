@@ -10,6 +10,7 @@ from app.database.db import async_session
 from app.database.models import MeetingAgentJob as Job
 from app.main import app
 from tests.test_meeting_agent import capture_id
+from tests.test_figjam import paired_figjam
 from tests.test_bot_captions import meeting_session
 from agent_client import AgentClient, AgentBusy, compact_captions
 from command_runtime import Command
@@ -53,7 +54,7 @@ def test_client_limits_transcript_payload():
 
 
 @pytest.mark.asyncio
-async def test_bot_ack_worker_result_and_delivery_receipt_form_one_workflow(capture_id,monkeypatch,tmp_path):
+async def test_bot_ack_worker_result_and_delivery_receipt_form_one_workflow(capture_id,monkeypatch,tmp_path,paired_figjam,client):
     from app.services import meeting_agent as agent
     from app.services.board_commands import BoardCommandPlan, BoardOperation
     from unittest.mock import patch
@@ -74,6 +75,15 @@ async def test_bot_ack_worker_result_and_delivery_receipt_form_one_workflow(capt
         await asyncio.sleep(.01)
         return BoardCommandPlan(message='Ready',operations=[BoardOperation(op='create_node',title='Signup')]),{}
     with patch.object(agent,'provider',fake_provider):
+        async def plugin():
+            while True:
+                result = await client.post('/api/figjam/bridge/poll', headers=paired_figjam['headers'])
+                delivery = result.json()['delivery']
+                if delivery:
+                    assert delivery['snapshot']['nodes'][0]['title'] == 'Signup'
+                    await client.post(f"/api/figjam/bridge/deliveries/{delivery['id']}/ack", headers=paired_figjam['headers'], json={'state':'applied'})
+                await asyncio.sleep(.02)
+        bridge = asyncio.create_task(plugin())
         worker=asyncio.create_task(agent.run_forever())
         monitor=asyncio.create_task(session.agent_results_loop(object(),runtime))
         try:
@@ -81,9 +91,9 @@ async def test_bot_ack_worker_result_and_delivery_receipt_form_one_workflow(capt
             assert result is None
             assert messages[0].startswith('Working on that')
             await asyncio.wait_for(done.wait(),3)
-            assert 'Updated the board' in spoken[0]
+            assert 'Updated your shared FigJam board' in spoken[0]
             assert await session._agent.outstanding()==[]
         finally:
-            worker.cancel(); monitor.cancel()
-            await asyncio.gather(worker,monitor,return_exceptions=True)
+            worker.cancel(); monitor.cancel(); bridge.cancel()
+            await asyncio.gather(worker,monitor,bridge,return_exceptions=True)
             await session._agent.close()

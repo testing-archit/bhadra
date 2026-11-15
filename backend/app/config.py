@@ -55,6 +55,7 @@ class Settings(BaseSettings):
     gnani_tts_url: str = "https://api.vachana.ai/api/v1/tts/inference"
     gnani_tts_model: str = "timbre-v2.5"
     gnani_tts_voice: str = "Nalini"
+    gnani_tts_english_voice: str = "Shlok"
     gnani_tts_language: str = "hi-en"
     # Other Indian languages (Tamil, Marathi, Bengali, ...): Timbre v3.0
     # voices speak all ten.

@@ -19,7 +19,7 @@ class AgentClient:
     async def submit(self, command, tool, captions, board_active):
         payload = {'command_id': command.id, 'command': command.question[:1000], 'tool': tool,
                    'captions': compact_captions(captions), 'board_active': board_active,
-                   'present_after': command.follow_up == 'present_board'}
+                   'present_after': command.follow_up == 'present_board', 'board_provider': 'figjam'}
         for attempt in range(2):
             try:
                 response = await self.client.post(self.base, json=payload)

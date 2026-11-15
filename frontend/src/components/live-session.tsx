@@ -38,7 +38,7 @@ const PHASE_LABEL: Record<Phase, string> = {
 // Voice activity: speech starts after this many loud frames (50 ms each) and
 // ends after this much quiet. Short blips are dropped.
 const START_FRAMES = 3;
-const END_SILENCE_MS = 900;
+const END_SILENCE_MS = 550;
 const MIN_UTTERANCE_MS = 450;
 const MAX_UTTERANCE_MS = 30_000;
 
@@ -66,6 +66,7 @@ export function LiveSession() {
   const chunksRef = useRef<Blob[]>([]);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const startedAtRef = useRef(0);
+  const listenAfterRef = useRef(0);
 
   const go = useCallback((next: Phase) => {
     phaseRef.current = next;
@@ -81,6 +82,7 @@ export function LiveSession() {
       audio.src = "";
     }
     setSpeakerLevel(0);
+    listenAfterRef.current = performance.now() + 350;
   }, []);
 
   const sendTurn = useCallback(
@@ -119,8 +121,10 @@ export function LiveSession() {
         const audio = audioRef.current ?? new Audio();
         audioRef.current = audio;
         audio.src = `data:audio/mpeg;base64,${result.audio}`;
-        audio.onended = () =>
-          phaseRef.current === "speaking" && go("listening");
+        audio.onended = () => {
+          listenAfterRef.current = performance.now() + 350;
+          if (phaseRef.current === "speaking") go("listening");
+        };
         audio.onplaying = () => {
           if (session === sessionRef.current) go("speaking");
         };
@@ -273,17 +277,19 @@ export function LiveSession() {
         } else setSpeakerLevel(0);
         const current = phaseRef.current;
         if (mutedRef.current) return;
-        // Wilco's own voice leaks into the mic despite echo cancellation, so
-        // interrupting while it speaks needs to be clearly louder.
-        const threshold =
-          Math.max(0.012, noise * 3) * (current === "speaking" ? 2.6 : 1);
-        if (current === "listening" || current === "speaking") {
+        // Speaker echo must never start another turn. The existing Interrupt
+        // control stops playback explicitly; resume after the acoustic tail.
+        if (current === "speaking" || performance.now() < listenAfterRef.current) {
+          loudFrames = 0;
+          return;
+        }
+        const threshold = Math.max(0.012, noise * 3);
+        if (current === "listening") {
           if (rms > threshold) {
             loudFrames += 1;
             if (loudFrames >= START_FRAMES) {
               loudFrames = 0;
               quietSince = 0;
-              if (current === "speaking") stopSpeaking();
               beginUtterance();
             }
           } else {

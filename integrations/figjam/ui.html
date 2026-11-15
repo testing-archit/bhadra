@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en"><meta charset="utf-8"><title>Wilco for FigJam</title>
+<style>
+body{font:13px/1.5 Inter,system-ui,sans-serif;margin:20px;background:var(--figma-color-bg,#fff);color:var(--figma-color-text,#222)}
+form{display:flex;flex-direction:column;gap:12px}label{display:flex;flex-direction:column;gap:5px}input,button{font:inherit;padding:10px;border:1px solid var(--figma-color-border,#aaa);border-radius:6px;background:var(--figma-color-bg,#fff);color:inherit}button{cursor:pointer}button:focus-visible,input:focus-visible{outline:2px solid var(--figma-color-border-brand,#0875e1);outline-offset:2px}p{margin:10px 0}#status{min-height:60px}
+</style>
+<h2>Draw with your voice</h2>
+<p>Keep this plugin open while Wilco is in your meeting. Shapes stay editable in this FigJam file.</p>
+<form id="pair">
+<label>FigJam file link<input id="file" type="url" required placeholder="https://www.figma.com/board/…" autocomplete="off"></label>
+<label>One-time code from Wilco<input id="code" required minlength="24" autocomplete="off" spellcheck="false"></label>
+<button type="submit">Connect this file</button>
+</form>
+<p id="status" role="status" aria-live="polite">Get a code from your live meeting in Wilco.</p>
+<button id="disconnect" type="button">Disconnect and close</button>
+<script>
+document.getElementById('pair').onsubmit = event => {
+  event.preventDefault();
+  parent.postMessage({pluginMessage:{type:'pair',file_url:document.getElementById('file').value,code:document.getElementById('code').value}}, '*');
+  document.getElementById('status').textContent='Connecting…';
+};
+document.getElementById('disconnect').onclick=()=>parent.postMessage({pluginMessage:{type:'disconnect'}}, '*');
+window.onmessage=event=>{
+  const message=event.data.pluginMessage;
+  if (!message) return;
+  document.getElementById('status').textContent=message.status;
+  if(message.connected){document.getElementById('code').value='';document.getElementById('pair').hidden=true;}
+};
+</script></html>
