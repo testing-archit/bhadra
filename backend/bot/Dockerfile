@@ -8,8 +8,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
-COPY requirements.txt requirements-tracing.txt ./
+COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
+COPY requirements-tracing.txt .
 ARG ENABLE_COMMAND_TRACING=0
 RUN if [ "$ENABLE_COMMAND_TRACING" = "1" ]; then pip install --no-cache-dir -r requirements-tracing.txt; fi
 

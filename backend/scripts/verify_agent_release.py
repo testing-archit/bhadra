@@ -1,0 +1,98 @@
+"""Production release smoke check. Uses and removes only its own synthetic records.
+
+The optional model canary makes one synthetic board-generation request. No real
+meeting is joined, no audio is sent, and no Jira/email action is requested.
+"""
+import argparse
+import asyncio
+import datetime as dt
+import json
+import sys
+import time
+import uuid
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from httpx import AsyncClient
+from sqlalchemy import select, text
+from app.config import settings
+from app.database.db import async_session
+from app.database.models import CaptureRequest, MeetingAgentJob, MeetingBoard, User
+
+
+async def verify(args):
+    if not settings.bot_api_secret:
+        raise RuntimeError('Bot authentication is not configured')
+    report = {'model_canary_requested': args.model_canary}
+    async with async_session() as db:
+        report['agent_table'] = bool(await db.scalar(text("SELECT to_regclass('public.meeting_agent_jobs') IS NOT NULL")))
+        report['running_job_index'] = bool(await db.scalar(text("SELECT to_regclass('public.uq_agent_running_capture') IS NOT NULL")))
+    assert report['agent_table'] and report['running_job_index']
+    identifier = uuid.uuid4()
+    user_id = capture_id = None
+    try:
+        async with async_session() as db:
+            user = User(email=f'release-check-{identifier}@example.invalid', name='Synthetic release check', status='inactive')
+            db.add(user); await db.flush(); user_id=user.id
+            capture = CaptureRequest(user_id=user.id, platform='google_meet',
+                meeting_url='https://meet.google.com/aaa-bbbb-ccc', meeting_code=f'release-check-{identifier}',
+                title='Synthetic release check', status='capturing', consent_acknowledged_at=dt.datetime.now(dt.UTC))
+            db.add(capture); await db.flush(); capture_id=capture.id; await db.commit()
+        headers={'Authorization':f'Bot {settings.bot_api_secret}'}
+        async with AsyncClient(base_url=args.base_url, timeout=10) as client:
+            assert (await client.get('/health')).status_code == 200
+            url=f'/api/bot/capture-requests/{capture_id}/commands'
+            assert (await client.get(url)).status_code == 401
+            started=time.perf_counter()
+            result=await client.post(url,headers=headers,json={
+                'command_id':str(identifier),
+                'command':'Add exactly one idea named Release check to the board.' if args.model_canary else 'Open the meeting board.',
+                'tool':'edit_board' if args.model_canary else 'open_board',
+            })
+            assert result.status_code == 202, f'Admission status {result.status_code}'
+            report['admission_ms']=round((time.perf_counter()-started)*1000,2)
+            async with asyncio.timeout(settings.meeting_agent_timeout_seconds+5):
+                while True:
+                    response=await client.get(url+f'/{identifier}',headers=headers)
+                    assert response.status_code==200
+                    state=response.json()
+                    if state['state'] in {'succeeded','failed','cancelled','needs_input'}:
+                        report['agent_state']=state['state']; report['phase']=state['phase']
+                        assert state['state']=='succeeded',f"Agent state {state['state']} in phase {state['phase']}"
+                        break
+                    await asyncio.sleep(.25)
+            report['completion_ms']=round((time.perf_counter()-started)*1000,2)
+            async with async_session() as db:
+                job=await db.get(MeetingAgentJob,uuid.UUID(state['id']))
+                assert job.receipts
+                board=await db.scalar(select(MeetingBoard).where(MeetingBoard.capture_request_id==capture_id))
+                assert board is not None
+                if args.model_canary:
+                    assert any(node.get('title','').strip().lower()=='release check' for node in board.nodes)
+            assert (await client.post(url+f'/{identifier}/delivered',headers=headers)).status_code==200
+            report['authenticated_api_and_delivery']='ok'
+    finally:
+        async with async_session() as db:
+            if capture_id:
+                capture=await db.get(CaptureRequest,capture_id)
+                if capture:
+                    await db.delete(capture)
+            if user_id:
+                user=await db.get(User,user_id)
+                if user:
+                    await db.delete(user)
+            await db.commit()
+    report['synthetic_records_removed']=True
+    print(json.dumps(report,sort_keys=True))
+
+
+if __name__=='__main__':
+    parser=argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--base-url',default='http://127.0.0.1:8080')
+    parser.add_argument('--model-canary',action='store_true')
+    try:
+        asyncio.run(verify(parser.parse_args()))
+    except Exception as error:
+        # Never emit connection strings, API keys, or provider response bodies.
+        print('Agent release smoke failed:',type(error).__name__)
+        sys.exit(1)
