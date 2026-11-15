@@ -4,7 +4,7 @@ The approved v1 browser mascot now governs Wilco’s identity: soft pink, lilac 
 
 ## Layout
 
-Home starts with the user’s compact greeting and a single pastel welcome band containing the approved mascot and Invite Wilco. Record in person and Ask your meetings stay reachable as smaller shortcuts. Recent meetings, the real schedule, and the focused review queue remain useful working content.
+Home starts with the compact greeting and a pastel latest-meeting band containing the approved mascot, Review notes and Invite Wilco. A connected panel shows four urgent owned follow-ups with completion and Undo, plus honest progress across the owned tasks returned by the API. A compact schedule and a user-initiated memory question sit alongside it; recent notes use short rows below. Record in person, upload and optional voice setup remain reachable as utility links. Do not invent activity, completion goals or urgency to fill space.
 
 Desktop has a white sidebar and two content columns. Mobile has a bottom bar for Home, Meetings, Calendar, and Settings, plus a central invite button. The profile button opens full navigation so secondary tools remain reachable. Calendar has Ongoing, Upcoming, and History tabs, week controls, tappable dates, real meeting links, and the existing auto-invite switches.
 
@@ -29,9 +29,9 @@ Geist carries the interface; Mukta remains the Devanagari fallback. Use compact 
 
 ## Components
 
-- `RecordedMeetingCard` is shared by Home and Meetings. Keep processing and attention states visible.
+- `RecordedMeetingCard` remains the Meetings list card. Home uses compact recent-note rows; keep processing and attention states visible.
 - `MeetingPeople` shows initials from the actual attendee names. Do not substitute stock portraits for real identities.
-- `MeetingAgenda` is shared by Home and Calendar. Dates filter events; tabs select event state. Show connection and empty states when the calendar has no data.
+- `MeetingAgenda` has a compact Home mode with the next two live/upcoming events, and a full Calendar mode where dates filter events and tabs select event state. Show honest connection, empty and error states.
 - `MobileNavigation` reflects both pathname and calendar query state. Its central action opens the existing capture dialog.
 - Existing Base UI primitives handle dialogs, tabs, menus, and focus behaviour. Keep Lucide as the icon family.
 
@@ -40,6 +40,8 @@ Geist carries the interface; Mukta remains the Devanagari fallback. Use compact 
 Joining opens the event's meeting link. Inviting Wilco pre-fills the existing recording-consent form. A calendar's auto-invite switch uses the existing per-event API and reports failure without pretending the setting changed.
 
 One task, decision, or uncertain speaker is reviewed at a time. Inline edits and source evidence remain available. Uncertain speakers can stay unnamed; using a correction for future voice matching has a separate opt-in. Detailed transcripts and insights remain behind Full meeting.
+
+Home review counts require both meeting details and speaker data; failed reads must not imply confirmation. Task progress includes completed and open owned tasks, excludes delegated work, and does not claim a weekly goal. Home never generates an AI answer on load: a submitted or clicked question uses the existing Memory flow. See `docs/home-follow-through.md` for the behavioural rationale and validation.
 
 ## Motion and accessibility
 

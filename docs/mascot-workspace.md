@@ -17,3 +17,7 @@ Frontend TypeScript and production build pass. Twenty-one browser checks passed.
 Foreground/background, primary-action, secondary-copy/card and orange-action token pairs each exceed 4.5:1 contrast in light and dark themes. This is a targeted palette check, not a complete WCAG audit. ESLint remains blocked by the existing TypeScript 7 / typescript-eslint incompatibility.
 
 Actual build screenshots use local read-only/demo content and synthetic task fixtures. Generated UI sketches are separate reference images. The preview is at `http://localhost:3200/dashboard` and `/tasks?view=workspace`. This revision is a checked UI-branch checkpoint; it does not deploy the unfinished backend work or replace production automatically.
+
+## Home follow-through revision
+
+The latest Home density pass supersedes the welcome/agenda arrangement described above. See [home-follow-through.md](home-follow-through.md) for the compact latest-meeting banner, four visible follow-ups with honest progress and Undo, direct memory questions, recent-note rows and new browser checks. The mascot theme and Tasks Flow remain unchanged.

@@ -1,48 +1,46 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   ArrowRight,
-  Check,
-  ChevronLeft,
-  ChevronRight,
+  FileText,
+  Loader2,
   MessageSquareText,
   Mic,
+  Upload,
   Video,
 } from "lucide-react";
 import {
   api,
-  ApiError,
   type MeetingDetail,
   type MeetingSummary,
   type TaskListItem,
+  type TaskUpdateResponse,
   type VoiceProfileStatus,
 } from "@/lib/api";
-import { useAuth } from "@/lib/auth-context";
-import { compareByUrgency, formatDue, isMyTask } from "@/lib/tasks";
 import { WilcoMascot } from "@/components/brand";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { HomeFollowUps } from "@/components/home-follow-ups";
 import { MeetingAgenda } from "@/components/meeting-agenda";
-import { RecordedMeetingCard } from "@/components/recorded-meeting-card";
+import { MeetingPeople } from "@/components/meeting-people";
 import { isCaptureLive, useShell } from "@/components/shell/shell-context";
 
-type FocusItem =
-  | { kind: "voice" }
-  | { kind: "review"; meeting: MeetingSummary; count: number }
-  | { kind: "task"; task: TaskListItem };
+const questionHref = (question: string) =>
+  `/memory?q=${encodeURIComponent(question)}`;
 
 export default function HomePage() {
-  const { user } = useAuth();
+  const router = useRouter();
   const { captures, openNotetaker } = useShell();
   const [tasks, setTasks] = useState<TaskListItem[] | null>(null);
   const [meetings, setMeetings] = useState<MeetingSummary[] | null>(null);
   const [latest, setLatest] = useState<MeetingDetail | null>(null);
-  const [unknownSpeakers, setUnknownSpeakers] = useState(0);
+  const [unknownSpeakers, setUnknownSpeakers] = useState<number | null>(null);
   const [voice, setVoice] = useState<VoiceProfileStatus | null>(null);
-  const [cursor, setCursor] = useState(0);
-  const [busy, setBusy] = useState(false);
+  const [question, setQuestion] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -57,8 +55,12 @@ export default function HomePage() {
     if (meetingResult.status === "fulfilled") {
       setMeetings(meetingResult.value);
       const first = meetingResult.value.find(
-        (row) => row.processing_state !== "processing",
+        (row) =>
+          row.processing_state !== "processing" &&
+          row.processing_state !== "attention",
       );
+      setLatest(null);
+      setUnknownSpeakers(null);
       if (first) {
         void api
           .getMeeting(first.id)
@@ -74,13 +76,10 @@ export default function HomePage() {
             ),
           )
           .catch(() => undefined);
-      } else {
-        setLatest(null);
-        setUnknownSpeakers(0);
       }
     }
     if (taskResult.status === "rejected" || meetingResult.status === "rejected")
-      setError("Some of your briefing couldn't load.");
+      setError("Some of your work couldn’t load.");
     setLoading(false);
   }, []);
   useEffect(() => {
@@ -91,52 +90,37 @@ export default function HomePage() {
       .catch(() => undefined);
   }, [load]);
 
-  const queue = useMemo(() => {
-    const items: FocusItem[] = [];
-    const meeting = meetings?.find((row) => row.id === latest?.id);
-    if (latest && meeting) {
-      const count =
-        latest.tasks.filter((task) => !task.verified_at).length +
+  const recent =
+    meetings?.find((meeting) => meeting.id === latest?.id) ??
+    meetings?.find(
+      (meeting) =>
+        meeting.processing_state !== "processing" &&
+        meeting.processing_state !== "attention",
+    );
+  const reviewCount =
+    latest && unknownSpeakers !== null
+      ? latest.tasks.filter((task) => !task.verified_at).length +
         latest.decisions.filter((decision) => !decision.verified_at).length +
-        unknownSpeakers;
-      if (count) items.push({ kind: "review", meeting, count });
-    }
-    for (const task of (tasks ?? [])
-      .filter((row) => row.status !== "done" && isMyTask(row, user))
-      .sort(compareByUrgency))
-      items.push({ kind: "task", task });
-    if (voice?.available && !voice.enrolled) items.push({ kind: "voice" });
-    return items;
-  }, [latest, meetings, tasks, user, voice, unknownSpeakers]);
-  const position = Math.min(cursor, Math.max(0, queue.length - 1));
-  const active = queue[position];
+        unknownSpeakers
+      : null;
+  const reviewHref = recent
+    ? `/meetings/${recent.id}${reviewCount ? "?review=1" : ""}`
+    : null;
   const live = captures.filter(
     (item) => isCaptureLive(item) && item.subscribed !== false,
   );
-
-  async function finishTask(task: TaskListItem) {
-    setBusy(true);
-    setError(null);
-    try {
-      await api.updateTaskStatus(task.id, "done");
-      setTasks(
-        (current) => current?.filter((row) => row.id !== task.id) ?? null,
-      );
-      setCursor(0);
-    } catch (cause) {
-      setError(
-        cause instanceof ApiError
-          ? cause.message
-          : "Couldn't complete the task. Try again.",
-      );
-    } finally {
-      setBusy(false);
-    }
+  function updateTask(updated: TaskUpdateResponse) {
+    setTasks(
+      (current) =>
+        current?.map((task) =>
+          task.id === updated.id ? { ...task, ...updated } : task,
+        ) ?? null,
+    );
   }
 
   return (
-    <div className="meeting-dashboard">
-      <h1 className="sr-only">Your meetings</h1>
+    <div className="meeting-dashboard home-return-workspace">
+      <h1 className="sr-only">Your next steps</h1>
       {error && (
         <div className="dashboard-error" role="alert">
           <p>{error}</p>
@@ -145,224 +129,243 @@ export default function HomePage() {
           </button>
         </div>
       )}
-      <section className="mascot-welcome" aria-label="Meet Wilco">
+      <section
+        className="mascot-welcome home-review-banner"
+        aria-label="Meet Wilco"
+      >
         <div className="mascot-welcome-copy">
-          <h2>Bring Wilco to your next meeting.</h2>
-          <p>Leave with clear notes and a plan.</p>
-          <Button variant="brand" size="lg" onClick={() => openNotetaker()}><Video data-icon="inline-start" />Invite Wilco</Button>
+          <span className="home-review-label">
+            {recent
+              ? "Your latest meeting"
+              : meetings?.length === 0
+                ? "Start with a meeting"
+                : "Your meetings"}
+          </span>
+          {loading && meetings === null ? (
+            <Skeleton className="h-8 w-64 max-w-full" />
+          ) : (
+            <h2>
+              {recent?.title ??
+                (meetings === null
+                  ? "Your meeting notes"
+                  : "Bring Wilco to your next meeting.")}
+            </h2>
+          )}
+          {recent && (
+            <p>
+              {reviewCount === null
+                ? "Open the notes and follow-ups."
+                : reviewCount > 0
+                  ? `${reviewCount} details to confirm`
+                  : "Meeting details confirmed"}
+            </p>
+          )}
+          <div className="home-review-actions">
+            {recent && reviewHref && (
+              <Link
+                href={reviewHref}
+                className={buttonVariants({ variant: "brand" })}
+              >
+                <FileText data-icon="inline-start" aria-hidden="true" />
+                {reviewCount ? "Review notes" : "Open notes"}
+              </Link>
+            )}
+            <Button
+              variant={recent ? "outline" : "brand"}
+              onClick={() => openNotetaker()}
+            >
+              <Video data-icon="inline-start" aria-hidden="true" />
+              Invite Wilco
+            </Button>
+          </div>
         </div>
         <WilcoMascot className="welcome-mascot" />
       </section>
-      <div className="dashboard-columns">
-        <div className="dashboard-primary">
-          <section className="meeting-shortcuts" aria-label="Start with Wilco">
-            <div className="shortcut-stack">
-              <Link href="/record" className="shortcut-tile">
-                <span className="shortcut-icon" data-tone="record">
-                  <Mic aria-hidden="true" />
-                  <i />
-                </span>
-                <strong>
-                  Record in person
-                </strong>
-                <ArrowRight className="shortcut-arrow" aria-hidden="true" />
-              </Link>
-              <Link href="/memory" className="shortcut-tile">
-                <span className="shortcut-icon">
-                  <MessageSquareText aria-hidden="true" />
-                </span>
-                <strong>
-                  Ask your meetings
-                </strong>
-                <ArrowRight className="shortcut-arrow" aria-hidden="true" />
-              </Link>
-            </div>
-          </section>
 
-          {live.length > 0 && (
-            <section className="dashboard-live" aria-label="Ongoing recordings">
-              {live.map((capture) => (
-                <Link
-                  key={capture.id}
-                  href={
-                    capture.meeting_id
-                      ? `/meetings/${capture.meeting_id}`
-                      : "/meetings"
-                  }
-                >
-                  <span className="recording-dot" aria-hidden="true" />
-                  <span className="min-w-0 flex-1">
-                    <strong>{capture.title || capture.meeting_code}</strong>
-                    <small>{capture.status_label}</small>
-                  </span>
-                  <ChevronRight className="size-4" aria-hidden="true" />
-                </Link>
-              ))}
-            </section>
-          )}
+      {live.length > 0 && (
+        <section
+          className="dashboard-live home-live-strip"
+          aria-label="Ongoing recordings"
+        >
+          {live.map((capture) => (
+            <Link
+              key={capture.id}
+              href={
+                capture.meeting_id
+                  ? `/meetings/${capture.meeting_id}`
+                  : "/meetings"
+              }
+            >
+              <span className="recording-dot" aria-hidden="true" />
+              <strong>{capture.title || capture.meeting_code}</strong>
+              <small>{capture.status_label}</small>
+              <ArrowRight aria-hidden="true" />
+            </Link>
+          ))}
+        </section>
+      )}
 
-          <section aria-labelledby="recent-heading">
-            <div className="section-heading">
-              <h2 id="recent-heading">Recent meetings</h2>
-              <Link href="/meetings">View all</Link>
-            </div>
-            {loading ? (
-              <div className="flex flex-col gap-4">
-                <Skeleton className="h-48 rounded-3xl" />
-                <Skeleton className="h-48 rounded-3xl" />
-              </div>
-            ) : !meetings?.length ? (
-              <div className="recorded-empty">
-                <Video className="size-7 text-primary" aria-hidden="true" />
-                <h3>
-                  {meetings === null
-                    ? "Meetings couldn't load."
-                    : "Your first meeting starts here."}
-                </h3>
-                <p>Invite Wilco, record in person, or upload a recording.</p>
-                <Link
-                  href="/meetings/new?source=upload"
-                  className="violet-outline"
-                >
-                  Upload a recording
-                </Link>
-              </div>
-            ) : (
-              <div className="recorded-meeting-list">
-                {meetings.slice(0, 3).map((meeting) => {
-                  const review = queue.find(
-                    (item) =>
-                      item.kind === "review" && item.meeting.id === meeting.id,
-                  );
-                  return (
-                    <RecordedMeetingCard key={meeting.id} meeting={meeting} review={Boolean(review)} />
-                  );
-                })}
-              </div>
-            )}
-          </section>
-        </div>
-
-        <div className="dashboard-secondary">
-          <MeetingAgenda />
-          <section className="next-step-panel" aria-labelledby="focus-heading">
-            <div className="section-heading">
-              <h2 id="focus-heading">
-                Needs you{" "}
-                {queue.length > 0 && (
-                  <span className="small-count">{queue.length}</span>
-                )}
+      <div className="home-action-grid">
+        <HomeFollowUps
+          tasks={tasks}
+          loading={loading}
+          onUpdated={updateTask}
+          onRetry={() => void load()}
+        />
+        <div className="home-support-column">
+          <MeetingAgenda compact />
+          <section
+            className="home-work-panel home-memory-panel"
+            aria-labelledby="home-memory-heading"
+          >
+            <header className="home-panel-heading">
+              <h2 id="home-memory-heading">
+                <MessageSquareText aria-hidden="true" />
+                Find it in your meetings
               </h2>
-              <Link href="/tasks">All tasks</Link>
-            </div>
-            <div aria-live="polite" aria-busy={loading || busy}>
-              {loading ? (
-                <Skeleton className="h-28 rounded-2xl" />
-              ) : !active ? (
-                <div className="next-step-empty">
-                  <Check className="size-5 text-primary" aria-hidden="true" />
-                  <span>
-                    {error
-                      ? "Your briefing is on hold."
-                      : "You're all caught up."}
-                  </span>
-                </div>
-              ) : (
-                <div className="next-step-content">
-                  <span className="next-step-kind">
-                    {active.kind === "voice"
-                      ? "Optional setup"
-                      : active.kind === "review"
-                        ? `${active.count} items to confirm`
-                        : "Your next task"}
-                  </span>
-                  <h3>
-                    {active.kind === "voice"
-                      ? "Put a name to your voice"
-                      : active.kind === "review"
-                        ? active.meeting.title
-                        : active.task.description}
-                  </h3>
-                  <p>
-                    {active.kind === "voice"
-                      ? "Record once for clearer speaker names."
-                      : active.kind === "review"
-                        ? "Check decisions, owners and speakers."
-                        : formatDue(active.task)
-                          ? `Due ${formatDue(active.task)}`
-                          : active.task.meeting_title}
-                  </p>
-                  <div className="mt-4 flex flex-wrap items-center gap-3">
-                    {active.kind === "task" ? (
-                      <>
-                        <Button
-                          size="lg"
-                          onClick={() => void finishTask(active.task)}
-                          disabled={busy}
-                        >
-                          <Check data-icon="inline-start" />
-                          {busy ? "Saving…" : "Mark done"}
-                        </Button>
-                        <Link
-                          href={`/tasks?task=${active.task.id}`}
-                          className="text-xs text-muted-foreground"
-                        >
-                          Open task
-                        </Link>
-                      </>
-                    ) : (
-                      <Link
-                        href={
-                          active.kind === "voice"
-                            ? "/voice-setup"
-                            : `/meetings/${active.meeting.id}?review=1`
-                        }
-                        className="violet-button"
-                      >
-                        {active.kind === "voice"
-                          ? "Set up voice"
-                          : "Review meeting"}
-                        <ArrowRight className="size-3.5" aria-hidden="true" />
-                      </Link>
-                    )}
-                  </div>
-                </div>
+            </header>
+            <form
+              role="search"
+              aria-label="Ask meeting memory"
+              onSubmit={(event) => {
+                event.preventDefault();
+                if (question.trim()) router.push(questionHref(question.trim()));
+              }}
+            >
+              <label className="sr-only" htmlFor="home-memory-question">
+                Question about your meetings
+              </label>
+              <Input
+                id="home-memory-question"
+                value={question}
+                onChange={(event) => setQuestion(event.target.value)}
+                placeholder="What do you want to know?"
+              />
+              <Button
+                type="submit"
+                disabled={!question.trim()}
+                aria-label="Ask Wilco"
+              >
+                <ArrowRight aria-hidden="true" />
+              </Button>
+            </form>
+            <div className="home-question-links">
+              {recent && (
+                <Link
+                  href={questionHref(
+                    `What decisions were made in the meeting "${recent.title}"?`,
+                  )}
+                >
+                  Decisions from your latest meeting
+                  <ArrowRight aria-hidden="true" />
+                </Link>
               )}
+              <Link
+                href={questionHref(
+                  "Which follow-ups are still open from my meetings?",
+                )}
+              >
+                Which follow-ups are still open?
+                <ArrowRight aria-hidden="true" />
+              </Link>
             </div>
-            {queue.length > 1 && (
-              <div className="next-step-pagination">
-                <span>
-                  {position + 1} of {queue.length}
-                </span>
-                <div>
-                  <button
-                    type="button"
-                    aria-label="Previous item"
-                    disabled={position === 0}
-                    onClick={() => setCursor(position - 1)}
-                  >
-                    <ChevronLeft className="size-4" />
-                  </button>
-                  <button
-                    type="button"
-                    aria-label="Next item"
-                    disabled={position >= queue.length - 1}
-                    onClick={() => setCursor(position + 1)}
-                  >
-                    <ChevronRight className="size-4" />
-                  </button>
-                </div>
-              </div>
-            )}
           </section>
-          <Link href="/meetings/new?source=upload" className="upload-shortcut">
-            Have a recording already?{" "}
-            <span>
-              Upload it <ArrowRight className="size-3.5" aria-hidden="true" />
-            </span>
-          </Link>
+          <nav
+            className="home-utility-links"
+            aria-label="More ways to use Wilco"
+          >
+            <Link href="/record">
+              <Mic aria-hidden="true" />
+              Record in person
+            </Link>
+            <Link href="/meetings/new?source=upload">
+              <Upload aria-hidden="true" />
+              Upload recording
+            </Link>
+            {voice?.available && !voice.enrolled && (
+              <Link href="/voice-setup">Optional voice setup</Link>
+            )}
+          </nav>
         </div>
       </div>
+
+      <section
+        className="home-work-panel home-recent-panel"
+        aria-labelledby="recent-heading"
+      >
+        <header className="home-panel-heading">
+          <h2 id="recent-heading">Recent notes</h2>
+          <Link href="/meetings">
+            View all
+            <ArrowRight aria-hidden="true" />
+          </Link>
+        </header>
+        {loading && !meetings ? (
+          <Skeleton className="h-36 rounded-xl" />
+        ) : !meetings?.length ? (
+          <div className="home-small-empty">
+            <Video aria-hidden="true" />
+            <p>
+              {meetings === null
+                ? "Meetings couldn’t load."
+                : "Notes from your meetings will appear here."}
+            </p>
+            <Link href="/meetings/new?source=upload">Upload a recording</Link>
+          </div>
+        ) : (
+          <ul className="home-recent-list">
+            {meetings.slice(0, 3).map((meeting) => {
+              const processing = meeting.processing_state === "processing",
+                attention = meeting.processing_state === "attention";
+              return (
+                <li key={meeting.id}>
+                  <span className="home-note-icon">
+                    <FileText aria-hidden="true" />
+                  </span>
+                  <Link
+                    href={`/meetings/${meeting.id}${meeting.id === latest?.id && reviewCount ? "?review=1" : ""}`}
+                    className="home-note-title"
+                  >
+                    <strong>{meeting.title}</strong>
+                    <span>
+                      {new Date(meeting.date).toLocaleDateString(undefined, {
+                        day: "numeric",
+                        month: "short",
+                      })}
+                      {meeting.duration_minutes > 0
+                        ? ` · ${meeting.duration_minutes} min`
+                        : ""}
+                    </span>
+                  </Link>
+                  <span className="home-note-counts">
+                    {meeting.task_count} follow-ups
+                  </span>
+                  <MeetingPeople
+                    names={meeting.attendees.map((person) => person.name)}
+                  />
+                  <span className="home-note-status">
+                    {processing ? (
+                      <>
+                        <Loader2
+                          aria-hidden="true"
+                          className="animate-spin motion-reduce:animate-none"
+                        />
+                        Processing
+                      </>
+                    ) : attention ? (
+                      "Needs attention"
+                    ) : meeting.id === latest?.id && reviewCount ? (
+                      "Review"
+                    ) : (
+                      "Open notes"
+                    )}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </section>
     </div>
   );
 }
